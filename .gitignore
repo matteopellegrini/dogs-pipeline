@@ -1,0 +1,48 @@
+# ── Reference genomes & indexes ──────────────────────────────
+canFam4.fa
+canFam4.fa.gz
+canFam4.fa.fai
+canFam4_idx.*
+
+# ── Large panel / DB directories ─────────────────────────────
+dog10k_panel/
+vep_cache/
+metaphlan_db/
+metagenome/
+known_variants/
+
+# ── Per-dog analysis working directories ─────────────────────
+# (BAMs, BCFs, coverage TSVs, GLIMPSE chunks — all large)
+*/analysis/
+COSMO/glimpse2_dog10k/
+COSMO/analysis/
+
+# ── Raw sequencing data ───────────────────────────────────────
+*.fastq.gz
+*.fastq
+*.fq.gz
+
+# ── Alignment & variant files ─────────────────────────────────
+*.bam
+*.bam.bai
+*.bam.csi
+*.bcf
+*.bcf.csi
+*.vcf
+*.vcf.gz
+*.vcf.gz.csi
+*.vcf.gz.tbi
+
+# ── SnpEff reports (generated artefacts) ─────────────────────
+snpeff*.log
+snpeff_*.html
+snpeff_*.txt
+varcall.log
+
+# ── Misc large files ──────────────────────────────────────────
+*.xlsx
+*.bz2
+*.tsv
+
+# ── macOS ─────────────────────────────────────────────────────
+.DS_Store
