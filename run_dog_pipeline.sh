@@ -145,7 +145,7 @@ log "CNV coverage: $(wc -l < $OUT/coverage_cnv.tsv) windows"
 # ── Stage 6: Coverage + QC + CNV JSON ────────────────────────
 log "=== Stage 6: Coverage / QC / CNV JSON ==="
 python3 - << PYEOF
-import json, collections, statistics
+import json, collections, statistics, subprocess, re, os
 
 tsv_1mb  = "$OUT/coverage_1mb.tsv"
 tsv_cnv  = "$OUT/coverage_cnv.tsv"
@@ -225,6 +225,38 @@ for chrom in sorted(chrom_data, key=chrom_key):
         'median_depth': round(statistics.median(ds),1),
         'p10_depth': round(sorted(ds)[len(ds)//10],1),
         'n_bins': len(ds), 'low_bins': sum(1 for d in ds if d < 15)})
+# --- read stats from fastp.json + samtools flagstat ---
+read_stats = {}
+fastp_path = "$OUT/fastp.json"
+if os.path.exists(fastp_path):
+    with open(fastp_path) as _f:
+        fp = json.load(_f)
+    bf = fp['summary']['before_filtering']
+    af = fp['summary']['after_filtering']
+    read_stats['total_reads_raw']      = bf['total_reads']
+    read_stats['total_reads_after_qc'] = af['total_reads']
+    read_stats['total_bases_raw_gb']   = round(bf['total_bases'] / 1e9, 2)
+    read_stats['pct_q30_raw']          = round(bf['q30_rate'] * 100, 1)
+    hist = fp.get('insert_size', {}).get('histogram', [])
+    if hist:
+        h = hist[1:]  # skip index 0 (undetermined)
+        tot = sum(h)
+        if tot > 0:
+            read_stats['fragment_size_mean_bp'] = round(sum(i * c for i, c in enumerate(h, 1)) / tot)
+
+flagstat = subprocess.run(
+    ['samtools', 'flagstat', "$OUT/markdup.bam"],
+    capture_output=True, text=True).stdout
+for line in flagstat.splitlines():
+    if 'primary mapped' in line and 'primary duplicate' not in line:
+        m = re.match(r'(\d+)', line)
+        if m: read_stats['reads_mapped'] = int(m.group(1))
+    if 'primary duplicates' in line:
+        m = re.match(r'(\d+)', line)
+        if m and read_stats.get('total_reads_after_qc'):
+            read_stats['duplication_rate_pct'] = round(
+                int(m.group(1)) / read_stats['total_reads_after_qc'] * 100, 1)
+
 qc = {'genome_mean_depth': round(mean_d,1), 'genome_median_depth': round(median_d,1),
     'genome_std_depth': round(std_d,1), 'uniformity_cv': round(std_d/mean_d,3),
     'pct_bins_gt10x': pct[10], 'pct_bins_gt15x': pct[15],
@@ -233,7 +265,8 @@ qc = {'genome_mean_depth': round(mean_d,1), 'genome_median_depth': round(median_
     'chromosomes': chroms_out, 'qc_status': qc_status,
     'warning': None if pct[15] >= 95 else f"Only {pct[15]}% of 1Mb bins have ≥15x coverage.",
     'assessment': f"Mean genome coverage {mean_d:.1f}x across {len(depths)} 1Mb bins.",
-    'method': 'samtools bedcov over 1Mb bins'}
+    'method': 'samtools bedcov over 1Mb bins',
+    **read_stats}
 with open(f'{pub}/qc_result.json', 'w') as f:
     json.dump(qc, f, indent=2)
 print(f"qc_result.json: {qc_status}, mean={mean_d:.1f}x, cnv_window={cnv_win}bp")
