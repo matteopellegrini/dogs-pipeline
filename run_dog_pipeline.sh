@@ -233,10 +233,12 @@ if os.path.exists(fastp_path):
         fp = json.load(_f)
     bf = fp['summary']['before_filtering']
     af = fp['summary']['after_filtering']
-    read_stats['total_reads_raw']      = bf['total_reads']
-    read_stats['total_reads_after_qc'] = af['total_reads']
-    read_stats['total_bases_raw_gb']   = round(bf['total_bases'] / 1e9, 2)
-    read_stats['pct_q30_raw']          = round(bf['q30_rate'] * 100, 1)
+    read_stats['total_reads_raw']              = bf['total_reads']
+    read_stats['total_reads_after_qc']         = af['total_reads']
+    read_stats['total_bases_raw_gb']           = round(bf['total_bases'] / 1e9, 2)
+    read_stats['pct_q30_raw']                  = round(bf['q30_rate'] * 100, 1)
+    read_stats['read_length_bp']               = bf.get('read1_mean_length', bf.get('read_mean_length'))
+    read_stats['read_length_after_trimming_bp']= af.get('read1_mean_length', af.get('read_mean_length'))
     hist = fp.get('insert_size', {}).get('histogram', [])
     if hist:
         h = hist[1:]  # skip index 0 (undetermined)
