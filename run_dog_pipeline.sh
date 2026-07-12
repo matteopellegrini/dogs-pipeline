@@ -1516,6 +1516,9 @@ MIN_GP  = 0.80   # min max(GP) to trust a GLIMPSE2 call
 KNOWN_VARIANTS = [
     # E locus: MC1R (chr5)
     # e1: p.Arg306* (c.916C>T) — major recessive-red allele (loss-of-function)
+    # CAUTION: chr5:64186854 T allele has RAF~0.29 in Dog10K panel — likely tags a common haplotype
+    # near the e allele rather than being the causal variant itself. Validate any e/e call against
+    # observed phenotype; chocolate dogs have been miscalled e/e at this position.
     dict(locus='E', chrom='chr5', pos=64186854, exp_ref='C', exp_alt='T',
          allele='e', inheritance='recessive', effect='MC1R p.Arg306* — recessive red/yellow (nonsense)'),
     # Em: melanistic mask — dominant; tagging SNP at chr5:64188070
