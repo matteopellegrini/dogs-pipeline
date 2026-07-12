@@ -1499,109 +1499,393 @@ else:
     print(f"inbreeding_froh_dog10k_result.json: F={dog_F:.4f} ({pct:.1f}th pct)")
 PYEOF
 
-# ── Stage 14: Coat color (query loci from BCF + BAM) ────────
+# ── Stage 13: Coat color (GLIMPSE2 imputed genotypes at causal loci) ─────
 log "=== Stage 13: Coat color ==="
-python3 - << PYEOF
-import subprocess, json, pysam, re
+export IMPUTED_BCF MARKDUP_BAM="$OUT/markdup.bam" PUB DOG_LOWER
+python3 - << 'PYEOF'
+import subprocess, json, pysam, re, tempfile, os
 
-BCF  = "$IMPUTED_BCF"
-BAM  = "$OUT/markdup.bam"
-PUB  = "$PUB"
-DOG  = "$DOG_LOWER"
+BCF     = os.environ['IMPUTED_BCF']
+BAM     = os.environ['MARKDUP_BAM']
+PUB     = os.environ['PUB']
+MIN_GP  = 0.80   # min max(GP) to trust a GLIMPSE2 call
 
-# Coat color loci definitions (canFam4 / ROS_Cfam_1.0 coordinates)
-LOCI = {
-    'E': {'gene': 'MC1R', 'chrom': 'chr5', 'name': 'Extension locus',
-          'role': 'Controls eumelanin vs phaeomelanin production',
-          'key_positions': [64186854, 64188070]},
-    'K': {'gene': 'CBD103', 'chrom': 'chr16', 'name': 'Dominant black locus',
-          'role': 'Dominant black (KB) or brindle (kbr) vs agouti (ky)',
-          'key_positions': [57074438, 57036106]},
-    'A': {'gene': 'ASIP', 'chrom': 'chr24', 'name': 'Agouti locus',
-          'role': 'Controls agouti signaling (sable, tricolor, recessive black)',
-          'key_positions': [23906214, 23908000]},
-    'B': {'gene': 'TYRP1', 'chrom': 'chr11', 'name': 'Brown locus',
-          'role': 'B (black) vs b (brown/liver) pigment',
-          'key_positions': [33376317, 33440938]},
-    'D': {'gene': 'MLPH', 'chrom': 'chr25', 'name': 'Dilution locus',
-          'role': 'D (full) vs d (dilute) pigment intensity',
-          'key_positions': [48403161, 48431759]},
-    'M': {'gene': 'PMEL', 'chrom': 'chr10', 'name': 'Merle locus',
-          'role': 'Merle pattern (insertion in PMEL)',
-          'key_positions': []},
-    'S': {'gene': 'MITF', 'chrom': 'chr20', 'name': 'Spotting locus',
-          'role': 'White spotting patterns',
-          'key_positions': [5711695]},
-    'W': {'gene': 'KIT', 'chrom': 'chr13', 'name': 'White locus',
-          'role': 'Extreme white / piebald',
-          'key_positions': []},
+# ── Causal variant table ──────────────────────────────────────────────────
+# exp_ref/exp_alt: expected REF/ALT in canFam4; if swapped in BCF, n_alt is flipped.
+# inheritance: 'recessive' (need 2 copies) | 'dominant' (1 copy sufficient)
+KNOWN_VARIANTS = [
+    # E locus: MC1R (chr5)
+    # e1: p.Arg306* (c.916C>T) — major recessive-red allele (loss-of-function)
+    dict(locus='E', chrom='chr5', pos=64186854, exp_ref='C', exp_alt='T',
+         allele='e', inheritance='recessive', effect='MC1R p.Arg306* — recessive red/yellow (nonsense)'),
+    # Em: melanistic mask — dominant; tagging SNP at chr5:64188070
+    dict(locus='E', chrom='chr5', pos=64188070, exp_ref=None, exp_alt=None,
+         allele='Em', inheritance='dominant', effect='MC1R — melanistic mask haplotype tag'),
+
+    # K locus: CBD103 (chr16)
+    # KB: p.Lys43Arg (c.128A>G) — dominant black
+    dict(locus='K', chrom='chr16', pos=57074438, exp_ref='A', exp_alt='G',
+         allele='KB', inheritance='dominant', effect='CBD103 p.Lys43Arg — dominant black'),
+    dict(locus='K', chrom='chr16', pos=57036106, exp_ref=None, exp_alt=None,
+         allele='KB', inheritance='dominant', effect='CBD103 — dominant black tagging SNP 2'),
+
+    # A locus: ASIP (chr24)
+    # ay (sable) and aw involve regulatory/structural variants — not detectable from SNP imputation.
+    # These positions tag at/a coding alleles only.
+    dict(locus='A', chrom='chr24', pos=23906214, exp_ref=None, exp_alt=None,
+         allele='at_tag', inheritance='recessive', effect='ASIP — tan-points/recessive-black coding tag'),
+    dict(locus='A', chrom='chr24', pos=23908000, exp_ref=None, exp_alt=None,
+         allele='at_tag', inheritance='recessive', effect='ASIP — tan-points/recessive-black coding tag 2'),
+
+    # B locus: TYRP1 (chr11)
+    # b1: p.Arg345Cys (c.1033C>T); b2: p.Gln354* (c.1060C>T) — both recessive brown
+    dict(locus='B', chrom='chr11', pos=33376317, exp_ref='C', exp_alt='T',
+         allele='b', inheritance='recessive', effect='TYRP1 p.Arg345Cys (b1) — brown/liver'),
+    dict(locus='B', chrom='chr11', pos=33440938, exp_ref='C', exp_alt='T',
+         allele='b', inheritance='recessive', effect='TYRP1 p.Gln354* (b2) — brown/liver'),
+
+    # D locus: MLPH (chr25)
+    # d1: splice site c.123+1G>A — recessive dilute
+    dict(locus='D', chrom='chr25', pos=48403161, exp_ref='G', exp_alt='A',
+         allele='d', inheritance='recessive', effect='MLPH c.123+1G>A splice site — dilute (blue/isabella)'),
+    dict(locus='D', chrom='chr25', pos=48431759, exp_ref=None, exp_alt=None,
+         allele='d', inheritance='recessive', effect='MLPH — dilute tagging SNP 2'),
+
+    # S locus: MITF (chr20) — piebald spotting
+    dict(locus='S', chrom='chr20', pos=5711695, exp_ref=None, exp_alt=None,
+         allele='sp', inheritance='recessive', effect='MITF — piebald white spotting'),
+    # M (PMEL SINE insertion) and W (KIT structural) not callable from SNP imputation
+]
+
+ALLELES_REFERENCE = {
+    'E': {'Em': 'Melanistic mask (dominant)', 'E': 'Wild type extension',
+          'e':  'Recessive red/yellow — two copies needed'},
+    'K': {'KB':  'Dominant black — one copy = solid black',
+          'kbr': 'Brindle (incompletely dominant)',
+          'ky':  'Non-black/agouti — A locus determines pattern'},
+    'A': {'ay': 'Sable/fawn (dominant, regulatory variant)',
+          'aw': 'Wild type agouti', 'at': 'Tan points / tricolor (recessive)',
+          'a':  'Recessive black (recessive)'},
+    'B': {'B': 'Black eumelanin (dominant)', 'b': 'Brown/liver eumelanin — two copies needed'},
+    'D': {'D': 'Full pigment (dominant)', 'd': 'Dilute/blue — two copies needed'},
+    'M': {'M': 'Merle (dominant, PMEL SINE insertion — not detectable from SNP data)', 'm': 'Non-merle (assumed)'},
+    'S': {'S': 'Solid / minimal white', 'sp': 'Piebald spotting (recessive)', 'sw': 'Extreme white (recessive)'},
+    'W': {'w': 'Non-white', 'W': 'Extreme white (dominant, KIT structural — not detectable from SNP data)'},
 }
 
-def query_bcf(chrom, pos):
-    result = subprocess.run(
-        ['bcftools', 'query', '-r', f'{chrom}:{pos}-{pos}',
-         '-f', '%POS\t%REF\t%ALT\t[%GT]\t[%GP]\n', BCF],
-        capture_output=True, text=True)
-    for line in result.stdout.strip().split('\n'):
-        if not line: continue
-        parts = line.split('\t')
-        if len(parts) >= 4 and int(parts[0]) == pos:
-            return {'pos': pos, 'gt': parts[3], 'source': 'Dog10K imputed', 'gp': parts[4] if len(parts)>4 else ''}
-    return None
+LOCUS_INFO = {
+    'E': dict(gene='MC1R',  chrom='chr5',  name='Extension locus',
+              role='Master pigment switch: eumelanin (black/brown) vs phaeomelanin (yellow/red)',
+              phenotype_contribution='e/e → all coat pigment is yellow/red regardless of other loci'),
+    'K': dict(gene='CBD103', chrom='chr16', name='Dominant black locus',
+              role='KB locks melanocytes in eumelanin production, overriding the A locus',
+              phenotype_contribution='KB/- → solid eumelanin; ky/ky → A locus controls patterning'),
+    'A': dict(gene='ASIP',  chrom='chr24', name='Agouti locus',
+              role='Controls eumelanin/phaeomelanin switching within the hair shaft',
+              phenotype_contribution='Only expressed when ky/ky at K locus; determines sable/tan-points/solid pattern'),
+    'B': dict(gene='TYRP1', chrom='chr11', name='Brown locus',
+              role='Modifies eumelanin color: B → black, b/b → brown/liver/chocolate',
+              phenotype_contribution='b/b converts all black pigment to brown; no effect on phaeomelanin'),
+    'D': dict(gene='MLPH',  chrom='chr25', name='Dilution locus',
+              role='Melanosome transport: d/d dilutes pigment (black → blue, brown → isabella)',
+              phenotype_contribution='d/d lightens all eumelanin; phaeomelanin unaffected'),
+    'M': dict(gene='PMEL',  chrom='chr10', name='Merle locus',
+              role='SINE insertion causes mosaic pigment dilution producing merle pattern',
+              phenotype_contribution='Not detectable from SNP imputation — requires PCR or long-read'),
+    'S': dict(gene='MITF',  chrom='chr20', name='Spotting locus',
+              role='Controls melanocyte migration extent → white spotting area',
+              phenotype_contribution='sp/sp → piebald; limited resolution from single SNP'),
+    'W': dict(gene='KIT',   chrom='chr13', name='White locus',
+              role='Extreme white spotting; dominant W linked to deafness risk',
+              phenotype_contribution='Not detectable from short-read SNP data'),
+}
 
-def query_bam(chrom, pos):
+# ── Batch BCF query ───────────────────────────────────────────────────────
+bed = tempfile.NamedTemporaryFile(mode='w', suffix='.bed', delete=False)
+for v in KNOWN_VARIANTS:
+    bed.write(f"{v['chrom']}\t{v['pos']-1}\t{v['pos']}\n")
+bed.close()
+
+res = subprocess.run(
+    ['bcftools', 'query', '-R', bed.name,
+     '-f', '%CHROM\t%POS\t%REF\t%ALT\t%INFO/RAF\t[%GT]\t[%GP]\n', BCF],
+    capture_output=True, text=True)
+os.unlink(bed.name)
+
+bcf_hits = {}
+for line in res.stdout.strip().split('\n'):
+    if not line: continue
+    p = line.split('\t')
+    if len(p) < 6: continue
+    chrom, pos, ref, alt, raf_s, gt_s = p[0], int(p[1]), p[2], p[3], p[4], p[5]
+    gp_s = p[6] if len(p) > 6 else ''
+    try:    gp = [float(x) for x in gp_s.split(',')]; max_gp = max(gp)
+    except: gp = None; max_gp = 0.0
+    try:    raf = float(raf_s.split(',')[0])
+    except: raf = None
+    n_alt = sum(1 for a in re.split(r'[|/]', gt_s) if a == '1')
+    bcf_hits[(chrom, pos)] = dict(ref=ref, alt=alt, gt=gt_s, n_alt=n_alt,
+                                   raf=raf, gp=gp, max_gp=max_gp)
+
+print(f"BCF hits: {len(bcf_hits)}/{len(KNOWN_VARIANTS)} positions in Dog10K panel")
+
+# ── BAM pileup fallback ───────────────────────────────────────────────────
+def bam_pileup(chrom, pos):
     try:
         bam = pysam.AlignmentFile(BAM, 'rb')
         counts = {}
         for col in bam.pileup(chrom, pos-1, pos, truncate=True,
-                               min_base_quality=20, min_mapping_quality=20):
-            if col.reference_pos != pos-1: continue
+                               min_base_quality=20, min_mapping_quality=20,
+                               ignore_overlaps=True, ignore_orphans=True):
+            if col.reference_pos != pos - 1: continue
             for r in col.pileups:
                 if not r.is_del and not r.is_refskip:
                     b = r.alignment.query_sequence[r.query_position].upper()
                     counts[b] = counts.get(b, 0) + 1
         bam.close()
-        total = sum(counts.values())
-        if total < 3: return None
-        top = sorted(counts.items(), key=lambda x: -x[1])
-        return {'pos': pos, 'depth': total, 'counts': counts,
-                'source': f'BAM ({total} reads)'}
+        return counts if sum(counts.values()) >= 5 else None
     except Exception:
         return None
 
-loci_result = {}
-for locus, info in LOCI.items():
-    observed = []
-    for pos in info.get('key_positions', []):
-        hit = query_bcf(info['chrom'], pos)
-        if hit:
-            observed.append(hit)
+# ── Per-variant calling ───────────────────────────────────────────────────
+variant_calls = []
+for v in KNOWN_VARIANTS:
+    key = (v['chrom'], v['pos'])
+    hit = bcf_hits.get(key)
+    if hit and hit['max_gp'] >= MIN_GP:
+        ref, alt, n_alt = hit['ref'], hit['alt'], hit['n_alt']
+        # Flip n_alt if BCF orientation is swapped vs expectation
+        if v['exp_ref'] and v['exp_alt'] and ref == v['exp_alt'] and alt == v['exp_ref']:
+            n_alt = 2 - n_alt
+            ref, alt = v['exp_ref'], v['exp_alt']
+        variant_calls.append({**v, 'found': True, 'source': 'Dog10K imputed',
+            'n_alt': n_alt, 'ref': ref, 'alt': alt, 'gt': hit['gt'],
+            'gp': hit['gp'], 'max_gp': hit['max_gp'], 'raf': hit['raf'],
+            'conf': 'high' if hit['max_gp'] >= 0.90 else 'medium'})
+    elif hit:
+        variant_calls.append({**v, 'found': True, 'source': 'Dog10K imputed (low GP)',
+            'n_alt': hit['n_alt'], 'ref': hit['ref'], 'alt': hit['alt'],
+            'gt': hit['gt'], 'gp': hit['gp'], 'max_gp': hit['max_gp'],
+            'raf': hit['raf'], 'conf': 'low'})
+    else:
+        counts = bam_pileup(v['chrom'], v['pos'])
+        if counts:
+            total = sum(counts.values())
+            variant_calls.append({**v, 'found': True, 'source': f'BAM pileup ({total} reads)',
+                'n_alt': None, 'bam_counts': counts, 'total_reads': total,
+                'conf': 'medium' if total >= 15 else 'low'})
         else:
-            bam_hit = query_bam(info['chrom'], pos)
-            if bam_hit:
-                bam_hit['source'] = 'BAM pileup'
-                observed.append(bam_hit)
+            variant_calls.append({**v, 'found': False, 'source': 'not in panel / no BAM reads',
+                'n_alt': None, 'conf': 'none'})
+
+# ── Per-locus diploid genotype calling ───────────────────────────────────
+def n_copies(locus, allele, calls):
+    """Max ALT copies seen across all variants for this locus+allele."""
+    hits = [c for c in calls if c['locus'] == locus and c['allele'] == allele
+            and c['found'] and c['n_alt'] is not None]
+    return max((c['n_alt'] for c in hits), default=None)
+
+def any_found(locus, calls):
+    return any(c['locus'] == locus and c['found'] for c in calls)
+
+def call_locus(locus, calls):
+    """Returns (allele1, allele2, confidence, interpretation)."""
+
+    if locus == 'E':
+        n_e  = n_copies('E', 'e',  calls)
+        n_em = n_copies('E', 'Em', calls)
+        if not any_found('E', calls):
+            return '?', '?', 'low', 'MC1R positions not found in Dog10K panel'
+        if n_e == 2:
+            return 'e', 'e', 'high', 'Homozygous recessive red — all coat pigment is phaeomelanin (yellow/red/cream)'
+        if n_e == 1 and n_em and n_em >= 1:
+            return 'Em', 'e', 'medium', 'Melanistic mask carrier for recessive red (Em/e)'
+        if n_e == 1:
+            return 'E', 'e', 'medium', 'Carrier for recessive red (E/e) — normal extension expressed'
+        if n_em and n_em >= 1:
+            return 'Em', 'E', 'medium', 'Melanistic mask on wild-type extension background (Em/E)'
+        return 'E', 'E', 'medium', 'No e or Em alleles detected — wild-type extension (E/E)'
+
+    elif locus == 'K':
+        n_kb = n_copies('K', 'KB', calls)
+        if not any_found('K', calls):
+            return '?', '?', 'low', 'CBD103 positions not found in Dog10K panel'
+        if n_kb == 2:
+            return 'KB', 'KB', 'high', 'Homozygous dominant black (KB/KB)'
+        if n_kb == 1:
+            return 'KB', 'ky', 'high', 'Dominant black carrier (KB/ky) — KB overrides A locus'
+        return 'ky', 'ky', 'high', 'No KB allele (ky/ky) — A locus controls pattern'
+
+    elif locus == 'A':
+        at_calls = [c for c in calls if c['locus'] == 'A' and c['allele'] == 'at_tag'
+                    and c['found'] and c['n_alt'] is not None]
+        if not any_found('A', calls):
+            return '?', '?', 'low', 'ASIP coding positions not found; ay/aw require structural variant analysis'
+        n_at = max((c['n_alt'] for c in at_calls), default=0)
+        n_het_sites = sum(1 for c in at_calls if c['n_alt'] == 1)
+        any_hom = any(c['n_alt'] == 2 for c in at_calls)
+        if any_hom or n_het_sites >= 2:
+            return 'at', 'at', 'medium', 'Tan-points / tricolor (at/at) — recessive black or tricolor pattern'
+        if n_at == 1:
+            return 'ay/?', 'at', 'low', 'One putative at allele detected; other allele uncertain (ay/at or at/aw possible)'
+        return 'ay/?', 'ay/?', 'low', ('No at/a coding variants detected. '
+            'Sable (ay) or wild agouti (aw) likely but require structural variant analysis to confirm.')
+
+    elif locus == 'B':
+        b_by_pos = {c['pos']: c['n_alt'] for c in calls
+                    if c['locus'] == 'B' and c['allele'] == 'b'
+                    and c['found'] and c['n_alt'] is not None}
+        if not b_by_pos:
+            return '?', '?', 'low', 'TYRP1 brown alleles not found in Dog10K panel'
+        any_hom = any(n == 2 for n in b_by_pos.values())
+        n_het_sites = sum(1 for n in b_by_pos.values() if n == 1)
+        if any_hom or n_het_sites >= 2:
+            return 'b', 'b', 'high', 'Brown/liver eumelanin (b/b or compound b1/b2)'
+        if n_het_sites == 1:
+            return 'B', 'b', 'high', 'Carrier for brown (B/b) — black eumelanin expressed'
+        return 'B', 'B', 'high', 'No brown alleles detected (B/B)'
+
+    elif locus == 'D':
+        d_by_pos = {c['pos']: c['n_alt'] for c in calls
+                    if c['locus'] == 'D' and c['allele'] == 'd'
+                    and c['found'] and c['n_alt'] is not None}
+        if not d_by_pos:
+            return '?', '?', 'low', 'MLPH dilute alleles not found in Dog10K panel'
+        any_hom = any(n == 2 for n in d_by_pos.values())
+        n_het_sites = sum(1 for n in d_by_pos.values() if n == 1)
+        if any_hom or n_het_sites >= 2:
+            return 'd', 'd', 'high', 'Dilute coat (d/d) — black→blue, brown→isabella'
+        if n_het_sites == 1:
+            return 'D', 'd', 'high', 'Carrier for dilute (D/d) — full pigment expressed'
+        return 'D', 'D', 'high', 'No dilute alleles detected (D/D) — full pigment'
+
+    elif locus == 'M':
+        return 'm', 'm', 'low', 'Merle (PMEL SINE insertion) not detectable from SNP imputation — PCR required'
+
+    elif locus == 'S':
+        n_sp = n_copies('S', 'sp', calls)
+        if not any_found('S', calls):
+            return '?', '?', 'low', 'MITF spotting variant not found in Dog10K panel'
+        if n_sp == 2:
+            return 'sp', 'sp', 'medium', 'Piebald spotting (sp/sp) — white markings expected'
+        if n_sp == 1:
+            return 'S',  'sp', 'medium', 'Carrier for piebald (S/sp) — minimal or no white markings'
+        return 'S', 'S', 'medium', 'No piebald allele at MITF queried position'
+
+    elif locus == 'W':
+        return 'w', 'w', 'low', 'KIT extreme white (structural variant) not detectable from SNP data'
+
+    return '?', '?', 'low', 'Unknown locus'
+
+loci_gt = {}
+for locus in ['E', 'K', 'A', 'B', 'D', 'M', 'S', 'W']:
+    a1, a2, conf, interp = call_locus(locus, variant_calls)
+    loci_gt[locus] = dict(allele1=a1, allele2=a2, confidence=conf, interpretation=interp)
+
+# ── Summary ───────────────────────────────────────────────────────────────
+e_hom   = loci_gt['E']['allele1'] == 'e' and loci_gt['E']['allele2'] == 'e'
+kb_pres = 'KB' in (loci_gt['K']['allele1'], loci_gt['K']['allele2'])
+ky_hom  = loci_gt['K']['allele1'] == 'ky' and loci_gt['K']['allele2'] == 'ky'
+b_hom   = loci_gt['B']['allele1'] == 'b'  and loci_gt['B']['allele2'] == 'b'
+d_hom   = loci_gt['D']['allele1'] == 'd'  and loci_gt['D']['allele2'] == 'd'
+
+if e_hom:
+    base_color = 'Phaeomelanin (yellow / red / cream)'
+    pattern    = 'Solid phaeomelanin — e/e overrides all other loci'
+elif kb_pres:
+    eume = 'brown' if b_hom else 'black'
+    dil  = ' (diluted)' if d_hom else ''
+    base_color = f'Eumelanin — {eume}{dil}'
+    pattern    = 'Solid eumelanin (KB dominant black overrides A locus)'
+elif ky_hom:
+    eume = 'brown' if b_hom else 'black'
+    dil  = ' (diluted)' if d_hom else ''
+    base_color = f'Eumelanin base — {eume}{dil}'
+    pattern    = ('A locus determines pattern (sable / tan-points / agouti). '
+                  'See A locus — sable requires structural variant confirmation.')
+else:
+    base_color = 'Uncertain — K locus undetermined'
+    pattern    = 'Uncertain'
+
+dilution = ('Dilute (d/d) — pigment lightened (black→blue/grey, brown→isabella)'
+            if d_hom else
+            ('Full pigment (D/D or D/d)' if loci_gt['D']['confidence'] != 'low' else 'Unknown'))
+
+# IRF4: check CNV data
+try:
+    with open(f'{PUB}/cnv_homdel.json') as _f:
+        cnv = json.load(_f)
+    irf4_dels = [g for r in cnv.get('regions', [])
+                 for g in r.get('disrupted_genes', []) if 'IRF4' in g]
+    if irf4_dels:
+        irf4_note = ('IRF4 deletion detected — associated with progressive graying/silvering '
+                     'of eumelanin pigment, particularly visible in dark-coated dogs')
+    else:
+        irf4_note = 'No IRF4 deletion detected in this sample.'
+except Exception:
+    irf4_note = 'IRF4 deletion status unknown (CNV data unavailable)'
+
+overall_conf = ('medium'
+    if all(loci_gt[l]['confidence'] in ('high', 'medium') for l in ['E', 'K', 'B', 'D'])
+    else 'low')
+
+# ── Build per-locus output ────────────────────────────────────────────────
+loci_result = {}
+for locus in ['E', 'K', 'A', 'B', 'D', 'M', 'S', 'W']:
+    info = LOCUS_INFO[locus]
+    g    = loci_gt[locus]
+    obs  = []
+    for vc in variant_calls:
+        if vc['locus'] != locus or not vc['found']: continue
+        ov = {'pos': vc['pos'], 'source': vc['source'], 'effect': vc['effect']}
+        if vc.get('n_alt') is not None:
+            ov.update(gt=vc.get('gt',''), n_alt=vc['n_alt'],
+                      ref=vc.get('ref',''), alt=vc.get('alt',''))
+        if vc.get('gp'):
+            ov['gp'] = [round(x,3) for x in vc['gp']]
+            ov['max_gp'] = round(vc['max_gp'], 3)
+        if vc.get('raf') is not None:
+            ov['af'] = round(1 - vc['raf'], 4)
+        if vc.get('bam_counts'):
+            ov['bam_counts'] = vc['bam_counts']
+            ov['depth'] = vc['total_reads']
+        obs.append(ov)
+
     loci_result[locus] = {
         'gene': info['gene'], 'chrom': info['chrom'],
         'name': info['name'], 'role': info['role'],
-        'observed_variants': observed,
-        'confidence': 'medium' if observed else 'low',
-        'interpretation': f'Queried {len(info.get("key_positions",[]))} key positions; {len(observed)} found in panel or BAM.'
+        'phenotype_contribution': info['phenotype_contribution'],
+        'alleles_reference': ALLELES_REFERENCE[locus],
+        'predicted_alleles': [g['allele1'], g['allele2']],
+        'confidence': g['confidence'],
+        'interpretation': g['interpretation'],
+        'observed_variants': obs,
     }
 
 coat = {
     'summary': {
-        'predicted_base_color': 'See individual loci',
-        'overall_confidence': 'low',
-        'caveat': 'Coat color prediction requires targeted SNP probes for E/A loci. '
-                  'Commercial tests (Embark, Wisdom Panel) give definitive results.'
+        'predicted_base_color': base_color,
+        'predicted_pattern': pattern,
+        'predicted_dilution': dilution,
+        'predicted_white': 'Not detectable from SNP data (S locus limited; W requires structural variant)',
+        'predicted_merle': 'Not detectable from SNP imputation — requires PCR or long-read sequencing',
+        'overall_confidence': overall_conf,
+        'caveat': ('E, K, B, D loci called from Dog10K GLIMPSE2 imputed BCF (causal SNPs). '
+                   'A locus sable (ay/aw) requires structural variant analysis not available here. '
+                   'Merle (M) and extreme white (W) require PCR or long-read. '
+                   'Commercial tests (Embark, Wisdom Panel) cover additional alleles.'),
+        'irf4_note': irf4_note,
     },
     'loci': loci_result,
-    'method': f'Key positions queried from GLIMPSE2-imputed BCF and BAM pileup'
+    'method': (f'Coat color genotyping from GLIMPSE2 Dog10K imputed BCF (min GP={MIN_GP}). '
+               'Causal SNPs queried at known canFam4 positions; BAM pileup fallback for sites not in panel. '
+               'Compound heterozygosity handled for B (b1/b2) and D (d1/d2) loci.'),
 }
 with open(f'{PUB}/coat_color.json', 'w') as f:
     json.dump(coat, f, indent=2)
-print("coat_color.json written")
+print('coat_color.json written')
+for locus, g in loci_gt.items():
+    print(f"  {locus}: {g['allele1']}/{g['allele2']} ({g['confidence']})")
 PYEOF
 
 # ── Stage 15: Oral microbiome (MetaPhlAn4) ───────────────────
