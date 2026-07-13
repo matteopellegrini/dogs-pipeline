@@ -1956,11 +1956,19 @@ MICRO_BT2="$OUT/${DOG_LOWER}_metaphlan.mapout.bz2"
     log "  Unmapped reads: $((N_READS/4)) ($(wc -c < "$UNMAPPED_FQ" | awk '{printf "%.1f", $1/1e6}') MB)"
 
     log "  Running MetaPhlAn4…"
-    "$METAPHLAN_BIN" "$UNMAPPED_FQ" \
-        --input_type fastq \
-        --mapout "$MICRO_BT2" \
-        --nproc 4 \
-        -o "$MICRO_OUT"
+    if [[ -f "$MICRO_BT2" ]]; then
+        log "  Reusing existing mapout: $MICRO_BT2"
+        "$METAPHLAN_BIN" "$MICRO_BT2" \
+            --input_type mapout \
+            --nproc 4 \
+            -o "$MICRO_OUT"
+    else
+        "$METAPHLAN_BIN" "$UNMAPPED_FQ" \
+            --input_type fastq \
+            --mapout "$MICRO_BT2" \
+            --nproc 4 \
+            -o "$MICRO_OUT"
+    fi
 
     log "  Computing microbiome JSONs…"
     python3 - << PYEOF
@@ -1995,7 +2003,9 @@ with open(MICRO_OUT) as fh:
         if line.startswith('#'): continue
         parts = line.rstrip('\n').split('\t')
         if len(parts) < 2: continue
-        clade, pct = parts[0], float(parts[1])
+        clade = parts[0]
+        # MetaPhlAn 4.2.4+ added NCBI_tax_id as col 1; abundance is col 2 if present, else col 1
+        pct = float(parts[2]) if len(parts) >= 3 and parts[1].replace('|','').isdigit() else float(parts[1])
         ranks = [seg.split('__')[0] for seg in clade.split('|')]
         deepest = ranks[-1]
         if deepest not in rank_to_key: continue
