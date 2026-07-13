@@ -41,8 +41,9 @@ SNPEFF_DB="ROS_Cfam_1.115"   # SnpEff database for canFam4 / ROS_Cfam_1.0
 METAPHLAN_BIN="${METAPHLAN_BIN:-/Users/matteopellegrini/Library/Python/3.9/bin/metaphlan}"
 MICROBIOME_REF="$D/metagenome/merged_microbiome_age_weight_3.18_final.csv"
 
-MM="micromamba run -n genomics"
-MM_GLIMPSE="micromamba run -n glimpse_x86"
+MICROMAMBA="${MICROMAMBA_EXE:-$(command -v micromamba 2>/dev/null || echo "$HOME/bin/micromamba")}"
+MM="$MICROMAMBA run -n genomics"
+MM_GLIMPSE="$MICROMAMBA run -n glimpse_x86"
 NPROC=8
 GLIMPSE_PARALLEL=6
 
@@ -409,7 +410,7 @@ estimate_chunk() {
   local outfile="$GENO_DIR/${chr}_chunk${id}.bcf"
   [ -f "$outfile" ] && [ -f "${outfile}.csi" ] && { echo "SKIP ${chr}_chunk${id}"; return; }
   # GLIMPSE2_phase: estimates this dog's genotypes at panel positions using BAM reads + LD
-  micromamba run -n glimpse_x86 GLIMPSE2_phase \
+  $MM_GLIMPSE GLIMPSE2_phase \
     --bam-file      "$OUT/markdup.bam" \
     --reference     "$DOG10K_PANEL" \
     --fasta         "$FASTA" \
@@ -417,7 +418,7 @@ estimate_chunk() {
     --output-region "$oreg" \
     --threads 2 \
     --output "$outfile" 2>&1 | tail -1
-  micromamba run -n glimpse_x86 bcftools index -f "$outfile"
+  $MM_GLIMPSE bcftools index -f "$outfile"
   echo "DONE ${chr}_chunk${id}"
 }
 export -f estimate_chunk
