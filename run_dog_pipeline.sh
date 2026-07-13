@@ -214,12 +214,25 @@ for chrom, arr in raw.items():
     n = len(arr)
     cosmo_arr = cosmo_arr[:n] + [0.0] * max(0, n - len(cosmo_arr))
     panel_arr = panel_arr[:n] + [0.0] * max(0, n - len(panel_arr))
-    # chrX ratio normalised by sex-expected coverage so 1.0 = normal for this sex
-    norm = (kiki_median * chrx_norm) if chrom == 'chrX' else kiki_median
+    if chrom == 'chrX' and predicted_sex == 'male':
+        # PAR1 windows are diploid in males (depth ≈ autosomal); non-PAR windows are hemizygous (depth ≈ 0.5×).
+        # Use per-window normalization: above 0.75× autosomal → PAR1 → divide by kiki_median;
+        # below 0.75× autosomal → non-PAR → divide by kiki_median × 0.5, so both map to ratio 1.0.
+        par_thresh = kiki_median * 0.75
+        ratio_arr = []
+        for d in arr:
+            if d == 0:
+                ratio_arr.append(0.0)
+            elif d >= par_thresh:
+                ratio_arr.append(round(d / kiki_median, 4))        # PAR1: diploid norm
+            else:
+                ratio_arr.append(round(d / (kiki_median * 0.5), 4)) # non-PAR: hemizygous norm
+    else:
+        ratio_arr = [round(d / kiki_median, 4) if d > 0 else 0.0 for d in arr]
     result[chrom] = {
         'cosmo': [round(v, 4) for v in cosmo_arr],
         'panel': [round(v, 4) for v in panel_arr],
-        'ratio': [round(d / norm, 4) if d > 0 else 0.0 for d in arr],
+        'ratio': ratio_arr,
     }
 result['_meta'] = {'predicted_sex': predicted_sex, 'chrx_auto_ratio': round(x_auto_ratio, 3)}
 with open(f'{pub}/coverage_1mb.json', 'w') as f:
