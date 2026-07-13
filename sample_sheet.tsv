@@ -1,0 +1,5 @@
+sample_id	fastq_dir	age	output_name	work_dir	pub_dir	from_stage	sex	notes
+COSMO	/Users/matteopellegrini/Downloads/dogs/COSMO	3	cosmo	/Users/matteopellegrini/Downloads/dogs/COSMO/analysis	/Users/matteopellegrini/Downloads/dogs/dogs-app/public/cosmo	1
+COSMO2	/Users/matteopellegrini/Downloads/dogs/COSMO2	3	cosmo2	/Users/matteopellegrini/Downloads/dogs/COSMO2/analysis	/Users/matteopellegrini/Downloads/dogs/dogs-app/public/cosmo2	1
+Kiki	/Users/matteopellegrini/Downloads/dogs/Kiki	7	kiki	/Users/matteopellegrini/Downloads/dogs/Kiki/analysis	/Users/matteopellegrini/Downloads/dogs/dogs-app/public/kiki	1
+Kiki2	/Users/matteopellegrini/Downloads/dogs/Kiki	7	kiki2	/Users/matteopellegrini/Downloads/dogs/Kiki2/analysis	/Users/matteopellegrini/Downloads/dogs/dogs-app/public/kiki2	1		merged run1+run2

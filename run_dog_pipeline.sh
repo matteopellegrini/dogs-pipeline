@@ -1,25 +1,57 @@
 #!/usr/bin/env bash
 # ============================================================
 # run_dog_pipeline.sh  —  Full WGS → Dashboard pipeline
-# Usage: bash run_dog_pipeline.sh <DogName> [actual_age_years] [from_stage] [fastq_dir]
-# Example: bash run_dog_pipeline.sh Kiki 10
-# Example (resume from stage 10): bash run_dog_pipeline.sh COSMO2 "" 10
-# Example (rerun with new FASTQs, different output name):
-#   bash run_dog_pipeline.sh Kiki2 "" 1 Kiki
+#
+# Mode 1 — sample sheet (recommended):
+#   bash run_dog_pipeline.sh sample_sheet.tsv [row] [from_stage]
+#   Row defaults to 2 (first data row). TSV columns (tab-separated, header required):
+#     sample_id  fastq_dir  age  output_name  work_dir  pub_dir  from_stage  sex  notes
+#
+# Mode 2 — positional args (legacy):
+#   bash run_dog_pipeline.sh <DogName> [age] [from_stage] [fastq_dir]
+#
+# Sample sheet example (sample_sheet.tsv):
+#   sample_id  fastq_dir                     age  output_name  work_dir                pub_dir                        from_stage
+#   COSMO2     /path/to/COSMO2               3    cosmo2       /path/to/COSMO2/analysis /path/to/public/cosmo2        1
+#   Kiki2      /path/to/Kiki                 7    kiki2        /path/to/Kiki2/analysis  /path/to/public/kiki2         1
 # ============================================================
 set -euo pipefail
 
-# ── Configuration ────────────────────────────────────────────
-DOG_NAME="${1:?Usage: $0 <DogName> [actual_age_years] [from_stage] [fastq_dir]}"
-DOG_ACTUAL_AGE="${2:-}"          # optional: dog's chronological age at sample collection
-FROM_STAGE="${3:-1}"             # optional: resume from this stage number (default: 1)
-FASTQ_SRC="${4:-$DOG_NAME}"      # optional: FASTQ source dir name (default: same as DogName)
-DOG_LOWER=$(echo "$DOG_NAME" | tr '[:upper:]' '[:lower:]')
+D=/Users/matteopellegrini/Downloads/dogs   # base dir for default paths
 
-D=/Users/matteopellegrini/Downloads/dogs
-FASTQ_DIR=$D/$FASTQ_SRC              # directory containing raw FASTQ files
-OUT=$D/$DOG_NAME/analysis            # per-dog working directory
-PUB=$D/dogs-app/public/$DOG_LOWER    # dashboard output
+# ── Parse arguments: sample sheet or legacy positional ───────
+if [[ "${1:-}" == *.tsv ]]; then
+    SHEET="$1"
+    SHEET_ROW="${2:-2}"      # which data row to run (1-indexed including header, so 2 = first sample)
+    FROM_STAGE_ARG="${3:-}"
+
+    [[ -f "$SHEET" ]] || { echo "ERROR: sample sheet not found: $SHEET"; exit 1; }
+
+    _row() { awk -F'\t' -v r="$SHEET_ROW" 'NR==r {print $'"$1"'}' "$SHEET"; }
+    DOG_NAME=$(_row 1)
+    FASTQ_DIR=$(_row 2)
+    DOG_ACTUAL_AGE=$(_row 3)
+    DOG_LOWER=$(_row 4)
+    OUT=$(_row 5)
+    PUB=$(_row 6)
+    FROM_STAGE="${FROM_STAGE_ARG:-$(_row 7)}"
+    FROM_STAGE="${FROM_STAGE:-1}"
+
+    [[ -n "$DOG_NAME" ]]  || { echo "ERROR: empty sample_id in row $SHEET_ROW of $SHEET"; exit 1; }
+    [[ -n "$FASTQ_DIR" ]] || { echo "ERROR: empty fastq_dir in row $SHEET_ROW of $SHEET"; exit 1; }
+    [[ -n "$OUT" ]]       || OUT="$D/$DOG_NAME/analysis"
+    [[ -n "$PUB" ]]       || PUB="$D/dogs-app/public/$DOG_LOWER"
+else
+    # Legacy positional mode
+    DOG_NAME="${1:?Usage: $0 <sample_sheet.tsv> [row] [from_stage]  OR  $0 <DogName> [age] [from_stage] [fastq_dir]}"
+    DOG_ACTUAL_AGE="${2:-}"
+    FROM_STAGE="${3:-1}"
+    FASTQ_SRC="${4:-$DOG_NAME}"
+    DOG_LOWER=$(echo "$DOG_NAME" | tr '[:upper:]' '[:lower:]')
+    FASTQ_DIR=$D/$FASTQ_SRC
+    OUT=$D/$DOG_NAME/analysis
+    PUB=$D/dogs-app/public/$DOG_LOWER
+fi
 REF=$D/canFam4_idx                   # BWA-MEM2 index prefix
 FASTA=$D/canFam4.fa
 VEP_CACHE=$D/vep_cache

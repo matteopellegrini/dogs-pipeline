@@ -43,6 +43,7 @@ varcall.log
 *.xlsx
 *.bz2
 *.tsv
+!sample_sheet.tsv
 
 # ── macOS ─────────────────────────────────────────────────────
 .DS_Store
