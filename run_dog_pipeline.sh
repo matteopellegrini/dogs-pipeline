@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 # ============================================================
 # run_dog_pipeline.sh  —  Full WGS → Dashboard pipeline
-# Usage: bash run_dog_pipeline.sh <DogName> [actual_age_years]
+# Usage: bash run_dog_pipeline.sh <DogName> [actual_age_years] [from_stage]
 # Example: bash run_dog_pipeline.sh Kiki 10
+# Example (resume from stage 10): bash run_dog_pipeline.sh COSMO2 "" 10
 # ============================================================
 set -euo pipefail
 
 # ── Configuration ────────────────────────────────────────────
-DOG_NAME="${1:?Usage: $0 <DogName> [actual_age_years]}"
+DOG_NAME="${1:?Usage: $0 <DogName> [actual_age_years] [from_stage]}"
 DOG_ACTUAL_AGE="${2:-}"          # optional: dog's chronological age at sample collection
+FROM_STAGE="${3:-1}"             # optional: resume from this stage number (default: 1)
 DOG_LOWER=$(echo "$DOG_NAME" | tr '[:upper:]' '[:lower:]')
 
 D=/Users/matteopellegrini/Downloads/dogs
@@ -53,6 +55,11 @@ log " FASTQ dir: $FASTQ_DIR"
 log " Output:    $OUT"
 log " Public:    $PUB"
 log "========================================"
+
+# Pre-derive path variables so they're available when skipping early stages
+IMPUTED_BCF="$OUT/glimpse2/${DOG_LOWER}_imputed_dog10k.bcf"
+
+if (( FROM_STAGE <= 9 )); then
 
 # ── Stage 1: Merge FASTQ ─────────────────────────────────────
 log "=== Stage 1: Merge FASTQ lanes ==="
@@ -774,6 +781,8 @@ with open(f'{PUB}/breed_result.json', 'w') as f:
 print("breed_result.json written")
 PYEOF
 
+fi # end stages 1–9
+
 # ── Stage 10: Functional annotation (SnpEff) ────────────────
 log "=== Stage 10: SnpEff annotation ==="
 ANN_DIR="$OUT/snpeff"
@@ -781,7 +790,7 @@ mkdir -p "$ANN_DIR"
 
 # snpEff wrapper uses #!/usr/bin/env python and requires java — add both to PATH
 SNPEFF_ENV_BIN="$(dirname "$(command -v snpEff 2>/dev/null || echo "$D/../micromamba/envs/genomics/bin/snpEff")")"
-SNPEFF_JAVA="$(find "$SNPEFF_ENV_BIN/../lib/jvm/bin" -name java 2>/dev/null | head -1)"
+SNPEFF_JAVA="$(find "$SNPEFF_ENV_BIN/../lib/jvm/bin" -name java 2>/dev/null | head -1 || true)"
 [ -n "$SNPEFF_JAVA" ] && export PATH="$(dirname "$SNPEFF_JAVA"):$PATH"
 
 # SnpEff works directly with BCF/VCF; no chr-prefix stripping needed.
