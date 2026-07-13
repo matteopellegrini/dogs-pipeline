@@ -446,7 +446,7 @@ estimate_chunk() {
     --input-region  "$ireg" \
     --output-region "$oreg" \
     --threads 2 \
-    --output "$outfile" 2>&1 | tail -1
+    --output "$outfile" 2>&1 | grep -v "AC/AN INFO fields" | tail -1
   $MM_GLIMPSE bcftools index -f "$outfile"
   echo "DONE ${chr}_chunk${id}"
 }
