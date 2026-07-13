@@ -41,9 +41,12 @@ SNPEFF_DB="ROS_Cfam_1.115"   # SnpEff database for canFam4 / ROS_Cfam_1.0
 METAPHLAN_BIN="${METAPHLAN_BIN:-/Users/matteopellegrini/Library/Python/3.9/bin/metaphlan}"
 MICROBIOME_REF="$D/metagenome/merged_microbiome_age_weight_3.18_final.csv"
 
-MICROMAMBA="${MICROMAMBA_EXE:-$(command -v micromamba 2>/dev/null || echo "$HOME/bin/micromamba")}"
-MM="$MICROMAMBA run -n genomics"
-MM_GLIMPSE="$MICROMAMBA run -n glimpse_x86"
+# Use env bin dirs directly — avoids micromamba lock contention when multiple
+# tools run simultaneously in a pipe (bwa | samtools sort | fixmate | markdup).
+ENV_GENOMICS="$HOME/micromamba/envs/genomics"
+ENV_GLIMPSE="$HOME/micromamba/envs/glimpse_x86"
+MM="env PATH=$ENV_GENOMICS/bin:$PATH LD_LIBRARY_PATH=$ENV_GENOMICS/lib"
+MM_GLIMPSE="env PATH=$ENV_GLIMPSE/bin:$PATH LD_LIBRARY_PATH=$ENV_GLIMPSE/lib"
 NPROC=8
 GLIMPSE_PARALLEL=6
 
