@@ -1,20 +1,23 @@
 #!/usr/bin/env bash
 # ============================================================
 # run_dog_pipeline.sh  —  Full WGS → Dashboard pipeline
-# Usage: bash run_dog_pipeline.sh <DogName> [actual_age_years] [from_stage]
+# Usage: bash run_dog_pipeline.sh <DogName> [actual_age_years] [from_stage] [fastq_dir]
 # Example: bash run_dog_pipeline.sh Kiki 10
 # Example (resume from stage 10): bash run_dog_pipeline.sh COSMO2 "" 10
+# Example (rerun with new FASTQs, different output name):
+#   bash run_dog_pipeline.sh Kiki2 "" 1 Kiki
 # ============================================================
 set -euo pipefail
 
 # ── Configuration ────────────────────────────────────────────
-DOG_NAME="${1:?Usage: $0 <DogName> [actual_age_years] [from_stage]}"
+DOG_NAME="${1:?Usage: $0 <DogName> [actual_age_years] [from_stage] [fastq_dir]}"
 DOG_ACTUAL_AGE="${2:-}"          # optional: dog's chronological age at sample collection
 FROM_STAGE="${3:-1}"             # optional: resume from this stage number (default: 1)
+FASTQ_SRC="${4:-$DOG_NAME}"      # optional: FASTQ source dir name (default: same as DogName)
 DOG_LOWER=$(echo "$DOG_NAME" | tr '[:upper:]' '[:lower:]')
 
 D=/Users/matteopellegrini/Downloads/dogs
-FASTQ_DIR=$D/$DOG_NAME               # directory containing raw FASTQ files
+FASTQ_DIR=$D/$FASTQ_SRC              # directory containing raw FASTQ files
 OUT=$D/$DOG_NAME/analysis            # per-dog working directory
 PUB=$D/dogs-app/public/$DOG_LOWER    # dashboard output
 REF=$D/canFam4_idx                   # BWA-MEM2 index prefix
