@@ -190,6 +190,14 @@ for chrom in sorted(data, key=chrom_key):
 auto_depths = [d for c, arr in raw.items() if c != 'chrX' for d in arr if d > 0]
 kiki_median = _stats.median(auto_depths)
 
+# Sex determination: male = one X (depth ~0.5× autosomal), female = two X (~1.0×)
+x_depths = [d for d in raw.get('chrX', []) if d > 0]
+x_auto_ratio = _stats.median(x_depths) / kiki_median if x_depths else 1.0
+predicted_sex = 'male' if x_auto_ratio < 0.75 else 'female'
+# For ratio normalisation of chrX: divide by 0.5 for males so hemizygous X → 1.0
+chrx_norm = 0.5 if predicted_sex == 'male' else 1.0
+print(f"Sex determination: chrX/auto ratio = {x_auto_ratio:.3f} → {predicted_sex} (chrX norm divisor: {chrx_norm})")
+
 # Load COSMO reference (cosmo/panel reference tracks for tooltip)
 cosmo_ref_path = "$COSMO_PUB/coverage_1mb.json"
 try:
@@ -206,14 +214,17 @@ for chrom, arr in raw.items():
     n = len(arr)
     cosmo_arr = cosmo_arr[:n] + [0.0] * max(0, n - len(cosmo_arr))
     panel_arr = panel_arr[:n] + [0.0] * max(0, n - len(panel_arr))
+    # chrX ratio normalised by sex-expected coverage so 1.0 = normal for this sex
+    norm = (kiki_median * chrx_norm) if chrom == 'chrX' else kiki_median
     result[chrom] = {
         'cosmo': [round(v, 4) for v in cosmo_arr],
         'panel': [round(v, 4) for v in panel_arr],
-        'ratio': [round(d / kiki_median, 4) if d > 0 else 0.0 for d in arr],
+        'ratio': [round(d / norm, 4) if d > 0 else 0.0 for d in arr],
     }
+result['_meta'] = {'predicted_sex': predicted_sex, 'chrx_auto_ratio': round(x_auto_ratio, 3)}
 with open(f'{pub}/coverage_1mb.json', 'w') as f:
     json.dump(result, f)
-print(f"coverage_1mb.json: {len(result)} chromosomes, median depth {kiki_median:.2f}×")
+print(f"coverage_1mb.json: {len(result)-1} chromosomes, median depth {kiki_median:.2f}×, sex={predicted_sex}")
 
 # --- qc_result.json (derived from 1Mb windows) ---
 depths = [w[3] for w in windows_1mb]
