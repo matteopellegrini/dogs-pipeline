@@ -2185,15 +2185,37 @@ with open(f'{PUB}/microbiome_age_result.json', 'w') as fh:
 print(f"microbiome_age_result.json: predicted={pred_age:.1f} yrs, matched={len(matched_features)} features")
 
 # ── 5. Diversity & pathobiont health metrics ───────────────
-kiki_abund = np.array([kiki_species.get(f, 0.0) for f in matched_features])
+# Diversity comparison uses genus-level aggregation because the reference was
+# profiled with MetaPhlAn 3.18 (old NCBI taxonomy) while the sample uses
+# MetaPhlAn4/Jan25 (GTDB taxonomy). Phylum/class/order names differ between
+# versions, so full-clade species matching yields very few hits. Genus names
+# are stable across versions and give representative percentiles.
+
+# Build sample genus dict: sum species abundances per genus leaf name
+sample_genus_abund = {}
+for sp in taxa['species']:
+    if '|g__' in sp['clade']:
+        g_leaf = sp['clade'].split('|g__')[-1].split('|')[0]
+        sample_genus_abund[g_leaf] = sample_genus_abund.get(g_leaf, 0.0) + sp['relative_abundance'] / scale
+
+# Reference genus columns (leaf name → column); prevalence-filter at >10%
+g_cols_all = [c for c in df.columns if '|g__' in c and '|s__' not in c and '|t__' not in c]
+g_prev = (df[g_cols_all] > 0).mean()
+g_filtered = g_prev[g_prev > 0.10].index.tolist()
+g_leaf_map = {c: c.split('|g__')[-1] for c in g_filtered}   # col → leaf
+
+matched_genera = [c for c in g_filtered if g_leaf_map[c] in sample_genus_abund]
+print(f"Matched genera (>10% prevalence): {len(matched_genera)}")
+
+kiki_abund = np.array([sample_genus_abund.get(g_leaf_map[c], 0.0) for c in matched_genera])
 kiki_richness = int((kiki_abund > 0).sum())
 nz = kiki_abund[kiki_abund > 0]
 kiki_shannon = float(entropy(nz / nz.sum())) if len(nz) > 0 else 0.0
 
-ref_richness_vec = (df[matched_features] > 0).sum(axis=1).values
+ref_richness_vec = (df[matched_genera] > 0).sum(axis=1).values
 ref_shannon_vec  = np.array([
     entropy(row[row > 0] / row[row > 0].sum()) if (row > 0).any() else 0.0
-    for row in df[matched_features].values
+    for row in df[matched_genera].values
 ])
 
 richness_pct = round(percentileofscore(ref_richness_vec, kiki_richness, kind='rank'), 1)
@@ -2264,7 +2286,8 @@ health_result = {
     'ref_shannon_p25':        s_p25,
     'ref_shannon_p50':        s_p50,
     'ref_shannon_p75':        s_p75,
-    'n_matched_species':      len(matched_features),
+    'n_matched_genera':       len(matched_genera),
+    'diversity_note':         'Genus-level comparison (ref: MetaPhlAn 3.18; sample: MetaPhlAn4 Jan25)',
     'pathobiont_burden_pct':  round(pathobiont_total, 3),
     'pathobiont_percentile':  path_pct,
     'commensal_pct':          round(commensal_pct, 3),
@@ -2277,7 +2300,7 @@ health_result = {
 }
 with open(f'{PUB}/microbiome_health_result.json', 'w') as fh:
     json.dump(health_result, fh, indent=2)
-print(f"microbiome_health_result.json: richness={kiki_richness} ({richness_pct}th pct), "
+print(f"microbiome_health_result.json: genus_richness={kiki_richness}/{len(matched_genera)} ({richness_pct}th pct), "
       f"shannon={kiki_shannon:.3f} ({shannon_pct}th pct), pathobionts={pathobiont_total:.1f}%")
 PYEOF
 
