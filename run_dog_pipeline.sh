@@ -783,6 +783,8 @@ PYEOF
 
 fi # end stages 1–9
 
+if (( FROM_STAGE <= 13 )); then
+
 # ── Stage 10: Functional annotation (SnpEff) ────────────────
 log "=== Stage 10: SnpEff annotation ==="
 ANN_DIR="$OUT/snpeff"
@@ -1935,12 +1937,14 @@ for locus, g in loci_gt.items():
     print(f"  {locus}: {g['allele1']}/{g['allele2']} ({g['confidence']})")
 PYEOF
 
+fi # end stages 10–13
+
 # ── Stage 15: Oral microbiome (MetaPhlAn4) ───────────────────
 log "=== Stage 15: Oral microbiome (MetaPhlAn4) ==="
 BAM_FOR_MICRO="$OUT/markdup.bam"
 UNMAPPED_FQ="$OUT/${DOG_LOWER}_unmapped.fastq"
 MICRO_OUT="$OUT/${DOG_LOWER}_metaphlan.txt"
-MICRO_BT2="$OUT/${DOG_LOWER}_metaphlan.bt2.bz2"
+MICRO_BT2="$OUT/${DOG_LOWER}_metaphlan.mapout.bz2"
 
     [[ -f "$BAM_FOR_MICRO" ]] || die "markdup.bam not found at $BAM_FOR_MICRO"
     [[ -f "$MICROBIOME_REF" ]] || die "Microbiome reference CSV not found at $MICROBIOME_REF"
@@ -1954,7 +1958,7 @@ MICRO_BT2="$OUT/${DOG_LOWER}_metaphlan.bt2.bz2"
     log "  Running MetaPhlAn4…"
     "$METAPHLAN_BIN" "$UNMAPPED_FQ" \
         --input_type fastq \
-        --bowtie2out "$MICRO_BT2" \
+        --mapout "$MICRO_BT2" \
         --nproc 4 \
         -o "$MICRO_OUT"
 
