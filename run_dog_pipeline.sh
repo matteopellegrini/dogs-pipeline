@@ -2262,7 +2262,8 @@ for clade_suffix in PATHOBIONTS:
             path_cols.append(c)
             break
 if path_cols:
-    ref_path_vec = df[path_cols].sum(axis=1).values
+    # Reference CSV is in fractions (0-1); convert to % to match pathobiont_total units
+    ref_path_vec = df[path_cols].sum(axis=1).values * 100.0
 else:
     ref_path_vec = np.zeros(len(df))
 path_pct = round(percentileofscore(ref_path_vec, pathobiont_total, kind='rank'), 1)
