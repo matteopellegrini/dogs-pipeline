@@ -161,19 +161,21 @@ $MM samtools bedcov "$OUT/windows_1mb.bed" "$OUT/markdup.bam" > "$OUT/coverage_1
 log "1Mb coverage: $(wc -l < $OUT/coverage_1mb.tsv) windows"
 
 # 5b — estimate mean depth from 1Mb data, then compute adaptive CNV window
-# Formula: window = round(10000 * 2 / mean_depth), i.e. 10kb at 2x scales linearly
+# Artifact rejection is handled by the 6-dog reference panel (ref_depth_pct), so windows
+# can be small enough to detect known deletions (~50-100kb at 2-6x depth).
+# Formula: w = max(15000, 50000 / mean) → 23kb @ 2x, 15kb @ 3x+
+# A deletion must occupy ~85% of the window to cross the <15% depth threshold.
 CNV_WINDOW=$(awk '
   { bases+=$4; size+=($3-$2) }
   END {
     mean = bases/size
-    w = int(10000 * 2 / mean + 0.5)
-    # clamp to [1000, 500000]
-    if (w < 1000) w = 1000
-    if (w > 500000) w = 500000
+    w = int(50000 / mean + 0.5)
+    if (w < 15000)  w = 15000
+    if (w > 200000) w = 200000
     print w
   }
 ' "$OUT/coverage_1mb.tsv")
-log "Adaptive CNV window: ${CNV_WINDOW} bp (scaled from 10kb@2x)"
+log "Adaptive CNV window: ${CNV_WINDOW} bp (50000/mean, min 15kb, max 200kb)"
 
 awk -v w="$CNV_WINDOW" 'BEGIN{OFS="\t"} $1~/^chr([0-9]+|X)$/ {
   for(s=0; s<$2; s+=w)
