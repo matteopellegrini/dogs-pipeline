@@ -345,8 +345,8 @@ raw_dels = [{'chrom': c, 'start': s, 'end': e, 'depth': round(d,2),
              'norm': round(d/mean_d2,3), 'window_bp': cnv_win}
             for c,s,e,d in windows_cnv if d < hom_del_thresh]
 
-# Load gene annotations and 1Mb panel coverage for region enrichment
-import json as _json
+# Load gene annotations and current sample's 1Mb coverage
+import json as _json, glob as _glob, os as _os
 try:
     with open(f'{pub}/cnv_genes.json') as _f: gene_map = _json.load(_f)
 except Exception: gene_map = {}
@@ -354,9 +354,17 @@ try:
     with open(f'{pub}/coverage_1mb.json') as _f: cov_1mb = _json.load(_f)
 except Exception: cov_1mb = {}
 
-# Panel mean depth for pct calculations
-all_panel = [v for c in cov_1mb.values() for v in c.get('panel', []) if v > 0]
-panel_mean = sum(all_panel)/len(all_panel) if all_panel else 1.0
+# Load reference panel coverage (pooled alignment of reference dogs)
+ref_panel_path = "$D/reference_panel/coverage_1mb.json"
+ref_panel = {}
+try:
+    with open(ref_panel_path) as _f:
+        ref_panel = _json.load(_f)
+    n_ref_dogs = ref_panel.get('_meta', {}).get('n_dogs', '?')
+    print(f"Panel-of-normals: loaded {ref_panel_path} ({n_ref_dogs} reference dogs)")
+except Exception as e:
+    print(f"WARNING: could not load reference panel from {ref_panel_path}: {e}")
+    print("ref_depth_pct will be None for all regions")
 
 # All genes across all chroms
 all_genes = [g for gs in gene_map.values() for g in gs]
@@ -374,12 +382,12 @@ regions = []; disrupted_all = {}
 for r in merged:
     size_bp = r['end'] - r['start']
     avg_norm = sum(r['norms']) / len(r['norms'])
-    # Panel pct at overlapping 1Mb bins
-    chrom_cov = cov_1mb.get(r['chrom'], {}); panel_arr = chrom_cov.get('panel', [])
+    # Reference depth from pooled reference panel at overlapping 1Mb bins
     smb, emb = r['start']//1_000_000, r['end']//1_000_000
-    pvals = [panel_arr[i] for i in range(smb, min(emb+1, len(panel_arr))) if panel_arr[i] > 0]
-    # None = no panel coverage in this bin (telomere/centromere); distinct from 0% which would be a true signal
-    panel_pct = round(sum(pvals)/len(pvals)/panel_mean*100) if pvals else None
+    ref_chrom_d = ref_panel.get(r['chrom'], {})
+    ratio_arr = ref_chrom_d.get('ratio', []) if isinstance(ref_chrom_d, dict) else []
+    rvals = [ratio_arr[i] for i in range(smb, min(emb+1, len(ratio_arr))) if ratio_arr[i] > 0]
+    ref_depth_pct = round(sum(rvals)/len(rvals)*100) if rvals else None
     # Disrupted genes
     chrom_num = r['chrom'].replace('chr','')
     disrupted = []
@@ -394,21 +402,37 @@ for r in merged:
     if size_bp < 50_000 and not disrupted: continue
     size_str = (f"{size_bp/1e6:.2f}Mb" if size_bp >= 1_000_000
                 else f"{size_bp//1000}kb" if size_bp >= 1000 else f"{size_bp}bp")
+    # Classify: ref_depth_pct < 80 → mappability artefact in reference panel too
+    is_artefact = ref_depth_pct is not None and ref_depth_pct < 80
+    verdict = 'mappability_artefact' if is_artefact else 'putative_deletion'
     regions.append({'chrom': r['chrom'], 'start': r['start'], 'end': r['end'], 'size': size_str,
-                    'sample_pct_mean': round(avg_norm*100), 'panel_pct_mean': panel_pct,
-                    'disrupted_genes': disrupted, 'verdict': 'putative_deletion'})
+                    'sample_pct_mean': round(avg_norm*100), 'ref_depth_pct': ref_depth_pct,
+                    'disrupted_genes': disrupted, 'verdict': verdict})
+
+real_regions = [r for r in regions if r['verdict'] != 'mappability_artefact']
+artefact_regions = [r for r in regions if r['verdict'] == 'mappability_artefact']
+# Only include disrupted genes from real (non-artefact) regions
+real_gene_names = {g for r in real_regions for g in r['disrupted_genes']}
+real_disrupted = {k: v for k, v in disrupted_all.items() if k in real_gene_names}
 
 win_kb = round(cnv_win/1000, 1)
+ref_meta = ref_panel.get('_meta', {})
+n_ref_dogs = ref_meta.get('n_dogs', '?')
 cnv_out = {
-    'regions': regions, 'disrupted_genes': list(disrupted_all.values()), 'artefact_regions': [],
+    'regions': real_regions, 'disrupted_genes': list(real_disrupted.values()),
+    'artefact_regions': artefact_regions,
     'summary': {
-        'total_regions': len(regions), 'unique_genes': len(disrupted_all),
-        'method': (f'Adaptive CNV window ({win_kb}kb), depth normalised to Dog10K panel mean. '
-                   'Ratio<0.15 threshold for homozygous deletion calling.'),
+        'total_regions': len(real_regions), 'unique_genes': len(real_disrupted),
+        'method': (f'Adaptive CNV window ({win_kb}kb), depth normalised to genome-wide mean. '
+                   f'Ratio<0.15 threshold for homozygous deletion. '
+                   f'Ref depth from pooled reference panel ({n_ref_dogs} dogs); '
+                   f'regions with ref_depth_pct<80% classified as mappability artefacts.'),
         'min_detectable_kb': round(win_kb*2), 'calling_resolution_kb': win_kb,
-        'panel_note': (f'{len(regions)} putative deletion region(s) from normalized coverage. '
-                       'No NELK artefact-control sample — mappability artefacts may be present.'),
-        'artefact_note': 'No NELK artefact control; artefact filtering not applied.',
+        'panel_note': (f'{len(real_regions)} putative deletion region(s) after artefact filtering '
+                       f'({len(artefact_regions)} artefact region(s) excluded). '
+                       f'Ref depth = normalised coverage in {n_ref_dogs}-dog reference panel.'),
+        'artefact_note': (f'{len(artefact_regions)} region(s) with ref_depth_pct<80% are canFam4 '
+                          f'mappability artefacts (low coverage in the reference panel too).'),
     }
 }
 with open(f'{pub}/cnv_homdel.json', 'w') as f:
