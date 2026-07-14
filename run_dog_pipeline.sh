@@ -378,7 +378,8 @@ for r in merged:
     chrom_cov = cov_1mb.get(r['chrom'], {}); panel_arr = chrom_cov.get('panel', [])
     smb, emb = r['start']//1_000_000, r['end']//1_000_000
     pvals = [panel_arr[i] for i in range(smb, min(emb+1, len(panel_arr))) if panel_arr[i] > 0]
-    panel_pct = round(sum(pvals)/len(pvals)/panel_mean*100) if pvals else 0
+    # None = no panel coverage in this bin (telomere/centromere); distinct from 0% which would be a true signal
+    panel_pct = round(sum(pvals)/len(pvals)/panel_mean*100) if pvals else None
     # Disrupted genes
     chrom_num = r['chrom'].replace('chr','')
     disrupted = []
