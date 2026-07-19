@@ -396,10 +396,13 @@ for r in merged:
     for g in gene_map.get(chrom_num, []):
         if g['end'] < r['start'] or g['start'] > r['end']: continue
         ov = 'full' if g['start'] >= r['start'] and g['end'] <= r['end'] else 'partial'
+        exon_ov = 'exonic' if any(es < r['end'] and ee > r['start']
+                                  for es, ee in g.get('exons', [])) else 'intronic'
         disrupted.append(g['name'])
         if g['name'] not in disrupted_all:
             disrupted_all[g['name']] = {'gene': g['name'], 'biotype': g['biotype'],
-                'chrom': r['chrom'], 'start': g['start'], 'end': g['end'], 'overlap': ov}
+                'chrom': r['chrom'], 'start': g['start'], 'end': g['end'],
+                'overlap': ov, 'exon_overlap': exon_ov}
     # Only keep ≥50kb regions or gene-disrupting ones
     if size_bp < 50_000 and not disrupted: continue
     size_str = (f"{size_bp/1e6:.2f}Mb" if size_bp >= 1_000_000
