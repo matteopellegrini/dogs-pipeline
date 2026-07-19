@@ -1760,8 +1760,10 @@ KNOWN_VARIANTS = [
 
     # B locus: TYRP1 (chr11)
     # b1: p.Arg345Cys (c.1033C>T); b2: p.Gln354* (c.1060C>T) — both recessive brown
-    dict(locus='B', chrom='chr11', pos=33376317, exp_ref='C', exp_alt='T',
+    # b1 allele: p.Arg345Cys. BCF encodes on the + strand as ref=T, alt=A (AF≈8% in Dog10K panel).
+    dict(locus='B', chrom='chr11', pos=33376317, exp_ref='T', exp_alt='A',
          allele='b', inheritance='recessive', effect='TYRP1 p.Arg345Cys (b1) — brown/liver'),
+    # b2 allele: p.Gln354*. BCF encodes on the + strand as ref=C, alt=T (AF≈53% in Dog10K panel).
     dict(locus='B', chrom='chr11', pos=33440938, exp_ref='C', exp_alt='T',
          allele='b', inheritance='recessive', effect='TYRP1 p.Gln354* (b2) — brown/liver'),
 
