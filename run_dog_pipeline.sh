@@ -2062,34 +2062,102 @@ if (e_gt['allele1'] == 'e' and e_gt['allele2'] == 'e'
     loci_gt['E'] = {**e_gt, 'interpretation': updated_interp,
                     'proxy_false_positive_prediction': alt_color}
 
-# ── Summary ───────────────────────────────────────────────────────────────
-e_hom   = loci_gt['E']['allele1'] == 'e' and loci_gt['E']['allele2'] == 'e'
-kb_pres = 'KB' in (loci_gt['K']['allele1'], loci_gt['K']['allele2'])
-ky_hom  = loci_gt['K']['allele1'] == 'ky' and loci_gt['K']['allele2'] == 'ky'
-b_hom   = loci_gt['B']['allele1'] == 'b'  and loci_gt['B']['allele2'] == 'b'
-d_hom   = loci_gt['D']['allele1'] == 'd'  and loci_gt['D']['allele2'] == 'd'
+# ── Phenotype prediction: hierarchical epistasis protocol ─────────────────
+# Implements the standard five-locus diagnostic hierarchy:
+#   Step 2: B + D  → eumelanin base pigment (black / chocolate / blue / isabella)
+#   Step 3 Tier 1: E locus  → e/e = cream/yellow, terminate
+#   Step 3 Tier 2: K locus  → KB = solid eumelanin, terminate; kbr = brindle modifier
+#   Step 3 Tier 3: A locus  → sable / agouti / tan-points / recessive black
 
-if e_hom:
-    base_color = 'Phaeomelanin (yellow / red / cream)'
-    pattern    = 'Solid phaeomelanin — e/e overrides all other loci'
-elif kb_pres:
-    eume = 'brown' if b_hom else 'black'
-    dil  = ' (diluted)' if d_hom else ''
-    base_color = f'Eumelanin — {eume}{dil}'
-    pattern    = 'Solid eumelanin (KB dominant black overrides A locus)'
-elif ky_hom:
-    eume = 'brown' if b_hom else 'black'
-    dil  = ' (diluted)' if d_hom else ''
-    base_color = f'Eumelanin base — {eume}{dil}'
-    pattern    = ('A locus determines pattern (sable / tan-points / agouti). '
-                  'See A locus — sable requires structural variant confirmation.')
-else:
-    base_color = 'Uncertain — K locus undetermined'
-    pattern    = 'Uncertain'
+def predict_phenotype(loci_gt):
+    e1, e2 = loci_gt['E']['allele1'], loci_gt['E']['allele2']
+    k1, k2 = loci_gt['K']['allele1'], loci_gt['K']['allele2']
+    a1, a2 = loci_gt['A']['allele1'], loci_gt['A']['allele2']
+    b1, b2 = loci_gt['B']['allele1'], loci_gt['B']['allele2']
+    d1, d2 = loci_gt['D']['allele1'], loci_gt['D']['allele2']
 
-dilution = ('Dilute (d/d) — pigment lightened (black→blue/grey, brown→isabella)'
-            if d_hom else
-            ('Full pigment (D/D or D/d)' if loci_gt['D']['confidence'] != 'low' else 'Unknown'))
+    # Step 2: eumelanin base pigment (B + D)
+    is_bb = b1 == 'b' and b2 == 'b'
+    is_dd = d1 == 'd' and d2 == 'd'
+    if is_bb and is_dd:
+        eume_color = 'isabella/lilac'
+        nose_color = 'isabella/lilac nose and pads'
+    elif is_bb:
+        eume_color = 'chocolate'
+        nose_color = 'liver/brown nose and pads'
+    elif is_dd:
+        eume_color = 'blue/grey'
+        nose_color = 'blue/grey nose and pads'
+    else:
+        eume_color = 'black'
+        nose_color = 'black nose and pads'
+
+    # Step 3 Tier 1: E locus — e/e = recessive red, overrides all other loci
+    is_e_hom = e1 == 'e' and e2 == 'e'
+    has_em   = 'Em' in (e1, e2)
+
+    if is_e_hom:
+        base_color = (f'Phaeomelanin — cream / yellow / red '
+                      f'(e/e overrides K, A, B loci for coat; {nose_color} from B/D loci)')
+        pattern = ('Solid phaeomelanin coat — no eumelanin in hair regardless of K or A locus. '
+                   f'Skin pigment ({nose_color}) is determined by B and D loci independently.')
+        dilution = 'Not applicable to coat (phaeomelanin unaffected by D locus)'
+        return base_color, pattern, dilution
+
+    # Step 3 Tier 2: K locus — KB = solid eumelanin
+    has_KB  = 'KB' in (k1, k2)
+    has_kbr = 'kbr' in (k1, k2)
+    is_ky_hom = k1 == 'ky' and k2 == 'ky'
+    mask_note = ' with melanistic mask (Em)' if has_em else ''
+
+    if has_KB:
+        base_color = f'Eumelanin — solid {eume_color}'
+        pattern = (f'Solid {eume_color}{mask_note} — KB dominant black suppresses A locus entirely. '
+                   f'{nose_color.capitalize()}.')
+        dil_str = (f'Dilute (d/d) — {eume_color} coat' if is_dd
+                   else f'Full pigment (D/D or D/d)')
+        return base_color, pattern, dil_str
+
+    # Step 3 Tier 3: A locus (reached only when ky/ky or kbr/ky)
+    brindle = ' brindled' if has_kbr else ''
+
+    has_Ay = 'ay' in (a1, a2)
+    has_aw = 'aw' in (a1, a2)
+    has_at = 'at' in (a1, a2)
+    is_a   = a1 == 'a' and a2 == 'a'
+
+    dil_str = (f'Dilute (d/d) — {eume_color} eumelanin' if is_dd
+               else 'Full pigment (D/D or D/d)')
+
+    if has_Ay:
+        base_color = f'Eumelanin base — {eume_color}; phaeomelanin coat (sable/fawn)'
+        pattern = (f'{eume_color.capitalize()}-based{brindle} sable/fawn{mask_note} — '
+                   f'predominantly phaeomelanin (yellow/red/cream) coat with {eume_color}-tipped hairs. '
+                   f'{nose_color.capitalize()}. '
+                   f'Note: ay requires structural variant confirmation (not in Dog10K panel).')
+    elif has_aw:
+        base_color = f'Eumelanin base — {eume_color}; agouti banding (wolf sable)'
+        pattern = (f'{eume_color.capitalize()}-based{brindle} wolf sable / agouti{mask_note} — '
+                   f'individual hairs banded with alternating {eume_color} and phaeomelanin. '
+                   f'{nose_color.capitalize()}.')
+    elif has_at:
+        base_color = f'Eumelanin — {eume_color} with tan points'
+        pattern = (f'{eume_color.capitalize()}-based{brindle} tan points{mask_note} — '
+                   f'{eume_color} body with phaeomelanin markings on muzzle, eyebrows, chest, '
+                   f'inner ears, and lower legs. {nose_color.capitalize()}.')
+    elif is_a:
+        base_color = f'Eumelanin — solid {eume_color} (recessive black)'
+        pattern = (f'Solid {eume_color}{mask_note} via recessive black (a/a) — '
+                   f'A locus bypasses phaeomelanin expression entirely. {nose_color.capitalize()}.')
+    else:
+        base_color = f'Eumelanin base — {eume_color} (A locus undetermined)'
+        pattern = (f'{eume_color.capitalize()}-based{brindle} coat{mask_note}; '
+                   f'A locus pattern unknown (sable/agouti/tan-points require structural variant analysis). '
+                   f'{nose_color.capitalize()}.')
+
+    return base_color, pattern, dil_str
+
+base_color, pattern, dilution = predict_phenotype(loci_gt)
 
 # IRF4: check CNV data
 try:
