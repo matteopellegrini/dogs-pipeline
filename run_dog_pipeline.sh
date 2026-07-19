@@ -1992,7 +1992,15 @@ def call_locus(locus, calls):
         if any_hom or n_het_sites >= 2:
             return 'b', 'b', 'high', 'Brown/liver eumelanin (b/b or compound b1/b2)'
         if n_het_sites == 1:
-            return 'B', 'b', 'high', 'Carrier for brown (B/b) — black eumelanin expressed'
+            # One b allele detected. The Dog10K panel only covers b1 (p.Arg345Cys) and
+            # b2 (p.Gln354*). A dog that appears chocolate may carry b1/b3 or b1/b4
+            # compound het where the second allele is absent from the panel. Cannot
+            # distinguish B/b carrier from b/b compound het from panel data alone.
+            return 'b', '?', 'low', ('One b allele detected (heterozygous). The Dog10K panel '
+                'covers b1 (p.Arg345Cys) and b2 (p.Gln354*) only — a second b allele at '
+                'an unqueried position (b3, b4, or other TYRP1 variant) cannot be excluded. '
+                'Genotype is B/b (carrier, black eumelanin) OR b/b compound het (chocolate) '
+                'if a second allele is present outside the panel.')
         return 'B', 'B', 'high', 'No brown alleles detected (B/B)'
 
     elif locus == 'D':
@@ -2079,14 +2087,22 @@ def predict_phenotype(loci_gt):
     d1, d2 = loci_gt['D']['allele1'], loci_gt['D']['allele2']
 
     # Step 2: eumelanin base pigment (B + D)
-    is_bb = b1 == 'b' and b2 == 'b'
-    is_dd = d1 == 'd' and d2 == 'd'
+    # b/? means one b allele confirmed, second allele unknown (could be B or another b).
+    is_bb    = b1 == 'b' and b2 == 'b'
+    is_b_unk = (b1 == 'b' and b2 == '?') or (b1 == '?' and b2 == 'b')
+    is_dd    = d1 == 'd' and d2 == 'd'
     if is_bb and is_dd:
         eume_color = 'isabella/lilac'
         nose_color = 'isabella/lilac nose and pads'
     elif is_bb:
         eume_color = 'chocolate'
         nose_color = 'liver/brown nose and pads'
+    elif is_b_unk and is_dd:
+        eume_color = 'isabella/lilac or blue/grey'
+        nose_color = 'isabella/lilac or blue/grey nose and pads (b allele status uncertain)'
+    elif is_b_unk:
+        eume_color = 'chocolate or black'
+        nose_color = 'liver/brown or black nose and pads (b allele status uncertain)'
     elif is_dd:
         eume_color = 'blue/grey'
         nose_color = 'blue/grey nose and pads'
