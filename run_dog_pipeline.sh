@@ -392,17 +392,19 @@ for r in merged:
     ref_depth_pct = round(sum(rvals)/len(rvals)*100) if rvals else None
     # Disrupted genes
     chrom_num = r['chrom'].replace('chr','')
-    disrupted = []
+    disrupted = []; disrupted_details = []
     for g in gene_map.get(chrom_num, []):
         if g['end'] < r['start'] or g['start'] > r['end']: continue
         ov = 'full' if g['start'] >= r['start'] and g['end'] <= r['end'] else 'partial'
         exon_ov = 'exonic' if any(es < r['end'] and ee > r['start']
                                   for es, ee in g.get('exons', [])) else 'intronic'
+        detail = {'gene': g['name'], 'biotype': g['biotype'],
+                  'chrom': r['chrom'], 'start': g['start'], 'end': g['end'],
+                  'overlap': ov, 'exon_overlap': exon_ov}
         disrupted.append(g['name'])
+        disrupted_details.append(detail)
         if g['name'] not in disrupted_all:
-            disrupted_all[g['name']] = {'gene': g['name'], 'biotype': g['biotype'],
-                'chrom': r['chrom'], 'start': g['start'], 'end': g['end'],
-                'overlap': ov, 'exon_overlap': exon_ov}
+            disrupted_all[g['name']] = detail
     # Only keep ≥50kb regions or gene-disrupting ones
     if size_bp < 50_000 and not disrupted: continue
     size_str = (f"{size_bp/1e6:.2f}Mb" if size_bp >= 1_000_000
@@ -412,7 +414,8 @@ for r in merged:
     verdict = 'mappability_artefact' if is_artefact else 'putative_deletion'
     regions.append({'chrom': r['chrom'], 'start': r['start'], 'end': r['end'], 'size': size_str,
                     'sample_pct_mean': round(avg_norm*100), 'ref_depth_pct': ref_depth_pct,
-                    'disrupted_genes': disrupted, 'verdict': verdict})
+                    'disrupted_genes': disrupted, 'disrupted_gene_details': disrupted_details,
+                    'verdict': verdict})
 
 real_regions = [r for r in regions if r['verdict'] != 'mappability_artefact']
 artefact_regions = [r for r in regions if r['verdict'] == 'mappability_artefact']
