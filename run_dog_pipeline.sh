@@ -2317,7 +2317,7 @@ MICRO_BT2="$OUT/${DOG_LOWER}_metaphlan.mapout.bz2"
 
     # Extract unmapped reads to avoid OOM on large BAMs
     log "  Extracting unmapped reads from BAM…"
-    $MM samtools fastq -f 4 -@ 4 "$BAM_FOR_MICRO" > "$UNMAPPED_FQ"
+    "$ENV_GENOMICS/bin/samtools" fastq -f 4 -@ 4 "$BAM_FOR_MICRO" > "$UNMAPPED_FQ"
     N_READS=$(wc -l < "$UNMAPPED_FQ")
     log "  Unmapped reads: $((N_READS/4)) ($(wc -c < "$UNMAPPED_FQ" | awk '{printf "%.1f", $1/1e6}') MB)"
 
