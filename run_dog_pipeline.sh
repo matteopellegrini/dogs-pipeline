@@ -95,19 +95,8 @@ echo 0 > "$PEAK_MEM_FILE"
 # Background process: poll RSS of this process tree every 10 s and record peak
 (
   while kill -0 $$ 2>/dev/null; do
-    # Sum RSS (kB) of all descendants of the pipeline's process group
-    rss_kb=$(ps -A -o ppid=,rss= 2>/dev/null \
-      | awk -v top=$$ '
-          function walk(pid,    c,r) {
-            r = rss[pid]
-            for (c in child[pid]) r += walk(child[pid][c])
-            return r
-          }
-          { rss[$2]+=$3; child[$1][$2]=$2 }   # wrong field order — fix below
-        ' 2>/dev/null || echo 0)
-    # Simpler: just sum all processes in our session
-    rss_kb=$(ps -A -o pid=,rss= 2>/dev/null \
-      | awk -v sid="$(ps -o sid= -p $$)" 'BEGIN{t=0} {t+=$2} END{print t}')
+    # Sum RSS of all processes owned by current user (macOS-compatible)
+    rss_kb=$(ps -u "$(id -u)" -o rss= 2>/dev/null | awk 'BEGIN{t=0} {t+=$1} END{print t}')
     cur=$(cat "$PEAK_MEM_FILE")
     if (( rss_kb > cur )); then echo "$rss_kb" > "$PEAK_MEM_FILE"; fi
     sleep 10
@@ -981,10 +970,12 @@ log "=== Stage 10: SnpEff annotation ==="
 ANN_DIR="$OUT/snpeff"
 mkdir -p "$ANN_DIR"
 
-# snpEff wrapper uses #!/usr/bin/env python and requires java — add both to PATH
-SNPEFF_ENV_BIN="$(dirname "$(command -v snpEff 2>/dev/null || echo "$D/../micromamba/envs/genomics/bin/snpEff")")"
-SNPEFF_JAVA="$(find "$SNPEFF_ENV_BIN/../lib/jvm/bin" -name java 2>/dev/null | head -1 || true)"
+# snpEff requires java — find it in the conda env or fall back to system java
+SNPEFF_JAVA="$(find "$ENV_GENOMICS/lib/jvm/bin" -name java 2>/dev/null | head -1 || true)"
+[ -z "$SNPEFF_JAVA" ] && SNPEFF_JAVA="$(command -v java 2>/dev/null || true)"
 [ -n "$SNPEFF_JAVA" ] && export PATH="$(dirname "$SNPEFF_JAVA"):$PATH"
+log "Java: ${SNPEFF_JAVA:-NOT FOUND}"
+[ -z "$SNPEFF_JAVA" ] && die "java not found — required for SnpEff"
 
 # SnpEff works directly with BCF/VCF; no chr-prefix stripping needed.
 # -canon: use only canonical transcripts (one effect per variant)
