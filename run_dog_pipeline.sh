@@ -88,6 +88,53 @@ LOG=$OUT/pipeline.log
 log() { echo "[$(date '+%H:%M:%S')] $*" | tee -a "$LOG"; }
 die() { log "ERROR: $*"; exit 1; }
 
+PIPELINE_START=$(date +%s)
+PEAK_MEM_FILE=$(mktemp)
+echo 0 > "$PEAK_MEM_FILE"
+
+# Background process: poll RSS of this process tree every 10 s and record peak
+(
+  while kill -0 $$ 2>/dev/null; do
+    # Sum RSS (kB) of all descendants of the pipeline's process group
+    rss_kb=$(ps -A -o ppid=,rss= 2>/dev/null \
+      | awk -v top=$$ '
+          function walk(pid,    c,r) {
+            r = rss[pid]
+            for (c in child[pid]) r += walk(child[pid][c])
+            return r
+          }
+          { rss[$2]+=$3; child[$1][$2]=$2 }   # wrong field order — fix below
+        ' 2>/dev/null || echo 0)
+    # Simpler: just sum all processes in our session
+    rss_kb=$(ps -A -o pid=,rss= 2>/dev/null \
+      | awk -v sid="$(ps -o sid= -p $$)" 'BEGIN{t=0} {t+=$2} END{print t}')
+    cur=$(cat "$PEAK_MEM_FILE")
+    if (( rss_kb > cur )); then echo "$rss_kb" > "$PEAK_MEM_FILE"; fi
+    sleep 10
+  done
+) &
+MEM_POLL_PID=$!
+
+# Print runtime + peak memory summary on exit (normal or error)
+_finish() {
+  kill "$MEM_POLL_PID" 2>/dev/null || true
+  local end=$(date +%s)
+  local elapsed=$(( end - PIPELINE_START ))
+  local h=$(( elapsed / 3600 ))
+  local m=$(( (elapsed % 3600) / 60 ))
+  local s=$(( elapsed % 60 ))
+  local peak_kb=$(cat "$PEAK_MEM_FILE" 2>/dev/null || echo 0)
+  local peak_mb=$(( peak_kb / 1024 ))
+  local peak_gb
+  peak_gb=$(awk "BEGIN{printf \"%.1f\", $peak_kb/1048576}")
+  rm -f "$PEAK_MEM_FILE"
+  log "========================================"
+  log " Total runtime : ${h}h ${m}m ${s}s"
+  log " Peak memory   : ${peak_mb} MB (${peak_gb} GB)"
+  log "========================================"
+}
+trap _finish EXIT
+
 log "========================================"
 log " Pipeline start: $DOG_NAME"
 log " FASTQ dir: $FASTQ_DIR"
@@ -2572,8 +2619,6 @@ PRS, inbreeding, and coat color for $DOG_NAME.
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 git push
 
-log "========================================"
 log " Pipeline complete: $DOG_NAME"
 log " Dashboard: dogs-app/public/$DOG_LOWER/"
-log "========================================"
 echo "DONE" > "$OUT/pipeline.done"
