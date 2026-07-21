@@ -970,28 +970,32 @@ log "=== Stage 10: SnpEff annotation ==="
 ANN_DIR="$OUT/snpeff"
 mkdir -p "$ANN_DIR"
 
-# snpEff requires java — find it in the conda env or fall back to system java
+# snpEff wrapper (conda python script) needs python + java in PATH
 SNPEFF_JAVA="$(find "$ENV_GENOMICS/lib/jvm/bin" -name java 2>/dev/null | head -1 || true)"
 [ -z "$SNPEFF_JAVA" ] && SNPEFF_JAVA="$(command -v java 2>/dev/null || true)"
-[ -n "$SNPEFF_JAVA" ] && export PATH="$(dirname "$SNPEFF_JAVA"):$PATH"
-log "Java: ${SNPEFF_JAVA:-NOT FOUND}"
 [ -z "$SNPEFF_JAVA" ] && die "java not found — required for SnpEff"
+export PATH="$ENV_GENOMICS/bin:$(dirname "$SNPEFF_JAVA"):$PATH"
+log "Java: $SNPEFF_JAVA"
 
 # SnpEff works directly with BCF/VCF; no chr-prefix stripping needed.
 # -canon: use only canonical transcripts (one effect per variant)
 # -noStats: skip the HTML/CSV summary report (faster)
 # -noLog: suppress usage reporting
 # SnpEff cannot read BCF; pipe bcftools view to convert on the fly
-$MM bcftools view "$IMPUTED_BCF" \
-  | $MM snpEff ann \
+# Use explicit paths to avoid $MM env-prefix issues with PATH inheritance
+BCFTOOLS_BIN="$ENV_GENOMICS/bin/bcftools"
+SNPEFF_BIN="$ENV_GENOMICS/bin/snpEff"
+BGZIP_BIN="$ENV_GENOMICS/bin/bgzip"
+"$BCFTOOLS_BIN" view "$IMPUTED_BCF" \
+  | "$SNPEFF_BIN" ann \
       -canon \
       -noStats \
       -noLog \
       -v \
       "$SNPEFF_DB" \
       2>"$ANN_DIR/snpeff.log" \
-  | $MM bgzip -c > "$ANN_DIR/${DOG_LOWER}_annotated.vcf.gz"
-$MM bcftools index -t "$ANN_DIR/${DOG_LOWER}_annotated.vcf.gz"
+  | "$BGZIP_BIN" -c > "$ANN_DIR/${DOG_LOWER}_annotated.vcf.gz"
+"$BCFTOOLS_BIN" index -t "$ANN_DIR/${DOG_LOWER}_annotated.vcf.gz"
 log "SnpEff done: $(wc -l < $ANN_DIR/snpeff.log) log lines"
 
 # Parse SnpEff ANN field → functional_variants.json
