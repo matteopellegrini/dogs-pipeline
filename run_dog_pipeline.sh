@@ -2487,11 +2487,21 @@ MICRO_BT2="$OUT/${DOG_LOWER}_metaphlan.mapout.bz2"
 
     log "  Running MetaPhlAn4…"
     if [[ -f "$MICRO_BT2" ]]; then
-        log "  Reusing existing mapout: $MICRO_BT2"
-        "$METAPHLAN_BIN" "$MICRO_BT2" \
-            --input_type mapout \
-            --nproc 4 \
-            -o "$MICRO_OUT"
+        if bzip2 -t "$MICRO_BT2" 2>/dev/null; then
+            log "  Reusing existing mapout: $MICRO_BT2"
+            "$METAPHLAN_BIN" "$MICRO_BT2" \
+                --input_type mapout \
+                --nproc 4 \
+                -o "$MICRO_OUT"
+        else
+            log "  Mapout truncated — removing and re-running from FASTQ"
+            rm -f "$MICRO_BT2"
+            "$METAPHLAN_BIN" "$UNMAPPED_FQ" \
+                --input_type fastq \
+                --mapout "$MICRO_BT2" \
+                --nproc 4 \
+                -o "$MICRO_OUT"
+        fi
     else
         "$METAPHLAN_BIN" "$UNMAPPED_FQ" \
             --input_type fastq \
