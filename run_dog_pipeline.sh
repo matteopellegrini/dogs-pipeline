@@ -521,7 +521,7 @@ estimate_chunk() {
   local chr="$1" id="$2" ireg="$3" oreg="$4"
   local outfile="$GENO_DIR/${chr}_chunk${id}.bcf"
   [ -f "$outfile" ] && [ -f "${outfile}.csi" ] && { echo "SKIP ${chr}_chunk${id}"; return 0; }
-  grep -qxF "${chr}_chunk${id}" "$CHUNKS_DIR/failed_chunks.txt" 2>/dev/null && { echo "SKIP(known-fail) ${chr}_chunk${id}"; return 0; }
+  grep -qxF "${chr}_chunk${id}" "$(dirname "$CHUNKS_DIR")/failed_chunks.txt" 2>/dev/null && { echo "SKIP(known-fail) ${chr}_chunk${id}"; return 0; }
   # GLIMPSE2_phase: estimates this dog's genotypes at panel positions using BAM reads + LD
   if ! $MM_GLIMPSE GLIMPSE2_phase \
     --bam-file      "$OUT/markdup.bam" \
