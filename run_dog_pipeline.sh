@@ -383,11 +383,15 @@ raw_dels = [{'chrom': c, 'start': s, 'end': e, 'depth': round(d,2),
              'norm': round(d/mean_d2,3), 'window_bp': cnv_win}
             for c,s,e,d in windows_cnv if d < hom_del_thresh]
 
-# Load gene annotations and current sample's 1Mb coverage
+# Load gene annotations — read from cosmo reference dir (always present),
+# not from the sample pub dir which may not have it yet at Stage 6.
 import json as _json, glob as _glob, os as _os
-try:
-    with open(f'{pub}/cnv_genes.json') as _f: gene_map = _json.load(_f)
-except Exception: gene_map = {}
+_gene_paths = [f'$COSMO_PUB/cnv_genes.json', f'{pub}/cnv_genes.json']
+gene_map = {}
+for _gp in _gene_paths:
+    try:
+        with open(_gp) as _f: gene_map = _json.load(_f); break
+    except Exception: pass
 try:
     with open(f'{pub}/coverage_1mb.json') as _f: cov_1mb = _json.load(_f)
 except Exception: cov_1mb = {}
@@ -997,6 +1001,102 @@ BGZIP_BIN="$ENV_GENOMICS/bin/bgzip"
   | "$BGZIP_BIN" -c > "$ANN_DIR/${DOG_LOWER}_annotated.vcf.gz"
 "$BCFTOOLS_BIN" index -t "$ANN_DIR/${DOG_LOWER}_annotated.vcf.gz"
 log "SnpEff done: $(wc -l < $ANN_DIR/snpeff.log) log lines"
+
+# ── Rebuild cnv_genes.json from annotated VCF (genome-wide, this sample) ──
+# Stage 6 uses a static reference cnv_genes.json that only covers chromosomes
+# with CNVs in the reference dog. Re-annotate now using this sample's SnpEff
+# output, which covers all chromosomes, then patch cnv_homdel.json.
+log "  Rebuilding cnv_genes.json from SnpEff annotation…"
+python3 - << PYEOF
+import gzip, json, re
+from collections import defaultdict
+
+ANN_VCF  = "$ANN_DIR/${DOG_LOWER}_annotated.vcf.gz"
+CNV_JSON = "$PUB/cnv_homdel.json"
+PUB      = "$PUB"
+
+# Parse ANN fields to build gene coordinate map per chromosome
+# Only keep canonical protein-coding and RNA genes; skip fusion/readthrough names
+gene_by_id = {}
+with gzip.open(ANN_VCF, 'rt') as f:
+    for line in f:
+        if line.startswith('#'): continue
+        cols = line.split('\t')
+        if len(cols) < 8: continue
+        chrom, pos = cols[0], int(cols[1])
+        ann_match = re.search(r'ANN=([^;]+)', cols[7])
+        if not ann_match: continue
+        for ann in ann_match.group(1).split(','):
+            parts = ann.split('|')
+            if len(parts) < 8: continue
+            gene_name = parts[3]
+            gene_id   = parts[4]
+            biotype   = parts[7]
+            if not gene_id or not gene_name: continue
+            # Skip fusion annotations (contain '-' between two gene IDs)
+            if '-' in gene_name and gene_name.count('-') >= 1:
+                # Allow hyphenated gene names like ZC3H8-ZC3H6 only if they look like one gene
+                # Skip if both parts are ENSCAF IDs or known gene names
+                parts2 = gene_name.split('-')
+                if len(parts2) == 2 and all(len(p) > 4 for p in parts2):
+                    continue
+            if gene_id not in gene_by_id:
+                gene_by_id[gene_id] = {
+                    'gene_id': gene_id, 'name': gene_name, 'chrom': chrom,
+                    'start': pos, 'end': pos, 'biotype': biotype,
+                    'strand': '+', 'exons': [], 'cds': []
+                }
+            else:
+                gene_by_id[gene_id]['start'] = min(gene_by_id[gene_id]['start'], pos)
+                gene_by_id[gene_id]['end']   = max(gene_by_id[gene_id]['end'],   pos)
+
+# Build chromosome-keyed map (no chr prefix, matching existing format)
+gene_map = defaultdict(list)
+for g in gene_by_id.values():
+    chrom_num = g['chrom'].replace('chr', '')
+    gene_map[chrom_num].append({
+        'gene_id': g['gene_id'], 'name': g['name'],
+        'start': g['start'], 'end': g['end'],
+        'strand': g['strand'], 'biotype': g['biotype'],
+        'exons': g['exons'], 'cds': g['cds']
+    })
+
+print(f"cnv_genes.json: {len(gene_by_id)} genes across {len(gene_map)} chromosomes")
+with open(f'{PUB}/cnv_genes.json', 'w') as f:
+    json.dump(dict(gene_map), f)
+
+# Re-annotate CNV regions with the new gene map
+with open(CNV_JSON) as f:
+    cnv = json.load(f)
+
+def find_genes(chrom, start, end):
+    chrom_num = chrom.replace('chr', '')
+    disrupted, details = [], []
+    for g in gene_map.get(chrom_num, []):
+        if g['end'] < start or g['start'] > end: continue
+        ov = 'full' if g['start'] >= start and g['end'] <= end else 'partial'
+        disrupted.append(g['name'])
+        details.append({'gene': g['name'], 'biotype': g['biotype'],
+                        'chrom': chrom, 'start': g['start'], 'end': g['end'],
+                        'overlap': ov, 'exon_overlap': 'unknown'})
+    return disrupted, details
+
+all_disrupted = {}
+for r in cnv.get('regions', []):
+    genes, dets = find_genes(r['chrom'], r['start'], r['end'])
+    r['disrupted_genes'] = genes
+    r['disrupted_gene_details'] = dets
+    for d in dets:
+        all_disrupted[d['gene']] = d
+
+cnv['disrupted_genes'] = list(all_disrupted.values())
+cnv['summary']['unique_genes'] = len(all_disrupted)
+with open(CNV_JSON, 'w') as f:
+    json.dump(cnv, f, indent=2)
+print(f"cnv_homdel.json re-annotated: {len(all_disrupted)} disrupted genes")
+for r in cnv.get('regions', []):
+    print(f"  {r['chrom']}:{r['start']}-{r['end']} → {r['disrupted_genes']}")
+PYEOF
 
 # Parse SnpEff ANN field → functional_variants.json
 # ANN format (pipe-delimited per transcript, comma-separated per variant):
