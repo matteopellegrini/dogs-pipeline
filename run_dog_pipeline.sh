@@ -520,8 +520,6 @@ mkdir -p "$GENO_DIR" "$LIGATED_DIR"
 estimate_chunk() {
   local chr="$1" id="$2" ireg="$3" oreg="$4"
   local outfile="$GENO_DIR/${chr}_chunk${id}.bcf"
-  [ -f "$outfile" ] && [ -f "${outfile}.csi" ] && { echo "SKIP ${chr}_chunk${id}"; return 0; }
-  grep -qxF "${chr}_chunk${id}" "$(dirname "$CHUNKS_DIR")/failed_chunks.txt" 2>/dev/null && { echo "SKIP(known-fail) ${chr}_chunk${id}"; return 0; }
   # GLIMPSE2_phase: estimates this dog's genotypes at panel positions using BAM reads + LD
   if ! $MM_GLIMPSE GLIMPSE2_phase \
     --bam-file      "$OUT/markdup.bam" \
@@ -544,10 +542,18 @@ estimate_chunk() {
 export -f estimate_chunk
 export OUT DOG10K_PANEL FASTA GENO_DIR
 
+FAILED_CHUNKS="$(dirname "$CHUNKS_DIR")/failed_chunks.txt"
 log "Estimating genotypes across chunks (${GLIMPSE_PARALLEL} parallel jobs)..."
 for chunkfile in "$CHUNKS_DIR"/*.txt; do
   chr=$(basename "$chunkfile" .txt)
   while IFS=$'\t' read -r id chrom ireg oreg rest; do
+    outfile="$GENO_DIR/${chr}_chunk${id}.bcf"
+    if [ -f "$outfile" ] && [ -f "${outfile}.csi" ]; then
+      echo "SKIP ${chr}_chunk${id}"; continue
+    fi
+    if grep -qxF "${chr}_chunk${id}" "$FAILED_CHUNKS" 2>/dev/null; then
+      echo "SKIP(known-fail) ${chr}_chunk${id}"; continue
+    fi
     estimate_chunk "$chr" "$id" "$ireg" "$oreg" &
     while [ "$(jobs -r | wc -l)" -ge "$GLIMPSE_PARALLEL" ]; do sleep 2; done
   done < "$chunkfile"
