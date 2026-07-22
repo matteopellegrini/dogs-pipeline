@@ -134,7 +134,7 @@ log "========================================"
 # Pre-derive path variables so they're available when skipping early stages
 IMPUTED_BCF="$OUT/glimpse2/${DOG_LOWER}_imputed_dog10k.bcf"
 
-if (( FROM_STAGE <= 9 )); then
+if (( FROM_STAGE <= 1 )); then
 
 # ── Stage 1: Merge FASTQ ─────────────────────────────────────
 log "=== Stage 1: Merge FASTQ lanes ==="
@@ -146,7 +146,9 @@ log "R2 files: $(echo $R2_FILES | tr ' ' '\n' | wc -l)"
 cat $R1_FILES > "$OUT/merged_R1.fastq.gz"
 cat $R2_FILES > "$OUT/merged_R2.fastq.gz"
 log "Merged: R1=$(ls -lh $OUT/merged_R1.fastq.gz | awk '{print $5}'), R2=$(ls -lh $OUT/merged_R2.fastq.gz | awk '{print $5}')"
+fi # end stage 1
 
+if (( FROM_STAGE <= 2 )); then
 # ── Stage 2: Adapter trimming ─────────────────────────────────
 log "=== Stage 2: Adapter trimming (fastp) ==="
 $MM fastp \
@@ -164,7 +166,9 @@ $MM fastp \
   2>"$OUT/fastp.log"
 rm -f "$OUT/merged_R1.fastq.gz" "$OUT/merged_R2.fastq.gz"
 log "Trimming done"
+fi # end stage 2
 
+if (( FROM_STAGE <= 4 )); then
 # ── Stages 3+4: Alignment → sort → fixmate → markdup (single pipe) ──
 # Piping avoids writing the intermediate SAM (~30-50 GB) and namesorted/
 # fixmate BAMs to disk — cuts disk I/O by ~3-4x and wall time by ~40%.
@@ -184,7 +188,9 @@ $MM bwa-mem2 mem \
 rm -f "$OUT/trimmed_R1.fastq.gz" "$OUT/trimmed_R2.fastq.gz"
 $MM samtools flagstat "$OUT/markdup.bam" | tee -a "$LOG"
 log "BAM ready: $OUT/markdup.bam"
+fi # end stages 3+4
 
+if (( FROM_STAGE <= 5 )); then
 # ── Stage 5: Coverage windows (1Mb for karyotype; adaptive for CNV) ─
 log "=== Stage 5: Coverage windows ==="
 
@@ -219,7 +225,9 @@ awk -v w="$CNV_WINDOW" 'BEGIN{OFS="\t"} $1~/^chr([0-9]+|X)$/ {
 }' "$FASTA.fai" > "$OUT/windows_cnv.bed"
 $MM samtools bedcov "$OUT/windows_cnv.bed" "$OUT/markdup.bam" > "$OUT/coverage_cnv.tsv"
 log "CNV coverage: $(wc -l < $OUT/coverage_cnv.tsv) windows"
+fi # end stage 5
 
+if (( FROM_STAGE <= 6 )); then
 # ── Stage 6: Coverage + QC + CNV JSON ────────────────────────
 log "=== Stage 6: Coverage / QC / CNV JSON ==="
 python3 - << PYEOF
@@ -487,7 +495,9 @@ with open(f'{pub}/cnv_homdel.json', 'w') as f:
     json.dump(cnv_out, f, indent=2)
 print(f"cnv_homdel.json: {len(regions)} regions, {len(disrupted_all)} disrupted genes")
 PYEOF
+fi # end stage 6
 
+if (( FROM_STAGE <= 7 )); then
 # ── Stage 7: Genotype estimation via GLIMPSE2 ───────────────
 #
 # The Dog10K panel ($DOG10K_PANEL) is a pre-phased reference panel —
@@ -563,8 +573,10 @@ $MM_GLIMPSE bcftools concat \
 $MM_GLIMPSE bcftools index -f "$IMPUTED_BCF"
 TOTAL=$($MM_GLIMPSE bcftools stats "$IMPUTED_BCF" 2>/dev/null | grep "^SN.*number of records" | awk '{print $NF}')
 log "Imputed BCF: $TOTAL variants → $IMPUTED_BCF"
+fi # end stage 7
 
-# ── Stage 9: OMIA genotyping from Dog10K imputed panel ───────
+if (( FROM_STAGE <= 8 )); then
+# ── Stage 8: OMIA genotyping from Dog10K imputed panel ───────
 log "=== Stage 8: OMIA genotyping (Dog10K imputed + BAM fallback) ==="
 python3 - << PYEOF
 import subprocess, pysam, json, re
@@ -731,7 +743,9 @@ with open(f'{PUB}/omia_result.json', 'w') as f:
 print(f"omia_result.json: {len(variants)} variants | panel={n_panel} bam={n_bam} not_callable={n_not_callable} indels={n_indel}")
 print(f"  affected SNVs: {affected_snv} ({high_conf} high confidence)")
 PYEOF
+fi # end stage 8
 
+if (( FROM_STAGE <= 9 )); then
 # ── Stage 9: Breed prediction (GLIMPSE2 genotypes → supervised SCOPE) ──
 #
 # Step 1 — Infer genotypes at all ~143k Parker panel sites
@@ -973,10 +987,9 @@ with open(f'{PUB}/breed_result.json', 'w') as f:
 print("breed_result.json written")
 PYEOF
 
-fi # end stages 1–9
+fi # end stage 9
 
-if (( FROM_STAGE <= 13 )); then
-
+if (( FROM_STAGE <= 10 )); then
 # ── Stage 10: Functional annotation (SnpEff) ────────────────
 log "=== Stage 10: SnpEff annotation ==="
 ANN_DIR="$OUT/snpeff"
@@ -1272,7 +1285,9 @@ with open(f'{PUB}/functional_variants.json', 'w') as f:
     json.dump(fv, f)
 print(f"functional_variants.json: {len(HIGH)} HIGH, {mod_total} MODERATE variants")
 PYEOF
+fi # end stage 10
 
+if (( FROM_STAGE <= 11 )); then
 # ── Stage 11: PRS from imputed dosages ──────────────────────
 log "=== Stage 11: PRS (imputed Parker dosages) ==="
 python3 - << PYEOF
@@ -1709,8 +1724,10 @@ with open(f'{PUB}/prs_result.json', 'w') as f:
     json.dump(prs_result, f, indent=2)
 print(f"prs_result.json written ({len(traits_out)} traits)")
 PYEOF
+fi # end stage 11
 
-# ── Stage 13: Inbreeding (Dog10K ROH + F distribution) ──────
+if (( FROM_STAGE <= 12 )); then
+# ── Stage 12: Inbreeding (Dog10K ROH + F distribution) ──────
 log "=== Stage 12: Inbreeding (Dog10K) ==="
 python3 - << PYEOF
 import subprocess, json, numpy as np, gzip, re
@@ -1859,7 +1876,9 @@ else:
         json.dump(dog10k_dist, f, indent=2)
     print(f"inbreeding_froh_dog10k_result.json: F={dog_F:.4f} ({pct:.1f}th pct)")
 PYEOF
+fi # end stage 12
 
+if (( FROM_STAGE <= 13 )); then
 # ── Stage 13: Coat color (GLIMPSE2 imputed genotypes at causal loci) ─────
 log "=== Stage 13: Coat color ==="
 export IMPUTED_BCF MARKDUP_BAM="$OUT/markdup.bam" PUB DOG_LOWER
@@ -2432,7 +2451,7 @@ for locus, g in loci_gt.items():
     print(f"  {locus}: {g['allele1']}/{g['allele2']} ({g['confidence']})")
 PYEOF
 
-fi # end stages 10–13
+fi # end stage 13
 
 # ── Stage 15: Oral microbiome (MetaPhlAn4) ───────────────────
 log "=== Stage 15: Oral microbiome (MetaPhlAn4) ==="
