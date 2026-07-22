@@ -558,8 +558,17 @@ for chunkfile in "$CHUNKS_DIR"/*.txt; do
     while [ "$(jobs -r | wc -l)" -ge "$GLIMPSE_PARALLEL" ]; do sleep 2; done
   done < "$chunkfile"
 done
+kill "$MEM_POLL_PID" 2>/dev/null || true
+wait "$MEM_POLL_PID" 2>/dev/null || true
 wait
 log "Genotype estimation complete"
+( while kill -0 $$ 2>/dev/null; do
+    rss_kb=$(ps -u "$(id -u)" -o rss= 2>/dev/null | awk 'BEGIN{t=0} {t+=$1} END{print t}')
+    cur=$(cat "$PEAK_MEM_FILE")
+    if (( rss_kb > cur )); then echo "$rss_kb" > "$PEAK_MEM_FILE"; fi
+    sleep 10
+  done ) &
+MEM_POLL_PID=$!
 
 log "Ligating chunks per chromosome..."
 for chr in $(ls "$CHUNKS_DIR"/*.txt | xargs -I{} basename {} .txt); do
