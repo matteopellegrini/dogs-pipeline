@@ -527,14 +527,21 @@ export -f estimate_chunk
 export OUT DOG10K_PANEL FASTA GENO_DIR
 
 log "Estimating genotypes across chunks (${GLIMPSE_PARALLEL} parallel jobs)..."
+_glimpse_pids=()
 for chunkfile in "$CHUNKS_DIR"/*.txt; do
   chr=$(basename "$chunkfile" .txt)
   while IFS=$'\t' read -r id chrom ireg oreg rest; do
     estimate_chunk "$chr" "$id" "$ireg" "$oreg" &
+    _glimpse_pids+=($!)
     while [ "$(jobs -r | wc -l)" -ge "$GLIMPSE_PARALLEL" ]; do sleep 2; done
   done < "$chunkfile"
 done
-wait
+# Wait for all jobs and collect failures without triggering set -e
+_glimpse_failed=0
+for _pid in "${_glimpse_pids[@]}"; do
+  wait "$_pid" || _glimpse_failed=$(( _glimpse_failed + 1 ))
+done
+[ "$_glimpse_failed" -gt 0 ] && die "$_glimpse_failed GLIMPSE2_phase job(s) failed — check genotyped/ for missing chunks"
 log "Genotype estimation complete"
 
 log "Ligating chunks per chromosome..."
@@ -542,7 +549,8 @@ for chr in $(ls "$CHUNKS_DIR"/*.txt | xargs -I{} basename {} .txt); do
   list=$(mktemp)
   ls "$GENO_DIR"/${chr}_chunk*.bcf 2>/dev/null | sort -V > "$list"
   [ -s "$list" ] || { rm "$list"; continue; }
-  $MM_GLIMPSE GLIMPSE2_ligate --input "$list" --output "$LIGATED_DIR/${chr}.bcf" 2>&1 | tail -1
+  $MM_GLIMPSE GLIMPSE2_ligate --input "$list" --output "$LIGATED_DIR/${chr}.bcf" \
+    || die "GLIMPSE2_ligate failed for $chr"
   $MM_GLIMPSE bcftools index -f "$LIGATED_DIR/${chr}.bcf"
   rm "$list"
   echo "Ligated $chr"
