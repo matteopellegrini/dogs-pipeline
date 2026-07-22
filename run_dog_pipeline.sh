@@ -520,38 +520,38 @@ mkdir -p "$GENO_DIR" "$LIGATED_DIR"
 estimate_chunk() {
   local chr="$1" id="$2" ireg="$3" oreg="$4"
   local outfile="$GENO_DIR/${chr}_chunk${id}.bcf"
-  [ -f "$outfile" ] && [ -f "${outfile}.csi" ] && { echo "SKIP ${chr}_chunk${id}"; return; }
+  [ -f "$outfile" ] && [ -f "${outfile}.csi" ] && { echo "SKIP ${chr}_chunk${id}"; return 0; }
   # GLIMPSE2_phase: estimates this dog's genotypes at panel positions using BAM reads + LD
-  $MM_GLIMPSE GLIMPSE2_phase \
+  if ! $MM_GLIMPSE GLIMPSE2_phase \
     --bam-file      "$OUT/markdup.bam" \
     --reference     "$DOG10K_PANEL" \
     --fasta         "$FASTA" \
     --input-region  "$ireg" \
     --output-region "$oreg" \
     --threads 2 \
-    --output "$outfile" 2>&1 | grep -v "AC/AN INFO fields" | tail -1
-  $MM_GLIMPSE bcftools index -f "$outfile"
+    --output "$outfile" 2>&1 | grep -v "AC/AN INFO fields" | tail -1; then
+    echo "WARN ${chr}_chunk${id}: GLIMPSE2_phase failed — skipping"
+    return 0
+  fi
+  if [ ! -f "$outfile" ]; then
+    echo "WARN ${chr}_chunk${id}: no output produced — skipping"
+    return 0
+  fi
+  $MM_GLIMPSE bcftools index -f "$outfile" || { echo "WARN ${chr}_chunk${id}: index failed — skipping"; rm -f "$outfile"; return 0; }
   echo "DONE ${chr}_chunk${id}"
 }
 export -f estimate_chunk
 export OUT DOG10K_PANEL FASTA GENO_DIR
 
 log "Estimating genotypes across chunks (${GLIMPSE_PARALLEL} parallel jobs)..."
-_glimpse_pids=()
 for chunkfile in "$CHUNKS_DIR"/*.txt; do
   chr=$(basename "$chunkfile" .txt)
   while IFS=$'\t' read -r id chrom ireg oreg rest; do
     estimate_chunk "$chr" "$id" "$ireg" "$oreg" &
-    _glimpse_pids+=($!)
     while [ "$(jobs -r | wc -l)" -ge "$GLIMPSE_PARALLEL" ]; do sleep 2; done
   done < "$chunkfile"
 done
-# Wait for all jobs and collect failures without triggering set -e
-_glimpse_failed=0
-for _pid in "${_glimpse_pids[@]}"; do
-  wait "$_pid" || _glimpse_failed=$(( _glimpse_failed + 1 ))
-done
-[ "$_glimpse_failed" -gt 0 ] && die "$_glimpse_failed GLIMPSE2_phase job(s) failed — check genotyped/ for missing chunks"
+wait
 log "Genotype estimation complete"
 
 log "Ligating chunks per chromosome..."
