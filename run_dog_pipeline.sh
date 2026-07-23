@@ -2537,7 +2537,7 @@ MICRO_BT2="$OUT/${DOG_LOWER}_metaphlan.mapout.bz2"
     fi
 
     log "  Computing microbiome JSONs…"
-    python3 - << PYEOF
+    python3 - << PYEOF 2>&1 | while IFS= read -r l; do log "  [py] $l"; done; [ "${PIPESTATUS[0]}" -eq 0 ] || die "Microbiome Python block failed"
 import json, re, math, datetime
 import numpy as np
 import pandas as pd
