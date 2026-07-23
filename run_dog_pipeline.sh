@@ -550,13 +550,14 @@ FAILED_CHUNKS="$(dirname "$CHUNKS_DIR")/failed_chunks.txt"
 log "Estimating genotypes across chunks (${GLIMPSE_PARALLEL} parallel jobs)..."
 GLIMPSE_PIDS=()
 glimpse_wait_slot() {
-  while [ "${#GLIMPSE_PIDS[@]}" -ge "$GLIMPSE_PARALLEL" ]; do
+  while true; do
     local new_pids=()
     for pid in "${GLIMPSE_PIDS[@]}"; do
       if kill -0 "$pid" 2>/dev/null; then new_pids+=("$pid"); fi
     done
     GLIMPSE_PIDS=("${new_pids[@]}")
-    [ "${#GLIMPSE_PIDS[@]}" -ge "$GLIMPSE_PARALLEL" ] && sleep 2
+    if [ "${#GLIMPSE_PIDS[@]}" -lt "$GLIMPSE_PARALLEL" ]; then break; fi
+    sleep 2
   done
 }
 for chunkfile in "$CHUNKS_DIR"/*.txt; do
