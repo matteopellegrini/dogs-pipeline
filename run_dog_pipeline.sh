@@ -548,15 +548,18 @@ export OUT DOG10K_PANEL FASTA GENO_DIR
 
 FAILED_CHUNKS="$(dirname "$CHUNKS_DIR")/failed_chunks.txt"
 log "Estimating genotypes across chunks (${GLIMPSE_PARALLEL} parallel jobs)..."
-GLIMPSE_PIDS=()
+GLIMPSE_PIDS_STR=""
 glimpse_wait_slot() {
   while true; do
-    local new_pids=()
-    for pid in "${GLIMPSE_PIDS[@]}"; do
-      if kill -0 "$pid" 2>/dev/null; then new_pids+=("$pid"); fi
+    local running=0 live_pids=""
+    for pid in $GLIMPSE_PIDS_STR; do
+      if kill -0 "$pid" 2>/dev/null; then
+        running=$((running + 1))
+        live_pids="${live_pids:+$live_pids }$pid"
+      fi
     done
-    GLIMPSE_PIDS=("${new_pids[@]}")
-    if [ "${#GLIMPSE_PIDS[@]}" -lt "$GLIMPSE_PARALLEL" ]; then break; fi
+    GLIMPSE_PIDS_STR="$live_pids"
+    if [ "$running" -lt "$GLIMPSE_PARALLEL" ]; then break; fi
     sleep 2
   done
 }
@@ -572,7 +575,7 @@ for chunkfile in "$CHUNKS_DIR"/*.txt; do
     fi
     glimpse_wait_slot
     estimate_chunk "$chr" "$id" "$ireg" "$oreg" &
-    GLIMPSE_PIDS+=($!)
+    GLIMPSE_PIDS_STR="${GLIMPSE_PIDS_STR:+$GLIMPSE_PIDS_STR }$!"
   done < "$chunkfile"
 done
 kill "$MEM_POLL_PID" 2>/dev/null || true
