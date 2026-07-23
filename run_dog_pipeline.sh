@@ -553,7 +553,7 @@ glimpse_wait_slot() {
   while [ "${#GLIMPSE_PIDS[@]}" -ge "$GLIMPSE_PARALLEL" ]; do
     local new_pids=()
     for pid in "${GLIMPSE_PIDS[@]}"; do
-      kill -0 "$pid" 2>/dev/null && new_pids+=("$pid")
+      if kill -0 "$pid" 2>/dev/null; then new_pids+=("$pid"); fi
     done
     GLIMPSE_PIDS=("${new_pids[@]}")
     [ "${#GLIMPSE_PIDS[@]}" -ge "$GLIMPSE_PARALLEL" ] && sleep 2
