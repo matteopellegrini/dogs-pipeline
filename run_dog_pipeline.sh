@@ -2505,6 +2505,7 @@ MICRO_BT2="$OUT/${DOG_LOWER}_metaphlan.mapout.bz2"
     N_READS=$(wc -l < "$UNMAPPED_FQ")
     log "  Unmapped reads: $((N_READS/4)) ($(wc -c < "$UNMAPPED_FQ" | awk '{printf "%.1f", $1/1e6}') MB)"
 
+    METAPHLAN_LOG="$OUT/${DOG_LOWER}_metaphlan_stderr.log"
     log "  Running MetaPhlAn4…"
     if [[ -f "$MICRO_BT2" ]]; then
         if bzip2 -t "$MICRO_BT2" 2>/dev/null; then
@@ -2512,7 +2513,8 @@ MICRO_BT2="$OUT/${DOG_LOWER}_metaphlan.mapout.bz2"
             "$METAPHLAN_BIN" "$MICRO_BT2" \
                 --input_type mapout \
                 --nproc 4 \
-                -o "$MICRO_OUT"
+                -o "$MICRO_OUT" 2>"$METAPHLAN_LOG" \
+            || { log "  MetaPhlAn4 error:"; cat "$METAPHLAN_LOG" | head -20 | while read -r l; do log "    $l"; done; die "MetaPhlAn4 failed"; }
         else
             log "  Mapout truncated — removing and re-running from FASTQ"
             rm -f "$MICRO_BT2"
@@ -2520,14 +2522,16 @@ MICRO_BT2="$OUT/${DOG_LOWER}_metaphlan.mapout.bz2"
                 --input_type fastq \
                 --mapout "$MICRO_BT2" \
                 --nproc 4 \
-                -o "$MICRO_OUT"
+                -o "$MICRO_OUT" 2>"$METAPHLAN_LOG" \
+            || { log "  MetaPhlAn4 error:"; cat "$METAPHLAN_LOG" | head -20 | while read -r l; do log "    $l"; done; die "MetaPhlAn4 failed"; }
         fi
     else
         "$METAPHLAN_BIN" "$UNMAPPED_FQ" \
             --input_type fastq \
             --mapout "$MICRO_BT2" \
             --nproc 4 \
-            -o "$MICRO_OUT"
+            -o "$MICRO_OUT" 2>"$METAPHLAN_LOG" \
+        || { log "  MetaPhlAn4 error:"; cat "$METAPHLAN_LOG" | head -20 | while read -r l; do log "    $l"; done; die "MetaPhlAn4 failed"; }
     fi
 
     log "  Computing microbiome JSONs…"
