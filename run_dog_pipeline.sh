@@ -84,7 +84,7 @@ ENV_GLIMPSE="$HOME/micromamba/envs/glimpse_x86"
 MM="env PATH=$ENV_GENOMICS/bin:$PATH LD_LIBRARY_PATH=$ENV_GENOMICS/lib"
 MM_GLIMPSE="env PATH=$ENV_GLIMPSE/bin:$PATH LD_LIBRARY_PATH=$ENV_GLIMPSE/lib"
 NPROC=8
-GLIMPSE_PARALLEL=6
+GLIMPSE_PARALLEL=8
 
 mkdir -p "$OUT" "$PUB"
 LOG=$OUT/pipeline.log
@@ -531,7 +531,7 @@ estimate_chunk() {
     --fasta         "$FASTA" \
     --input-region  "$ireg" \
     --output-region "$oreg" \
-    --threads 2 \
+    --threads 1 \
     --output "$outfile" 2>&1 | grep -v "AC/AN INFO fields" | tail -1; then
     echo "WARN ${chr}_chunk${id}: GLIMPSE2_phase failed — skipping"
     return 0
@@ -548,6 +548,17 @@ export OUT DOG10K_PANEL FASTA GENO_DIR
 
 FAILED_CHUNKS="$(dirname "$CHUNKS_DIR")/failed_chunks.txt"
 log "Estimating genotypes across chunks (${GLIMPSE_PARALLEL} parallel jobs)..."
+GLIMPSE_PIDS=()
+glimpse_wait_slot() {
+  while [ "${#GLIMPSE_PIDS[@]}" -ge "$GLIMPSE_PARALLEL" ]; do
+    local new_pids=()
+    for pid in "${GLIMPSE_PIDS[@]}"; do
+      kill -0 "$pid" 2>/dev/null && new_pids+=("$pid")
+    done
+    GLIMPSE_PIDS=("${new_pids[@]}")
+    [ "${#GLIMPSE_PIDS[@]}" -ge "$GLIMPSE_PARALLEL" ] && sleep 2
+  done
+}
 for chunkfile in "$CHUNKS_DIR"/*.txt; do
   chr=$(basename "$chunkfile" .txt)
   while IFS=$'\t' read -r id chrom ireg oreg rest; do
@@ -558,8 +569,9 @@ for chunkfile in "$CHUNKS_DIR"/*.txt; do
     if grep -qxF "${chr}_chunk${id}" "$FAILED_CHUNKS" 2>/dev/null; then
       echo "SKIP(known-fail) ${chr}_chunk${id}"; continue
     fi
+    glimpse_wait_slot
     estimate_chunk "$chr" "$id" "$ireg" "$oreg" &
-    while [ "$(jobs -r | wc -l)" -ge "$GLIMPSE_PARALLEL" ]; do sleep 2; done
+    GLIMPSE_PIDS+=($!)
   done < "$chunkfile"
 done
 kill "$MEM_POLL_PID" 2>/dev/null || true
