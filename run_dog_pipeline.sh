@@ -73,6 +73,10 @@ SNPEFF_DB="ROS_Cfam_1.115"   # SnpEff database for canFam4 / ROS_Cfam_1.0
 METAPHLAN_BIN="${METAPHLAN_BIN:-/Users/matteopellegrini/Library/Python/3.9/bin/metaphlan}"
 MICROBIOME_REF="$D/metagenome/merged_microbiome_age_weight_3.18_final.csv"
 
+# Strip PATH entries with spaces (e.g. Claude plugin paths) that break $MM word-splitting
+PATH=$(echo "$PATH" | tr ':' '\n' | grep -v ' ' | paste -s -d:)
+export PATH
+
 # Use env bin dirs directly — avoids micromamba lock contention when multiple
 # tools run simultaneously in a pipe (bwa | samtools sort | fixmate | markdup).
 ENV_GENOMICS="$HOME/micromamba/envs/genomics"
