@@ -2506,6 +2506,8 @@ MICRO_BT2="$OUT/${DOG_LOWER}_metaphlan.mapout.bz2"
     log "  Unmapped reads: $((N_READS/4)) ($(wc -c < "$UNMAPPED_FQ" | awk '{printf "%.1f", $1/1e6}') MB)"
 
     METAPHLAN_LOG="$OUT/${DOG_LOWER}_metaphlan_stderr.log"
+    # Ensure MetaPhlAn4's Python bin is in PATH so its helper scripts (read_fastx.py) can be found
+    export PATH="$(dirname "$METAPHLAN_BIN"):$PATH"
     log "  Running MetaPhlAn4…"
     if [[ -f "$MICRO_BT2" ]]; then
         if bzip2 -t "$MICRO_BT2" 2>/dev/null; then
