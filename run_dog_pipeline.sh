@@ -2537,7 +2537,19 @@ MICRO_BT2="$OUT/${DOG_LOWER}_metaphlan.mapout.bz2"
     fi
 
     log "  Computing microbiome JSONs…"
-    python3 - << PYEOF 2>&1 | while IFS= read -r l; do log "  [py] $l"; done; [ "${PIPESTATUS[0]}" -eq 0 ] || die "Microbiome Python block failed"
+    # Pin to an interpreter that has the data-science stack. Bare `python3` here
+    # resolves to the genomics env (prepended to PATH by Stage 10), which lacks
+    # pandas — so a fresh run reaches this point without it while a resume-from-15
+    # does not. Probe explicit candidates for the full stack.
+    DATA_PYTHON=""
+    for cand in /usr/bin/python3 "$(command -v python3 || true)"; do
+        if [ -n "$cand" ] && [ -x "$cand" ] && "$cand" -c 'import pandas,numpy,scipy,sklearn' 2>/dev/null; then
+            DATA_PYTHON="$cand"; break
+        fi
+    done
+    [ -n "$DATA_PYTHON" ] || die "No python3 with pandas/numpy/scipy/sklearn found for microbiome analysis"
+    log "  Using python: $DATA_PYTHON"
+    "$DATA_PYTHON" - << PYEOF 2>&1 | while IFS= read -r l; do log "  [py] $l"; done; [ "${PIPESTATUS[0]}" -eq 0 ] || die "Microbiome Python block failed"
 import json, re, math, datetime
 import numpy as np
 import pandas as pd
