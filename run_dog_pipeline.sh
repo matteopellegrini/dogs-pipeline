@@ -2818,12 +2818,20 @@ done
 log "=== Stage 17: Commit and push ==="
 cd "$D/dogs-app"
 git add "public/$DOG_LOWER/"
-git commit -m "Add $DOG_NAME genomic data (WGS pipeline)
+# Only commit if there's actually a staged change; git commit exits non-zero on
+# "nothing to commit" (identical re-run), which would trip set -e and abort the
+# stage before the push/completion marker.
+if git diff --cached --quiet -- "public/$DOG_LOWER/"; then
+    log "  No changes in public/$DOG_LOWER/ — skipping commit (already up to date)"
+else
+    git commit -m "Add $DOG_NAME genomic data (WGS pipeline)
 
 Dog10K imputed BCF, VEP annotation, OMIA calls, breed prediction,
 PRS, inbreeding, and coat color for $DOG_NAME.
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+fi
+# Push any unpushed commits (safe no-op if remote already up to date)
 git push
 
 log " Pipeline complete: $DOG_NAME"
