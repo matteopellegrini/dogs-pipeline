@@ -2814,8 +2814,22 @@ for f in centromeres.json genes_1mb.json cnv_genes.json karyotype_zoom.json; do
     log "  Copied $f"
 done
 
-# ── Stage 17: Commit & push to Vercel ───────────────────────
-log "=== Stage 17: Commit and push ==="
+# ── Stage 17: Publish results ───────────────────────────────
+log "=== Stage 17: Publish results ==="
+
+# Customer samples are named by their kit barcode (PK9-…). Those go straight to
+# private Blob storage and the kit is flipped to complete — no site rebuild, and
+# the genomic data is not world-readable. Operator dogs (cosmo/ferdl/kiki) keep
+# the original git-commit-and-deploy path into public/.
+if [[ "$DOG_NAME" =~ ^[Pp][Kk]9- ]]; then
+    log "  Kit sample — publishing $DOG_NAME to Blob storage"
+    ( cd "$D/dogs-app" && node scripts/publish-results.mjs "$DOG_NAME" "$PUB" ) \
+        || die "Publishing results for $DOG_NAME failed"
+    log " Pipeline complete: $DOG_NAME"
+    echo "DONE" > "$OUT/pipeline.done"
+    exit 0
+fi
+
 cd "$D/dogs-app"
 git add "public/$DOG_LOWER/"
 # Only commit if there's actually a staged change; git commit exits non-zero on
