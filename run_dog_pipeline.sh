@@ -2817,37 +2817,14 @@ done
 # ── Stage 17: Publish results ───────────────────────────────
 log "=== Stage 17: Publish results ==="
 
-# Customer samples are named by their kit barcode (PK9-…). Those go straight to
-# private Blob storage and the kit is flipped to complete — no site rebuild, and
-# the genomic data is not world-readable. Operator dogs (cosmo/ferdl/kiki) keep
-# the original git-commit-and-deploy path into public/.
-if [[ "$DOG_NAME" =~ ^[Pp][Kk]9- ]]; then
-    log "  Kit sample — publishing $DOG_NAME to Blob storage"
-    ( cd "$D/dogs-app" && node scripts/publish-results.mjs "$DOG_NAME" "$PUB" ) \
-        || die "Publishing results for $DOG_NAME failed"
-    log " Pipeline complete: $DOG_NAME"
-    echo "DONE" > "$OUT/pipeline.done"
-    exit 0
-fi
-
-cd "$D/dogs-app"
-git add "public/$DOG_LOWER/"
-# Only commit if there's actually a staged change; git commit exits non-zero on
-# "nothing to commit" (identical re-run), which would trip set -e and abort the
-# stage before the push/completion marker.
-if git diff --cached --quiet -- "public/$DOG_LOWER/"; then
-    log "  No changes in public/$DOG_LOWER/ — skipping commit (already up to date)"
-else
-    git commit -m "Add $DOG_NAME genomic data (WGS pipeline)
-
-Dog10K imputed BCF, VEP annotation, OMIA calls, breed prediction,
-PRS, inbreeding, and coat color for $DOG_NAME.
-
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
-fi
-# Push any unpushed commits (safe no-op if remote already up to date)
-git push
+# Every sample publishes the same way: results go to private Blob storage keyed
+# by the kit barcode, and the kit is flipped to complete. No git, no site
+# rebuild, and the genomic data is never world-readable. The barcode is the
+# sample's output_name upper-cased, so the sample sheet needs no extra column.
+log "  Publishing $DOG_NAME to Blob storage"
+( cd "$D/dogs-app" && node scripts/publish-results.mjs "$DOG_NAME" "$PUB" ) \
+    || die "Publishing results for $DOG_NAME failed"
 
 log " Pipeline complete: $DOG_NAME"
-log " Dashboard: dogs-app/public/$DOG_LOWER/"
+log " Dashboard: kit $(echo "$DOG_NAME" | tr '[:lower:]' '[:upper:]')"
 echo "DONE" > "$OUT/pipeline.done"
