@@ -60,7 +60,9 @@ VEP_CACHE=$D/vep_cache
 DOG10K_PANEL=$D/dog10k_panel/AutoAndXPAR.Dog10K.phased_plus_disease_rh.bcf
 CHUNKS_DIR=$D/COSMO/glimpse2_dog10k/chunks   # reuse existing chunk definitions
 OMIA_DB=$D/dogs-app/public/cosmo/omia_result.json  # OMIA variant database
-COSMO_PUB=$D/dogs-app/public/cosmo             # reference JSONs to copy
+REF_JSON=$D/reference_json                     # shared reference JSONs (genome annotations +
+                                               # cosmo baseline); deliberately outside public/
+                                               # so no genomic data is world-readable
 SCOPE_P=$D/COSMO/analysis/cosmo_scope177Phat.txt     # (143933 SNPs × 177 breeds) full Parker panel allele freq matrix
 SCOPE_CLUST=$D/COSMO/analysis/scope_clust.txt        # breed ordering for Phat columns
 PARKER_BIM=$D/COSMO/analysis/cosmo_parker_full.bim
@@ -282,7 +284,7 @@ chrx_norm = 0.5 if predicted_sex == 'male' else 1.0
 print(f"Sex determination: chrX/auto ratio = {x_auto_ratio:.3f} → {predicted_sex} (chrX norm divisor: {chrx_norm})")
 
 # Load COSMO reference (cosmo/panel reference tracks for tooltip)
-cosmo_ref_path = "$COSMO_PUB/coverage_1mb.json"
+cosmo_ref_path = "$REF_JSON/coverage_1mb.json"
 try:
     with open(cosmo_ref_path) as _f:
         cosmo_ref = _json.load(_f)
@@ -398,7 +400,7 @@ raw_dels = [{'chrom': c, 'start': s, 'end': e, 'depth': round(d,2),
 # Load gene annotations — read from cosmo reference dir (always present),
 # not from the sample pub dir which may not have it yet at Stage 6.
 import json as _json, glob as _glob, os as _os
-_gene_paths = [f'$COSMO_PUB/cnv_genes.json', f'{pub}/cnv_genes.json']
+_gene_paths = [f'$REF_JSON/cnv_genes.json', f'{pub}/cnv_genes.json']
 gene_map = {}
 for _gp in _gene_paths:
     try:
@@ -2809,8 +2811,11 @@ PYEOF
 
 # ── Stage 16: Copy reference JSONs ───────────────────────────
 log "=== Stage 16: Copy reference JSONs ==="
-for f in centromeres.json genes_1mb.json cnv_genes.json karyotype_zoom.json; do
-    cp "$COSMO_PUB/$f" "$PUB/$f"
+# NB: cnv_genes.json is NOT copied here — Stage 10 rebuilds it genome-wide for
+# this sample, and copying cosmo's static version over it replaced each dog's
+# own CNV gene calls with cosmo's.
+for f in centromeres.json genes_1mb.json karyotype_zoom.json; do
+    cp "$REF_JSON/$f" "$PUB/$f"
     log "  Copied $f"
 done
 
