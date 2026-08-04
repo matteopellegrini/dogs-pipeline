@@ -137,6 +137,13 @@ preflight() {
 }
 preflight
 
+# Validate a site's setup without running anything:
+#     DOGS_SITE=hoffman bash run_dog_pipeline.sh sample_sheet.tsv 2 1 --preflight-only
+if [[ " $* " == *" --preflight-only "* ]]; then
+  log "--preflight-only — exiting before any work"
+  exit 0
+fi
+
 PIPELINE_START=$(date +%s)
 PEAK_MEM_FILE=$(mktemp)
 echo 0 > "$PEAK_MEM_FILE"
