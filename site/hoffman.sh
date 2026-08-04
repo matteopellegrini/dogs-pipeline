@@ -3,15 +3,15 @@
 # Set up once with cluster/bootstrap-hoffman.sh, which creates the environments
 # and stages the ~37GB of reference data these paths point at.
 
-# $SCRATCH is large and has no quota; $HOME on Hoffman2 is tightly capped and
-# cannot hold the 23GB Dog10K panel.
-: "${SCRATCH:?SCRATCH is not set — expected on Hoffman2}"
-D="${D:-$SCRATCH/dogs}"
+# Lab project storage: persistent (unlike /scratch, which is purged) and large.
+# $HOME cannot be used — its 60GB quota is mostly consumed, leaving far less than
+# the ~43GB of reference data this pipeline needs.
+D="${D:-/u/project/pellegrini/dogs}"
 
-ENV_GENOMICS="${ENV_GENOMICS:-$SCRATCH/envs/genomics}"
-ENV_GLIMPSE="${ENV_GLIMPSE:-$SCRATCH/envs/glimpse}"
-METAPHLAN_BIN="${METAPHLAN_BIN:-$SCRATCH/envs/genomics/bin/metaphlan}"
-DATA_PYTHON="${DATA_PYTHON:-$SCRATCH/envs/genomics/bin/python3}"
+ENV_GENOMICS="${ENV_GENOMICS:-$D/envs/genomics}"
+ENV_GLIMPSE="${ENV_GLIMPSE:-$D/envs/glimpse}"
+METAPHLAN_BIN="${METAPHLAN_BIN:-$D/envs/genomics/bin/metaphlan}"
+DATA_PYTHON="${DATA_PYTHON:-$D/envs/genomics/bin/python3}"
 
 # Threads come from the scheduler: `qsub -pe shared N` exports NSLOTS.
 NPROC="${NPROC:-${NSLOTS:-8}}"

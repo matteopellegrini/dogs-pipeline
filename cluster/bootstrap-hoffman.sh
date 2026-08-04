@@ -13,11 +13,12 @@
 # and must be copied from your Mac; everything else downloads.
 set -euo pipefail
 
-: "${SCRATCH:?SCRATCH is not set — expected on Hoffman2}"
-D="${D:-$SCRATCH/dogs}"
-ENVS="$SCRATCH/envs"
-MAMBA="$SCRATCH/bin/micromamba"
-export MAMBA_ROOT_PREFIX="$SCRATCH/micromamba"
+# Everything lives together on persistent lab project storage. /scratch is purged
+# and $HOME is too small for the ~43GB of reference data.
+D="${D:-/u/project/pellegrini/dogs}"
+ENVS="$D/envs"
+MAMBA="$D/bin/micromamba"
+export MAMBA_ROOT_PREFIX="$D/micromamba"
 
 MODE="${1:-all}"
 
@@ -61,8 +62,8 @@ step "micromamba"
 if [[ -x "$MAMBA" ]]; then
   ok "already at $MAMBA"
 else
-  mkdir -p "$SCRATCH/bin"
-  ( cd "$SCRATCH" && curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba )
+  mkdir -p "$D/bin"
+  ( cd "$D" && curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba )
   ok "installed"
 fi
 
