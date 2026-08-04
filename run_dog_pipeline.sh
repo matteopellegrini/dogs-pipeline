@@ -17,7 +17,22 @@
 # ============================================================
 set -euo pipefail
 
-D=/Users/matteopellegrini/Downloads/dogs   # base dir for default paths
+# ── Site profile ─────────────────────────────────────────────
+# One pipeline, several machines. A site profile supplies paths, tool locations
+# and parallelism for wherever this is running. An explicit DOGS_SITE always
+# wins; otherwise detect. $SGE_ROOT is set on Hoffman2 login and compute nodes.
+PIPELINE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOGS_SITE="${DOGS_SITE:-$(
+  if   [[ -n "${SGE_ROOT:-}" ]];      then echo hoffman
+  elif [[ "$(uname -s)" == Darwin ]]; then echo mac
+  else                                     echo generic
+  fi)}"
+SITE_FILE="$PIPELINE_DIR/site/${DOGS_SITE}.sh"
+[[ -f "$SITE_FILE" ]] || { echo "ERROR: no site profile at $SITE_FILE (DOGS_SITE=$DOGS_SITE)"; exit 1; }
+# shellcheck source=/dev/null
+source "$SITE_FILE"
+
+D="${D:-/Users/matteopellegrini/Downloads/dogs}"   # base dir for default paths
 
 # ── Parse arguments: sample sheet or legacy positional ───────
 if [[ "${1:-}" == *.tsv ]]; then
@@ -72,7 +87,7 @@ PARKER_BED=$D/COSMO/analysis/cosmo_parker_full.bed
 SNPEFF_DB="ROS_Cfam_1.115"   # SnpEff database for canFam4 / ROS_Cfam_1.0
 
 # Microbiome
-METAPHLAN_BIN="${METAPHLAN_BIN:-/Users/matteopellegrini/Library/Python/3.9/bin/metaphlan}"
+METAPHLAN_BIN="${METAPHLAN_BIN:-$HOME/Library/Python/3.9/bin/metaphlan}"
 MICROBIOME_REF="$D/metagenome/merged_microbiome_age_weight_3.18_final.csv"
 
 # Strip PATH entries with spaces (e.g. Claude plugin paths) that break $MM word-splitting
@@ -81,18 +96,46 @@ export PATH
 
 # Use env bin dirs directly — avoids micromamba lock contention when multiple
 # tools run simultaneously in a pipe (bwa | samtools sort | fixmate | markdup).
-ENV_GENOMICS="$HOME/micromamba/envs/genomics"
-ENV_GLIMPSE="$HOME/micromamba/envs/glimpse_x86"
+ENV_GENOMICS="${ENV_GENOMICS:-$HOME/micromamba/envs/genomics}"
+ENV_GLIMPSE="${ENV_GLIMPSE:-$HOME/micromamba/envs/glimpse_x86}"
 MM="env PATH=$ENV_GENOMICS/bin:$PATH LD_LIBRARY_PATH=$ENV_GENOMICS/lib"
 MM_GLIMPSE="env PATH=$ENV_GLIMPSE/bin:$PATH LD_LIBRARY_PATH=$ENV_GLIMPSE/lib"
-NPROC=8
-GLIMPSE_PARALLEL=8
+NPROC="${NPROC:-8}"
+GLIMPSE_PARALLEL="${GLIMPSE_PARALLEL:-8}"
 
 mkdir -p "$OUT" "$PUB"
 LOG=$OUT/pipeline.log
 
 log() { echo "[$(date '+%H:%M:%S')] $*" | tee -a "$LOG"; }
 die() { log "ERROR: $*"; exit 1; }
+
+log "Site profile: $DOGS_SITE  (D=$D, NPROC=$NPROC, GLIMPSE_PARALLEL=$GLIMPSE_PARALLEL, publish=$PUBLISH_RESULTS)"
+
+# ── Preflight ────────────────────────────────────────────────
+# Every prerequisite is checked up front. Previously a missing tool or reference
+# surfaced as a crash deep into a 75-minute run; on a cluster that is 100 array
+# tasks failing at 3am instead of one clear message before anything starts.
+preflight() {
+  local missing=0
+  local t
+  for t in "$ENV_GENOMICS/bin/bwa-mem2" "$ENV_GENOMICS/bin/samtools" \
+           "$ENV_GENOMICS/bin/bcftools" "$ENV_GENOMICS/bin/fastp" \
+           "$ENV_GLIMPSE/bin/GLIMPSE2_phase" "$ENV_GLIMPSE/bin/GLIMPSE2_ligate" \
+           "$METAPHLAN_BIN"; do
+    [[ -x "$t" ]] || { log "  MISSING TOOL: $t"; missing=1; }
+  done
+  for f in "$FASTA" "$DOG10K_PANEL" "$MICROBIOME_REF" "$PARKER_BED" "$SCOPE_P"; do
+    [[ -e "$f" ]] || { log "  MISSING REFERENCE: $f"; missing=1; }
+  done
+  [[ -d "$CHUNKS_DIR" ]] || { log "  MISSING REFERENCE: $CHUNKS_DIR"; missing=1; }
+  if [[ -n "${DATA_PYTHON:-}" ]]; then
+    "$DATA_PYTHON" -c 'import pandas,numpy,scipy,sklearn' 2>/dev/null \
+      || { log "  DATA_PYTHON ($DATA_PYTHON) lacks pandas/numpy/scipy/sklearn"; missing=1; }
+  fi
+  (( missing == 0 )) || die "Preflight failed for site '$DOGS_SITE' — see above. Nothing has been run."
+  log "Preflight OK"
+}
+preflight
 
 PIPELINE_START=$(date +%s)
 PEAK_MEM_FILE=$(mktemp)
@@ -2543,8 +2586,9 @@ MICRO_BT2="$OUT/${DOG_LOWER}_metaphlan.mapout.bz2"
     # resolves to the genomics env (prepended to PATH by Stage 10), which lacks
     # pandas — so a fresh run reaches this point without it while a resume-from-15
     # does not. Probe explicit candidates for the full stack.
+    _site_python="${DATA_PYTHON:-}"
     DATA_PYTHON=""
-    for cand in /usr/bin/python3 "$(command -v python3 || true)"; do
+    for cand in "$_site_python" /usr/bin/python3 "$(command -v python3 || true)"; do
         if [ -n "$cand" ] && [ -x "$cand" ] && "$cand" -c 'import pandas,numpy,scipy,sklearn' 2>/dev/null; then
             DATA_PYTHON="$cand"; break
         fi
@@ -2826,9 +2870,16 @@ log "=== Stage 17: Publish results ==="
 # by the kit barcode, and the kit is flipped to complete. No git, no site
 # rebuild, and the genomic data is never world-readable. The barcode is the
 # sample's output_name upper-cased, so the sample sheet needs no extra column.
-log "  Publishing $DOG_NAME to Blob storage"
-( cd "$D/dogs-app" && node scripts/publish-results.mjs "$DOG_NAME" "$PUB" ) \
-    || die "Publishing results for $DOG_NAME failed"
+if (( PUBLISH_RESULTS )); then
+    log "  Publishing $DOG_NAME to Blob storage"
+    ( cd "$D/dogs-app" && node scripts/publish-results.mjs "$DOG_NAME" "$PUB" ) \
+        || die "Publishing results for $DOG_NAME failed"
+else
+    # Compute nodes have no outbound internet. Results are staged; publish later
+    # from a login node with cluster/publish-pending.sh.
+    log "  PUBLISH_RESULTS=0 — results staged at $PUB, not published"
+    echo "$DOG_NAME" > "$PUB/.pending-publish"
+fi
 
 log " Pipeline complete: $DOG_NAME"
 log " Dashboard: kit $(echo "$DOG_NAME" | tr '[:lower:]' '[:upper:]')"
