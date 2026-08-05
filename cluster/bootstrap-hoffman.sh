@@ -6,8 +6,8 @@
 #   bash cluster/bootstrap-hoffman.sh --check    # verify, install nothing
 #
 # Run from a LOGIN node — this needs outbound internet. No root required:
-# micromamba unpacks into your own $SCRATCH, which is how installs work on a
-# cluster you don't administer.
+# micromamba unpacks into your own project directory, which is how installs work
+# on a cluster you don't administer.
 #
 # Sizes: tools ~6GB, reference data ~37GB. The Dog10K panel (23GB) is the bulk
 # and must be copied from your Mac; everything else downloads.
@@ -15,7 +15,7 @@ set -euo pipefail
 
 # Everything lives together on persistent lab project storage. /scratch is purged
 # and $HOME is too small for the ~43GB of reference data.
-D="${D:-/u/project/pellegrini/dogs}"
+D="${D:-/u/project/pellegrini/$USER/dogs}"
 ENVS="$D/envs"
 MAMBA="$D/bin/micromamba"
 export MAMBA_ROOT_PREFIX="$D/micromamba"

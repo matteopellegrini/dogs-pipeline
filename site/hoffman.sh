@@ -6,7 +6,7 @@
 # Lab project storage: persistent (unlike /scratch, which is purged) and large.
 # $HOME cannot be used — its 60GB quota is mostly consumed, leaving far less than
 # the ~43GB of reference data this pipeline needs.
-D="${D:-/u/project/pellegrini/dogs}"
+D="${D:-/u/project/pellegrini/$USER/dogs}"
 
 ENV_GENOMICS="${ENV_GENOMICS:-$D/envs/genomics}"
 ENV_GLIMPSE="${ENV_GLIMPSE:-$D/envs/glimpse}"
