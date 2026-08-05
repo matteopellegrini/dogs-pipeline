@@ -5,9 +5,11 @@
 #   bash cluster/bootstrap-hoffman.sh --tools    # environments only
 #   bash cluster/bootstrap-hoffman.sh --check    # verify, install nothing
 #
-# Run from a LOGIN node — this needs outbound internet. No root required:
-# micromamba unpacks into your own project directory, which is how installs work
-# on a cluster you don't administer.
+# Run from an INTERACTIVE node (qrsh), not a login node: login nodes cap memory
+# and env extraction dies with std::bad_alloc. Uses Hoffman2's own `mamba`
+# module — a self-downloaded micromamba failed here with EAGAIN during download.
+#
+#   qrsh -l h_data=8G,h_rt=4:00:00 -pe shared 4
 #
 # Sizes: tools ~6GB, reference data ~37GB. The Dog10K panel (23GB) is the bulk
 # and must be copied from your Mac; everything else downloads.
@@ -17,8 +19,10 @@ set -euo pipefail
 # and $HOME is too small for the ~43GB of reference data.
 D="${D:-/u/project/pellegrini/$USER/dogs}"
 ENVS="$D/envs"
-MAMBA="$D/bin/micromamba"
-export MAMBA_ROOT_PREFIX="$D/micromamba"
+# Extraction writes ~300k small files and needs real temp space; the default
+# /tmp on a shared node is often too small.
+export TMPDIR="${TMPDIR:-$D/tmp}"
+mkdir -p "$TMPDIR"
 
 MODE="${1:-all}"
 
@@ -58,16 +62,26 @@ if [[ "$MODE" == "--check" ]]; then
 fi
 
 # ── tools ────────────────────────────────────────────────────
-step "micromamba"
-if [[ -x "$MAMBA" ]]; then
-  ok "already at $MAMBA"
+step "mamba (Hoffman2 module)"
+if command -v mamba >/dev/null 2>&1; then
+  ok "already loaded: $(mamba --version 2>&1 | head -1)"
 else
-  mkdir -p "$D/bin"
-  ( cd "$D" && curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba )
-  ok "installed"
+  module load mamba 2>/dev/null || module load anaconda3 2>/dev/null || true
+  command -v mamba >/dev/null 2>&1 || command -v conda >/dev/null 2>&1 \
+    || { echo "   ERROR: no mamba/conda — try: module avail 2>&1 | grep -iE 'mamba|conda'"; exit 1; }
+  ok "loaded"
 fi
+MAMBA="$(command -v mamba || command -v conda)"
 
-step "genomics env"
+# Partial envs from a failed run confuse the solver — clear them first.
+for e in genomics glimpse; do
+  if [[ -d "$ENVS/$e" && ! -x "$ENVS/$e/bin/samtools" && ! -x "$ENVS/$e/bin/GLIMPSE2_phase" ]]; then
+    echo "   removing incomplete env $ENVS/$e"
+    rm -rf "$ENVS/$e"
+  fi
+done
+
+step "genomics env  (slow: 'Executing transaction' writes ~300k files to shared storage, 10-30 min)"
 # Versions pinned to what the Mac install runs today, so the cluster reproduces
 # it rather than whatever the solver picks months from now.
 "$MAMBA" create -y -p "$ENVS/genomics" -c conda-forge -c bioconda \
