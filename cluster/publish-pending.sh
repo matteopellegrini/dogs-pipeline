@@ -19,10 +19,11 @@ DRY=""
 [[ "${1:-}" == "--dry-run" ]] && DRY="--dry-run"
 
 APP="$D/dogs-app"
-[[ -d "$APP" ]] || { echo "ERROR: no app checkout at $APP"; exit 1; }
+[[ -d "$APP" ]] || { echo "ERROR: no app checkout at $APP — clone dogs-app there first (it is private)"; exit 1; }
 
-shopt -s nullglob
-markers=("$APP"/public/*/.pending-publish)
+# Results may be staged anywhere under $D (the cluster keeps them outside the app
+# checkout, unlike the Mac), so search rather than assuming one layout.
+mapfile -t markers < <(find "$D" -maxdepth 4 -name .pending-publish -type f 2>/dev/null)
 if (( ${#markers[@]} == 0 )); then
   echo "Nothing pending — no .pending-publish markers found."
   exit 0
