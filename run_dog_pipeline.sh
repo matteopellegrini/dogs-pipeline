@@ -100,6 +100,13 @@ ENV_GENOMICS="${ENV_GENOMICS:-$HOME/micromamba/envs/genomics}"
 ENV_GLIMPSE="${ENV_GLIMPSE:-$HOME/micromamba/envs/glimpse_x86}"
 MM="env PATH=$ENV_GENOMICS/bin:$PATH LD_LIBRARY_PATH=$ENV_GENOMICS/lib"
 MM_GLIMPSE="env PATH=$ENV_GLIMPSE/bin:$PATH LD_LIBRARY_PATH=$ENV_GLIMPSE/lib"
+
+# Put the pinned genomics env first on PATH. Several inline Python blocks invoke
+# `samtools`/`bcftools` by bare name; without this they resolve to whatever the
+# host happens to provide — Homebrew on the Mac, nothing at all on Hoffman, where
+# Stage 6 died with FileNotFoundError. Prepending makes every bare invocation use
+# the same pinned build the rest of the pipeline uses via $MM.
+export PATH="$ENV_GENOMICS/bin:$PATH"
 NPROC="${NPROC:-8}"
 GLIMPSE_PARALLEL="${GLIMPSE_PARALLEL:-8}"
 
@@ -128,6 +135,16 @@ preflight() {
     [[ -e "$f" ]] || { log "  MISSING REFERENCE: $f"; missing=1; }
   done
   [[ -d "$CHUNKS_DIR" ]] || { log "  MISSING REFERENCE: $CHUNKS_DIR"; missing=1; }
+  # Inline Python calls these by bare name — make sure PATH resolves them into
+  # the pinned env rather than to a host copy (or nothing).
+  for b in samtools bcftools; do
+    _r="$(command -v "$b" 2>/dev/null || true)"
+    if [[ -z "$_r" ]]; then
+      log "  '$b' not on PATH"; missing=1
+    elif [[ "$_r" != "$ENV_GENOMICS/bin/$b" ]]; then
+      log "  WARNING: bare '$b' resolves to $_r, not $ENV_GENOMICS/bin/$b"
+    fi
+  done
   # Every inline Python block runs under DATA_PYTHON, so it needs the full set —
   # pysam included, which the stage-8/9 blocks import.
   if [[ -z "${DATA_PYTHON:-}" || ! -x "${DATA_PYTHON:-}" ]]; then
