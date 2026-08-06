@@ -1,0 +1,2 @@
+sample_id	fastq_dir	age	output_name	work_dir	pub_dir	from_stage	sex	notes
+PK9-0002	/u/project/pellegrini/gkislik/dogs/fastq/PK9-0002	3	PK9-0002	/u/project/pellegrini/gkislik/dogs/work/PK9-0002/analysis	/u/project/pellegrini/gkislik/dogs/results/pk9-0002	1		first Hoffman run; same sample as the Mac, so output is comparable
