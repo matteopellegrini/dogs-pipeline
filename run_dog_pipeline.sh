@@ -128,9 +128,16 @@ preflight() {
     [[ -e "$f" ]] || { log "  MISSING REFERENCE: $f"; missing=1; }
   done
   [[ -d "$CHUNKS_DIR" ]] || { log "  MISSING REFERENCE: $CHUNKS_DIR"; missing=1; }
-  if [[ -n "${DATA_PYTHON:-}" ]]; then
-    "$DATA_PYTHON" -c 'import pandas,numpy,scipy,sklearn' 2>/dev/null \
-      || { log "  DATA_PYTHON ($DATA_PYTHON) lacks pandas/numpy/scipy/sklearn"; missing=1; }
+  # Every inline Python block runs under DATA_PYTHON, so it needs the full set —
+  # pysam included, which the stage-8/9 blocks import.
+  if [[ -z "${DATA_PYTHON:-}" || ! -x "${DATA_PYTHON:-}" ]]; then
+    log "  DATA_PYTHON not set or not executable: ${DATA_PYTHON:-<unset>}"; missing=1
+  else
+    for _m in numpy pysam pandas scipy sklearn; do
+      "$DATA_PYTHON" -c "import $_m" 2>/dev/null || { log "  DATA_PYTHON ($DATA_PYTHON) lacks $_m"; missing=1; }
+    done
+    "$DATA_PYTHON" -c 'import sys; sys.exit(0 if sys.version_info >= (3,7) else 1)' \
+      || { log "  DATA_PYTHON ($DATA_PYTHON) is $("$DATA_PYTHON" -V 2>&1) — 3.7+ required"; missing=1; }
   fi
   (( missing == 0 )) || die "Preflight failed for site '$DOGS_SITE' — see above. Nothing has been run."
   log "Preflight OK"
@@ -286,7 +293,7 @@ fi # end stage 5
 if (( FROM_STAGE <= 6 )); then
 # ── Stage 6: Coverage + QC + CNV JSON ────────────────────────
 log "=== Stage 6: Coverage / QC / CNV JSON ==="
-python3 - << PYEOF
+"$DATA_PYTHON" - << PYEOF
 import json, collections, statistics, subprocess, re, os
 
 tsv_1mb  = "$OUT/coverage_1mb.tsv"
@@ -666,7 +673,7 @@ fi # end stage 7
 if (( FROM_STAGE <= 8 )); then
 # ── Stage 8: OMIA genotyping from Dog10K imputed panel ───────
 log "=== Stage 8: OMIA genotyping (Dog10K imputed + BAM fallback) ==="
-python3 - << PYEOF
+"$DATA_PYTHON" - << PYEOF
 import subprocess, pysam, json, re
 
 BCF       = "$IMPUTED_BCF"
@@ -846,7 +853,7 @@ if (( FROM_STAGE <= 9 )); then
 #   NNLS projection onto the 177-breed Parker 2017 reference Q matrix
 #   estimates admixture proportions across all breeds.
 log "=== Stage 9: Breed prediction (GLIMPSE2 genotypes at Parker sites → supervised SCOPE) ==="
-python3 - << PYEOF
+"$DATA_PYTHON" - << PYEOF
 import subprocess, tempfile, os, numpy as np, json
 from scipy.optimize import nnls
 
@@ -1116,7 +1123,7 @@ log "SnpEff done: $(wc -l < $ANN_DIR/snpeff.log) log lines"
 # with CNVs in the reference dog. Re-annotate now using this sample's SnpEff
 # output, which covers all chromosomes, then patch cnv_homdel.json.
 log "  Rebuilding cnv_genes.json from SnpEff annotation…"
-python3 - << PYEOF
+"$DATA_PYTHON" - << PYEOF
 import gzip, json, re
 from collections import defaultdict
 
@@ -1232,7 +1239,7 @@ PYEOF
 # ANN format (pipe-delimited per transcript, comma-separated per variant):
 #   ALT | effect | impact | gene_name | gene_id | feature_type | feature_id |
 #   biotype | rank | hgvsc | hgvsp | cdna_pos | cds_pos | aa_pos | distance | messages
-python3 - << PYEOF
+"$DATA_PYTHON" - << PYEOF
 import gzip, re, subprocess, json
 
 ANN_VCF = "$ANN_DIR/${DOG_LOWER}_annotated.vcf.gz"
@@ -1378,7 +1385,7 @@ fi # end stage 10
 if (( FROM_STAGE <= 11 )); then
 # ── Stage 11: PRS from imputed dosages ──────────────────────
 log "=== Stage 11: PRS (imputed Parker dosages) ==="
-python3 - << PYEOF
+"$DATA_PYTHON" - << PYEOF
 import subprocess, numpy as np, json, csv, io, tempfile, os
 
 BCF      = "$IMPUTED_BCF"
@@ -1817,7 +1824,7 @@ fi # end stage 11
 if (( FROM_STAGE <= 12 )); then
 # ── Stage 12: Inbreeding (Dog10K ROH + F distribution) ──────
 log "=== Stage 12: Inbreeding (Dog10K) ==="
-python3 - << PYEOF
+"$DATA_PYTHON" - << PYEOF
 import subprocess, json, numpy as np, gzip, re
 
 BCF     = "$IMPUTED_BCF"
@@ -1970,7 +1977,7 @@ if (( FROM_STAGE <= 13 )); then
 # ── Stage 13: Coat color (GLIMPSE2 imputed genotypes at causal loci) ─────
 log "=== Stage 13: Coat color ==="
 export IMPUTED_BCF MARKDUP_BAM="$OUT/markdup.bam" PUB DOG_LOWER
-python3 - << 'PYEOF'
+"$DATA_PYTHON" - << 'PYEOF'
 import subprocess, json, pysam, re, tempfile, os
 
 BCF     = os.environ['IMPUTED_BCF']

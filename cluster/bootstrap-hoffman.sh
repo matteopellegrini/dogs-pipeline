@@ -41,9 +41,9 @@ check() {
     [[ -x "$t" ]] && ok "$t" || { bad "$t"; missing=1; }
   done
   step "Python data stack"
-  if "$ENVS/genomics/bin/python3" -c 'import pandas,numpy,scipy,sklearn' 2>/dev/null; then
-    ok "pandas/numpy/scipy/sklearn"
-  else bad "pandas/numpy/scipy/sklearn in $ENVS/genomics"; missing=1; fi
+  if "$ENVS/genomics/bin/python3" -c 'import pandas,numpy,scipy,sklearn,pysam' 2>/dev/null; then
+    ok "pandas/numpy/scipy/sklearn/pysam"
+  else bad "pandas/numpy/scipy/sklearn/pysam in $ENVS/genomics"; missing=1; fi
   step "Reference data under $D"
   for f in canFam4.fa canFam4_idx.bwt.2bit.64 \
            dog10k_panel/AutoAndXPAR.Dog10K.phased_plus_disease_rh.bcf \
@@ -87,7 +87,7 @@ step "genomics env  (slow: 'Executing transaction' writes ~300k files to shared 
 "$MAMBA" create -y -p "$ENVS/genomics" -c conda-forge -c bioconda \
   bwa-mem2=2.3 samtools=1.23.1 bcftools=1.23.1 fastp=1.3.6 \
   snpeff=5.4.0c openjdk=25 metaphlan=4.2.4 \
-  python=3.11 pandas numpy scipy scikit-learn
+  python=3.11 pandas numpy scipy scikit-learn pysam
 
 step "glimpse env"
 "$MAMBA" create -y -p "$ENVS/glimpse" -c conda-forge -c bioconda glimpse-bio=2.0.1
