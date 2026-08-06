@@ -47,7 +47,8 @@ check() {
   step "Reference data under $D"
   for f in canFam4.fa canFam4_idx.bwt.2bit.64 \
            dog10k_panel/AutoAndXPAR.Dog10K.phased_plus_disease_rh.bcf \
-           COSMO/glimpse2_dog10k/chunks COSMO/analysis/cosmo_parker_full.bed \
+           COSMO/glimpse2_dog10k/chunks COSMO/glimpse2_dog10k/failed_chunks.txt \
+           COSMO/analysis/cosmo_parker_full.bed \
            COSMO/analysis/cosmo_scope177Phat.txt \
            metagenome/merged_microbiome_age_weight_3.18_final.csv \
            reference_json/centromeres.json; do
@@ -125,6 +126,7 @@ cat <<EOF
 
      rsync -avR --info=progress2 \\
        ~/Downloads/dogs/./COSMO/glimpse2_dog10k/chunks \\
+       ~/Downloads/dogs/./COSMO/glimpse2_dog10k/failed_chunks.txt \\
        ~/Downloads/dogs/./COSMO/analysis/cosmo_parker_full.* \\
        ~/Downloads/dogs/./COSMO/analysis/cosmo_scope177Phat.txt \\
        ~/Downloads/dogs/./COSMO/analysis/scope_clust.txt \\
