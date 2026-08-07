@@ -132,8 +132,14 @@ preflight() {
            "$METAPHLAN_BIN"; do
     [[ -x "$t" ]] || { log "  MISSING TOOL: $t"; missing=1; }
   done
-  for f in "$FASTA" "$DOG10K_PANEL" "$MICROBIOME_REF" "$PARKER_BED" "$SCOPE_P" \
-           "$OMIA_DB" "$REF_JSON/prs_reference.json"; do
+  # Every reference the pipeline reads. Derived from a sweep of $D/... paths in
+  # this script — stages 8, 11 and 12 each died on a different missing file
+  # because the transfer list was assembled by hand.
+  for f in "$FASTA" "$DOG10K_PANEL" "$MICROBIOME_REF" "$PARKER_BED" "$PARKER_BIM" "$PARKER_FAM" \
+           "$SCOPE_P" "$SCOPE_CLUST" "$OMIA_DB" "$REF_JSON/prs_reference.json" \
+           "$D/COSMO/glimpse2_dog10k/het_out/dog10k_het.het" \
+           "$D/COSMO/glimpse2_dog10k/het_out/panel_af.tsv.gz" \
+           "$D/reference_panel/coverage_1mb.json"; do
     [[ -e "$f" ]] || { log "  MISSING REFERENCE: $f"; missing=1; }
   done
   [[ -d "$CHUNKS_DIR" ]] || { log "  MISSING REFERENCE: $CHUNKS_DIR"; missing=1; }
