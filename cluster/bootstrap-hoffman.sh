@@ -51,7 +51,8 @@ check() {
            COSMO/analysis/cosmo_parker_full.bed \
            COSMO/analysis/cosmo_scope177Phat.txt \
            metagenome/merged_microbiome_age_weight_3.18_final.csv \
-           reference_json/centromeres.json; do
+           reference_json/centromeres.json reference_json/omia_variants.json \
+           reference_json/prs_reference.json; do
     [[ -e "$D/$f" ]] && ok "$f" || { bad "$f"; missing=1; }
   done
   return $missing

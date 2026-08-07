@@ -74,7 +74,7 @@ VEP_CACHE=$D/vep_cache
 # Shared reference data (same for every dog)
 DOG10K_PANEL=$D/dog10k_panel/AutoAndXPAR.Dog10K.phased_plus_disease_rh.bcf
 CHUNKS_DIR=$D/COSMO/glimpse2_dog10k/chunks   # reuse existing chunk definitions
-OMIA_DB=$D/dogs-app/public/cosmo/omia_result.json  # OMIA variant database
+OMIA_DB=$REF_JSON/omia_variants.json           # OMIA variant catalogue (479 variants)
 REF_JSON=$D/reference_json                     # shared reference JSONs (genome annotations +
                                                # cosmo baseline); deliberately outside public/
                                                # so no genomic data is world-readable
@@ -131,7 +131,8 @@ preflight() {
            "$METAPHLAN_BIN"; do
     [[ -x "$t" ]] || { log "  MISSING TOOL: $t"; missing=1; }
   done
-  for f in "$FASTA" "$DOG10K_PANEL" "$MICROBIOME_REF" "$PARKER_BED" "$SCOPE_P"; do
+  for f in "$FASTA" "$DOG10K_PANEL" "$MICROBIOME_REF" "$PARKER_BED" "$SCOPE_P" \
+           "$OMIA_DB" "$REF_JSON/prs_reference.json"; do
     [[ -e "$f" ]] || { log "  MISSING REFERENCE: $f"; missing=1; }
   done
   [[ -d "$CHUNKS_DIR" ]] || { log "  MISSING REFERENCE: $CHUNKS_DIR"; missing=1; }
@@ -1452,7 +1453,7 @@ BIM      = "$PARKER_BIM"
 FAM      = "$PARKER_FAM"
 BED      = "$PARKER_BED"
 PUB      = "$PUB"
-REF_PRS  = "$D/dogs-app/public/cosmo/prs_result.json"
+REF_PRS  = "$REF_JSON/prs_reference.json"
 
 # ── Parker breed code → AKC breed name (plural form used by kkakey/dog_traits_AKC) ──
 PARKER_TO_AKC = {
