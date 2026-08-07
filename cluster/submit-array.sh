@@ -7,14 +7,19 @@
 # start at 2. The pipeline already takes the row as its second argument, so no
 # translation is needed.
 #
-# Resources: peak memory observed on a full run is ~40GB. On Hoffman2 h_data is
-# PER SLOT, so 8 slots x 6G = 48G total. Runtime is ~1h15m on a Mac; 8h gives
-# generous headroom for slower or contended nodes.
+# Resources. h_data is PER SLOT on Hoffman2, so 8 x 4G = 32G total.
+#
+# The 40GB figure from Mac runs was misleading: that machine ran 8 GLIMPSE jobs
+# AND held the bwa-mem2 index simultaneously. A real Hoffman2 run peaked at
+# 1.5GB during Stage 7. Alignment (Stage 4) is the actual high-water mark, hence
+# 4G/slot rather than something much smaller — confirm with:
+#     qacct -j <job_id> | grep maxvmem
+# and trim further if it comes in low. Over-requesting only costs queue time.
 #
 #$ -cwd
 #$ -j y
 #$ -o logs/$JOB_NAME.$JOB_ID.$TASK_ID.log
-#$ -l h_data=6G,h_rt=8:00:00
+#$ -l h_data=4G,h_rt=8:00:00
 #$ -pe shared 8
 
 set -euo pipefail
