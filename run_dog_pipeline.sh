@@ -2636,12 +2636,13 @@ MICRO_BT2="$OUT/${DOG_LOWER}_metaphlan.mapout.bz2"
 
     METAPHLAN_LOG="$OUT/${DOG_LOWER}_metaphlan_stderr.log"
     # A site may point at an existing database (a shared cluster copy, or one
-    # rsynced in) instead of MetaPhlAn's default per-install location. Saves an
-    # ~8GB download, which on a slow node takes hours.
+    # downloaded separately) instead of MetaPhlAn's default per-install location.
+    # The database is ~34GB extracted, so this avoids fetching it per environment.
     MPA_DB_ARG=()
     if [[ -n "${METAPHLAN_DB:-}" ]]; then
         [[ -d "$METAPHLAN_DB" ]] || die "METAPHLAN_DB set but not a directory: $METAPHLAN_DB"
-        MPA_DB_ARG=(--bowtie2db "$METAPHLAN_DB")
+        # MetaPhlAn 4.2 renamed --bowtie2db to --db_dir; the old name is rejected.
+        MPA_DB_ARG=(--db_dir "$METAPHLAN_DB")
         log "  Using MetaPhlAn database: $METAPHLAN_DB"
     fi
     # Ensure MetaPhlAn4's Python bin is in PATH so its helper scripts (read_fastx.py) can be found
