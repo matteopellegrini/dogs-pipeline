@@ -667,16 +667,27 @@ log "Genotype estimation complete"
 MEM_POLL_PID=$!
 
 log "Ligating chunks per chromosome..."
+_ligated=0; _empty=""
 for chr in $(ls "$CHUNKS_DIR"/*.txt | xargs -I{} basename {} .txt); do
   list=$(mktemp)
-  ls "$GENO_DIR"/${chr}_chunk*.bcf 2>/dev/null | sort -V > "$list"
-  [ -s "$list" ] || { rm "$list"; continue; }
+  # `|| true` matters: with `set -o pipefail`, an `ls` that matches nothing exits
+  # non-zero and `set -e` kills the script before the emptiness guard below can
+  # skip the chromosome. That happens whenever every chunk of a chromosome was
+  # skipped or failed at runtime.
+  ls "$GENO_DIR"/${chr}_chunk*.bcf 2>/dev/null | sort -V > "$list" || true
+  [ -s "$list" ] || { rm -f "$list"; _empty="$_empty $chr"; continue; }
   $MM_GLIMPSE GLIMPSE2_ligate --input "$list" --output "$LIGATED_DIR/${chr}.bcf" \
     || die "GLIMPSE2_ligate failed for $chr"
   $MM_GLIMPSE bcftools index -f "$LIGATED_DIR/${chr}.bcf"
-  rm "$list"
-  echo "Ligated $chr"
+  rm -f "$list"
+  _ligated=$((_ligated + 1))
 done
+log "Ligated $_ligated chromosomes"
+if [ -n "$_empty" ]; then
+  # Not fatal — the merge still succeeds — but the final BCF is missing these
+  # chromosomes entirely, so say so rather than letting it pass unnoticed.
+  log "WARNING: no genotypes for:$_empty — these are ABSENT from the imputed BCF"
+fi
 
 log "Merging chromosomes..."
 $MM_GLIMPSE bcftools concat \
