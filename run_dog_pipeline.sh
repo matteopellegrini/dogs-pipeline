@@ -171,9 +171,12 @@ preflight() {
   # Stage 15 needs MetaPhlAn's ~8GB database. It is downloaded separately from
   # the tool, so the binary existing proves nothing; without it Stage 15 fails
   # around 40 minutes into a run.
-  if [[ -x "$METAPHLAN_BIN" ]]; then
+  if [[ -n "${METAPHLAN_DB:-}" ]]; then
+    [[ -d "$METAPHLAN_DB" ]] || { log "  METAPHLAN_DB is not a directory: $METAPHLAN_DB"; missing=1; }
+  elif [[ -x "$METAPHLAN_BIN" ]]; then
     "$METAPHLAN_BIN" --version 2>&1 | grep -qi "installed databases" \
-      || log "  WARNING: MetaPhlAn reports no installed database — Stage 15 will fail. Run: $METAPHLAN_BIN --install"
+      || log "  WARNING: MetaPhlAn reports no installed database — Stage 15 will fail. Either run
+        $METAPHLAN_BIN --install, or set METAPHLAN_DB to an existing database directory."
   fi
 
   # node only matters where this site actually publishes; the cluster stages
@@ -2632,13 +2635,22 @@ MICRO_BT2="$OUT/${DOG_LOWER}_metaphlan.mapout.bz2"
     log "  Unmapped reads: $((N_READS/4)) ($(wc -c < "$UNMAPPED_FQ" | awk '{printf "%.1f", $1/1e6}') MB)"
 
     METAPHLAN_LOG="$OUT/${DOG_LOWER}_metaphlan_stderr.log"
+    # A site may point at an existing database (a shared cluster copy, or one
+    # rsynced in) instead of MetaPhlAn's default per-install location. Saves an
+    # ~8GB download, which on a slow node takes hours.
+    MPA_DB_ARG=()
+    if [[ -n "${METAPHLAN_DB:-}" ]]; then
+        [[ -d "$METAPHLAN_DB" ]] || die "METAPHLAN_DB set but not a directory: $METAPHLAN_DB"
+        MPA_DB_ARG=(--bowtie2db "$METAPHLAN_DB")
+        log "  Using MetaPhlAn database: $METAPHLAN_DB"
+    fi
     # Ensure MetaPhlAn4's Python bin is in PATH so its helper scripts (read_fastx.py) can be found
     export PATH="$(dirname "$METAPHLAN_BIN"):$PATH"
     log "  Running MetaPhlAn4…"
     if [[ -f "$MICRO_BT2" ]]; then
         if bzip2 -t "$MICRO_BT2" 2>/dev/null; then
             log "  Reusing existing mapout: $MICRO_BT2"
-            "$METAPHLAN_BIN" "$MICRO_BT2" \
+            "$METAPHLAN_BIN" "$MICRO_BT2" "${MPA_DB_ARG[@]}" \
                 --input_type mapout \
                 --nproc 4 \
                 -o "$MICRO_OUT" 2>"$METAPHLAN_LOG" \
@@ -2646,7 +2658,7 @@ MICRO_BT2="$OUT/${DOG_LOWER}_metaphlan.mapout.bz2"
         else
             log "  Mapout truncated — removing and re-running from FASTQ"
             rm -f "$MICRO_BT2"
-            "$METAPHLAN_BIN" "$UNMAPPED_FQ" \
+            "$METAPHLAN_BIN" "$UNMAPPED_FQ" "${MPA_DB_ARG[@]}" \
                 --input_type fastq \
                 --mapout "$MICRO_BT2" \
                 --nproc 4 \
@@ -2654,7 +2666,7 @@ MICRO_BT2="$OUT/${DOG_LOWER}_metaphlan.mapout.bz2"
             || { log "  MetaPhlAn4 error:"; cat "$METAPHLAN_LOG" | head -20 | while read -r l; do log "    $l"; done; die "MetaPhlAn4 failed"; }
         fi
     else
-        "$METAPHLAN_BIN" "$UNMAPPED_FQ" \
+        "$METAPHLAN_BIN" "$UNMAPPED_FQ" "${MPA_DB_ARG[@]}" \
             --input_type fastq \
             --mapout "$MICRO_BT2" \
             --nproc 4 \
