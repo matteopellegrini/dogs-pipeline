@@ -153,6 +153,26 @@ preflight() {
     || { log "  bcftools not reachable under \$MM_GLIMPSE — every chunk would be deleted after genotyping"; missing=1; }
   $MM_GLIMPSE GLIMPSE2_phase --help >/dev/null 2>&1 \
     || { log "  GLIMPSE2_phase not runnable under \$MM_GLIMPSE"; missing=1; }
+
+  # Stage 10 needs a JVM for SnpEff.
+  if [[ ! -x "$ENV_GENOMICS/bin/java" ]] && ! find "$ENV_GENOMICS/lib/jvm/bin" -name java >/dev/null 2>&1 \
+     && ! command -v java >/dev/null 2>&1; then
+    log "  java not found — Stage 10 (SnpEff) needs it"; missing=1
+  fi
+
+  # Stage 15 needs MetaPhlAn's ~8GB database. It is downloaded separately from
+  # the tool, so the binary existing proves nothing; without it Stage 15 fails
+  # around 40 minutes into a run.
+  if [[ -x "$METAPHLAN_BIN" ]]; then
+    "$METAPHLAN_BIN" --version 2>&1 | grep -qi "installed databases" \
+      || log "  WARNING: MetaPhlAn reports no installed database — Stage 15 will fail. Run: $METAPHLAN_BIN --install"
+  fi
+
+  # node only matters where this site actually publishes; the cluster stages
+  # results instead and publishes later from a login node.
+  if [[ "${PUBLISH_RESULTS:-0}" == "1" ]] && ! command -v node >/dev/null 2>&1; then
+    log "  node not found — Stage 17 publishes with it (set PUBLISH_RESULTS=0 to stage instead)"; missing=1
+  fi
   # Every inline Python block runs under DATA_PYTHON, so it needs the full set —
   # pysam included, which the stage-8/9 blocks import.
   if [[ -z "${DATA_PYTHON:-}" || ! -x "${DATA_PYTHON:-}" ]]; then
@@ -1127,7 +1147,10 @@ ANN_DIR="$OUT/snpeff"
 mkdir -p "$ANN_DIR"
 
 # snpEff wrapper (conda python script) needs python + java in PATH
+# openjdk lands in lib/jvm/bin on macOS conda but bin/ on Linux conda — check
+# both inside the pinned env before falling back to whatever is on PATH.
 SNPEFF_JAVA="$(find "$ENV_GENOMICS/lib/jvm/bin" -name java 2>/dev/null | head -1 || true)"
+[ -z "$SNPEFF_JAVA" ] && [ -x "$ENV_GENOMICS/bin/java" ] && SNPEFF_JAVA="$ENV_GENOMICS/bin/java"
 [ -z "$SNPEFF_JAVA" ] && SNPEFF_JAVA="$(command -v java 2>/dev/null || true)"
 [ -z "$SNPEFF_JAVA" ] && die "java not found — required for SnpEff"
 export PATH="$ENV_GENOMICS/bin:$(dirname "$SNPEFF_JAVA"):$PATH"
