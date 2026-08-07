@@ -98,15 +98,15 @@ export PATH
 # tools run simultaneously in a pipe (bwa | samtools sort | fixmate | markdup).
 ENV_GENOMICS="${ENV_GENOMICS:-$HOME/micromamba/envs/genomics}"
 ENV_GLIMPSE="${ENV_GLIMPSE:-$HOME/micromamba/envs/glimpse_x86}"
-MM="env PATH=$ENV_GENOMICS/bin:$PATH LD_LIBRARY_PATH=$ENV_GENOMICS/lib"
-MM_GLIMPSE="env PATH=$ENV_GLIMPSE/bin:$PATH LD_LIBRARY_PATH=$ENV_GLIMPSE/lib"
-
 # Put the pinned genomics env first on PATH. Several inline Python blocks invoke
 # `samtools`/`bcftools` by bare name; without this they resolve to whatever the
 # host happens to provide — Homebrew on the Mac, nothing at all on Hoffman, where
 # Stage 6 died with FileNotFoundError. Prepending makes every bare invocation use
 # the same pinned build the rest of the pipeline uses via $MM.
 export PATH="$ENV_GENOMICS/bin:$PATH"
+
+MM="env PATH=$ENV_GENOMICS/bin:$PATH LD_LIBRARY_PATH=$ENV_GENOMICS/lib"
+MM_GLIMPSE="env PATH=$ENV_GLIMPSE/bin:$PATH LD_LIBRARY_PATH=$ENV_GLIMPSE/lib"
 NPROC="${NPROC:-8}"
 GLIMPSE_PARALLEL="${GLIMPSE_PARALLEL:-8}"
 
@@ -145,6 +145,14 @@ preflight() {
       log "  WARNING: bare '$b' resolves to $_r, not $ENV_GENOMICS/bin/$b"
     fi
   done
+  # estimate_chunk indexes every chunk with `$MM_GLIMPSE bcftools index` and
+  # DELETES the chunk on failure. The glimpse env has no bcftools of its own, so
+  # if it is not inherited from PATH here, a whole Stage 7 silently produces
+  # nothing after hours of work. Check the exact invocation the pipeline uses.
+  $MM_GLIMPSE bcftools --version >/dev/null 2>&1 \
+    || { log "  bcftools not reachable under \$MM_GLIMPSE — every chunk would be deleted after genotyping"; missing=1; }
+  $MM_GLIMPSE GLIMPSE2_phase --help >/dev/null 2>&1 \
+    || { log "  GLIMPSE2_phase not runnable under \$MM_GLIMPSE"; missing=1; }
   # Every inline Python block runs under DATA_PYTHON, so it needs the full set —
   # pysam included, which the stage-8/9 blocks import.
   if [[ -z "${DATA_PYTHON:-}" || ! -x "${DATA_PYTHON:-}" ]]; then
