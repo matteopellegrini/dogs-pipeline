@@ -74,10 +74,11 @@ VEP_CACHE=$D/vep_cache
 # Shared reference data (same for every dog)
 DOG10K_PANEL=$D/dog10k_panel/AutoAndXPAR.Dog10K.phased_plus_disease_rh.bcf
 CHUNKS_DIR=$D/COSMO/glimpse2_dog10k/chunks   # reuse existing chunk definitions
+REF_JSON=$D/reference_json                     # shared reference JSONs (genome annotations,
+                                               # OMIA catalogue, PRS baseline); deliberately
+                                               # outside public/ so no genomic data is
+                                               # world-readable and the cluster needs no app checkout
 OMIA_DB=$REF_JSON/omia_variants.json           # OMIA variant catalogue (479 variants)
-REF_JSON=$D/reference_json                     # shared reference JSONs (genome annotations +
-                                               # cosmo baseline); deliberately outside public/
-                                               # so no genomic data is world-readable
 SCOPE_P=$D/COSMO/analysis/cosmo_scope177Phat.txt     # (143933 SNPs × 177 breeds) full Parker panel allele freq matrix
 SCOPE_CLUST=$D/COSMO/analysis/scope_clust.txt        # breed ordering for Phat columns
 PARKER_BIM=$D/COSMO/analysis/cosmo_parker_full.bim
