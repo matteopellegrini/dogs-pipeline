@@ -11,6 +11,11 @@ D="${D:-/u/project/pellegrini/$USER/dogs}"
 ENV_GENOMICS="${ENV_GENOMICS:-$D/envs/genomics}"
 ENV_GLIMPSE="${ENV_GLIMPSE:-$D/envs/glimpse}"
 METAPHLAN_BIN="${METAPHLAN_BIN:-$D/envs/genomics/bin/metaphlan}"
+
+# MetaPhlAn's database is ~34GB extracted and is downloaded separately from the
+# tool, so it lives beside the other reference data rather than inside the conda
+# env. Passed to MetaPhlAn as --bowtie2db, so it is never re-downloaded.
+METAPHLAN_DB="${METAPHLAN_DB:-$D/metaphlan_db}"
 DATA_PYTHON="${DATA_PYTHON:-$D/envs/genomics/bin/python3}"
 
 # Threads come from the scheduler: `qsub -pe shared N` exports NSLOTS.
