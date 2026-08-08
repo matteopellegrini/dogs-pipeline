@@ -144,6 +144,7 @@ log() { echo "[$(date '+%H:%M:%S')] $*" | tee -a "$LOG"; }
 die() { log "ERROR: $*"; exit 1; }
 
 log "Site profile: $DOGS_SITE  (D=$D, NPROC=$NPROC, GLIMPSE_PARALLEL=$GLIMPSE_PARALLEL, publish=$PUBLISH_RESULTS)"
+log "Run config: sample=$DOG_NAME from_stage=$FROM_STAGE out=$OUT"
 
 # ── Preflight ────────────────────────────────────────────────
 # Every prerequisite is checked up front. Previously a missing tool or reference

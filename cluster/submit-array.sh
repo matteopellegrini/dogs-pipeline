@@ -48,7 +48,40 @@ PIPELINE_ROOT="${SGE_O_WORKDIR:-$PWD}"
 [[ -f "$PIPELINE_ROOT/run_dog_pipeline.sh" ]] \
   || { echo "ERROR: run_dog_pipeline.sh not found in $PIPELINE_ROOT — submit from the repo root"; exit 1; }
 
-bash "$PIPELINE_ROOT/run_dog_pipeline.sh" "$SHEET" "$ROW" 1
+# Run the script from NODE-LOCAL disk, not from /u/project.
+#
+# Bash does not read a script into memory — it reads incrementally, keeping a
+# file offset, and executes as it goes. Stage 3+4 blocks inside a single command
+# for ~35 minutes without touching that fd; on a shared parallel filesystem a
+# read resumed after that gap can come back short. Bash takes a short read as
+# end-of-script and stops: EXIT trap fires, summary prints, exit status 0, and
+# every remaining stage is silently skipped. That is exactly how COSMO3 (job
+# 14262939) "succeeded" after Stage 4 with no error on stdout or stderr.
+#
+# Copying to node-local disk first costs ~100ms and removes the whole class of
+# failure. Only the script and site/ move; $D still points at project storage,
+# so all data and outputs are unaffected.
+STAGE_DIR="${TMPDIR:-/tmp}/pipeline.${JOB_ID:-manual}.$ROW"
+mkdir -p "$STAGE_DIR"
+trap 'rm -rf "$STAGE_DIR"' EXIT
+cp "$PIPELINE_ROOT/run_dog_pipeline.sh" "$STAGE_DIR/"
+cp -r "$PIPELINE_ROOT/site" "$STAGE_DIR/"
+echo "    running from node-local $STAGE_DIR"
+
+bash "$STAGE_DIR/run_dog_pipeline.sh" "$SHEET" "$ROW" 1
+
+# The pipeline writes pipeline.done as its last act. Without this check a
+# truncated run reports exit 0 and the scheduler calls it a success — across 96
+# tasks that is silent, undetectable data loss. Column 5 of the sheet is the
+# sample's work dir, which is where the marker lands (a local-scratch run copies
+# it back there too).
+SAMPLE_OUT=$(awk -F'\t' -v r="$ROW" 'NR==r {print $5}' "$SHEET")
+if [[ -n "$SAMPLE_OUT" && ! -e "$SAMPLE_OUT/pipeline.done" ]]; then
+  echo "ERROR: task $ROW ended without $SAMPLE_OUT/pipeline.done — the run did NOT" >&2
+  echo "       reach the end of the pipeline. Check which stages appear in"        >&2
+  echo "       $SAMPLE_OUT/pipeline.log before treating this sample as complete."  >&2
+  exit 1
+fi
 
 echo "=== task $ROW finished ==="
 echo "Results are staged, not published — compute nodes have no internet."
