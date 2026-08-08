@@ -35,7 +35,15 @@ export DOGS_SITE=hoffman
 echo "=== task $ROW of $JOB_ID on $(hostname) ==="
 echo "    slots=${NSLOTS:-?}  sheet=$SHEET"
 
-bash "$(dirname "$0")/../run_dog_pipeline.sh" "$SHEET" "$ROW" 1
+# Resolve the pipeline from the SUBMIT directory, not from $0. UGE spools the
+# job script into /work/UGE/.../job_scripts/, so $0 points there and
+# "$(dirname $0)/.." lands in the scheduler's spool, not the repo.
+# -cwd means the job starts in the submit directory; SGE_O_WORKDIR records it.
+PIPELINE_ROOT="${SGE_O_WORKDIR:-$PWD}"
+[[ -f "$PIPELINE_ROOT/run_dog_pipeline.sh" ]] \
+  || { echo "ERROR: run_dog_pipeline.sh not found in $PIPELINE_ROOT — submit from the repo root"; exit 1; }
+
+bash "$PIPELINE_ROOT/run_dog_pipeline.sh" "$SHEET" "$ROW" 1
 
 echo "=== task $ROW finished ==="
 echo "Results are staged, not published — compute nodes have no internet."
