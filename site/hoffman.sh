@@ -46,15 +46,18 @@ GLIMPSE_PARALLEL="${GLIMPSE_PARALLEL:-${NSLOTS:-8}}"
 # result JSONs, coverage tracks, MetaPhlAn profile and logs are copied back.
 USE_LOCAL_SCRATCH="${USE_LOCAL_SCRATCH:-1}"
 
-# Where that working directory lives. $TMPDIR is node-local disk — fastest, and
-# the scheduler cleans it up — but capacity is per node and shared by whatever
-# else lands there. /u/scratch/<initial>/<user> is a 2TB shared filesystem:
-# more room, still network-backed, and we clean up after ourselves (on success).
+# Where that working directory lives.
 #
-# Verify what $TMPDIR actually is from inside a job before trusting it:
-#     echo $TMPDIR; df -h $TMPDIR
-# A sample needs ~15-20GB; several concurrent tasks per node multiply that.
-LOCAL_SCRATCH_ROOT="${LOCAL_SCRATCH_ROOT:-${TMPDIR:-/u/scratch/${USER:0:1}/$USER}}"
+# Hoffman2 does NOT set $TMPDIR (verified on a qrsh node — it is empty), so
+# there is no node-local scratch to use. /u/scratch is a 9.5PB NFS filesystem
+# with a 2TB per-user quota; it is still network storage, but separating
+# write-heavy intermediates from /u/project keeps them off the same filesystem
+# that is concurrently serving 39GB of reference reads.
+#
+# The pipeline removes its own working directory on success (scratch is not
+# purged per job). A sample needs ~15-20GB, so against a 2TB quota keep
+# concurrency under ~100 tasks — see -tc in cluster/submit-array.sh.
+LOCAL_SCRATCH_ROOT="${LOCAL_SCRATCH_ROOT:-/u/scratch/${USER:0:1}/$USER}"
 
 # Compute nodes generally have no outbound internet, so the pipeline stops after
 # staging results locally. Publish afterwards from a login node:

@@ -3,6 +3,11 @@
 #
 #   qsub -t 2-9 cluster/submit-array.sh sample_sheet.tsv
 #
+# For large arrays, cap how many run at once with -tc. Each task needs ~15-20GB
+# of scratch and the quota is 2TB, so ~40 concurrent leaves comfortable margin:
+#
+#   qsub -t 2-97 -tc 40 cluster/submit-array.sh sample_sheet.hoffman.tsv
+#
 # Task IDs are sample-sheet row numbers — row 1 is the header, so data rows
 # start at 2. The pipeline already takes the row as its second argument, so no
 # translation is needed.
