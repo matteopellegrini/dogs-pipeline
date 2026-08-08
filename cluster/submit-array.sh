@@ -10,9 +10,11 @@
 # Resources. h_data is PER SLOT on Hoffman2, so 8 x 6G = 48G total.
 #
 # Stage 15 sets the memory floor, not alignment: bowtie2 loads the MetaPhlAn
-# index (.1 + .2 .bt2l = ~14.4GB) entirely into RAM, and a 32GB job died with
-# "Out of memory allocating the ebwt[] array". Stage 7 peaks near 1.5GB and
-# Stage 4 holds the ~10GB bwa-mem2 index, so neither is the binding constraint.
+# index — forward AND mirror (.1/.2 plus .rev.1/.rev.2), ~28.5GB total — into
+# RAM, and a 32GB job died with "Out of memory allocating the ebwt[] array".
+# Stage 7 peaks near 1.5GB and Stage 4 holds the ~10GB bwa-mem2 index, so
+# neither is the binding constraint. 48G leaves ~19GB of headroom over the
+# index; do not trim below ~40G without testing Stage 15 specifically.
 #
 # Confirm on a real run and trim if there is headroom:
 #     qacct -j <job_id> | grep maxvmem
