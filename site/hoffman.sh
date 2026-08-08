@@ -46,6 +46,16 @@ GLIMPSE_PARALLEL="${GLIMPSE_PARALLEL:-${NSLOTS:-8}}"
 # result JSONs, coverage tracks, MetaPhlAn profile and logs are copied back.
 USE_LOCAL_SCRATCH="${USE_LOCAL_SCRATCH:-1}"
 
+# Where that working directory lives. $TMPDIR is node-local disk — fastest, and
+# the scheduler cleans it up — but capacity is per node and shared by whatever
+# else lands there. /u/scratch/<initial>/<user> is a 2TB shared filesystem:
+# more room, still network-backed, and we clean up after ourselves (on success).
+#
+# Verify what $TMPDIR actually is from inside a job before trusting it:
+#     echo $TMPDIR; df -h $TMPDIR
+# A sample needs ~15-20GB; several concurrent tasks per node multiply that.
+LOCAL_SCRATCH_ROOT="${LOCAL_SCRATCH_ROOT:-${TMPDIR:-/u/scratch/${USER:0:1}/$USER}}"
+
 # Compute nodes generally have no outbound internet, so the pipeline stops after
 # staging results locally. Publish afterwards from a login node:
 #     bash cluster/publish-pending.sh

@@ -124,7 +124,10 @@ GLIMPSE_PARALLEL="${GLIMPSE_PARALLEL:-8}"
 # possible for local-scratch runs. Array jobs always start from stage 1 anyway.
 FINAL_OUT=""
 if [[ "${USE_LOCAL_SCRATCH:-0}" == "1" ]]; then
-  _scratch="${TMPDIR:-}"
+  # Defaults to $TMPDIR (node-local, auto-cleaned by the scheduler). Set
+  # LOCAL_SCRATCH_ROOT to a shared scratch filesystem instead if $TMPDIR is too
+  # small — that trades local-disk speed for capacity, and we clean up ourselves.
+  _scratch="${LOCAL_SCRATCH_ROOT:-${TMPDIR:-}}"
   if [[ -n "$_scratch" && -d "$_scratch" ]]; then
     FINAL_OUT="$OUT"
     OUT="$_scratch/${DOG_LOWER}/analysis"
@@ -268,8 +271,18 @@ _keep_from_scratch() {
            "${DOG_LOWER}_metaphlan.txt" "${DOG_LOWER}_metaphlan.mapout.bz2"; do
     [[ -e "$OUT/$f" ]] && cp -p "$OUT/$f" "$FINAL_OUT/$f" 2>/dev/null || true
   done
-  echo "[$(date '+%H:%M:%S')] Kept artifacts in $FINAL_OUT (intermediates discarded with $OUT)" \
-    | tee -a "$FINAL_OUT/pipeline.log" 2>/dev/null || true
+  # Remove the working directory ourselves, but ONLY on success. $TMPDIR would be
+  # cleaned by the scheduler anyway; a shared scratch root would not, and 96 x
+  # ~18GB left behind fills 2TB fast. On failure it is left in place so the run
+  # can be debugged.
+  if [[ -e "$OUT/pipeline.done" ]]; then
+    echo "[$(date '+%H:%M:%S')] Kept artifacts in $FINAL_OUT; removing scratch $OUT" \
+      | tee -a "$FINAL_OUT/pipeline.log" 2>/dev/null || true
+    rm -rf "$OUT" 2>/dev/null || true
+  else
+    echo "[$(date '+%H:%M:%S')] Kept artifacts in $FINAL_OUT; scratch RETAINED for debugging: $OUT" \
+      | tee -a "$FINAL_OUT/pipeline.log" 2>/dev/null || true
+  fi
 }
 
 _finish() {
