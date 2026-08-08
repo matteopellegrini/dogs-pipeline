@@ -32,13 +32,19 @@
 
 set -euo pipefail
 
-SHEET="${1:?usage: qsub -t 2-N cluster/submit-array.sh <sample_sheet.tsv>}"
+SHEET="${1:?usage: qsub -t 2-N cluster/submit-array.sh <sample_sheet.tsv> [from_stage]}"
+# Optional resume point. Defaults to 1 (full run). Use it to pick a sample back
+# up without repeating alignment, e.g. after a stage-15 failure:
+#     qsub -t 3-3 cluster/submit-array.sh sample_sheet.hoffman.tsv 5
+# Resume only works when the intermediates still exist, so not for runs that
+# used local scratch — those are discarded with the job.
+FROM_STAGE="${2:-1}"
 ROW="${SGE_TASK_ID:?this script must be submitted as an array job (-t)}"
 
 export DOGS_SITE=hoffman
 
 echo "=== task $ROW of $JOB_ID on $(hostname) ==="
-echo "    slots=${NSLOTS:-?}  sheet=$SHEET"
+echo "    slots=${NSLOTS:-?}  sheet=$SHEET  from_stage=$FROM_STAGE"
 
 # Resolve the pipeline from the SUBMIT directory, not from $0. UGE spools the
 # job script into /work/UGE/.../job_scripts/, so $0 points there and
@@ -68,14 +74,18 @@ cp "$PIPELINE_ROOT/run_dog_pipeline.sh" "$STAGE_DIR/"
 cp -r "$PIPELINE_ROOT/site" "$STAGE_DIR/"
 echo "    running from node-local $STAGE_DIR"
 
-bash "$STAGE_DIR/run_dog_pipeline.sh" "$SHEET" "$ROW" 1
+# Column 5 of the sheet is the sample's work dir, where the pipeline writes its
+# pipeline.done marker (a local-scratch run copies the marker back there too).
+# Clear any marker from an earlier run FIRST — a stale one would let a truncated
+# rerun pass the completion check below.
+SAMPLE_OUT=$(awk -F'\t' -v r="$ROW" 'NR==r {print $5}' "$SHEET")
+if [[ -n "$SAMPLE_OUT" ]]; then rm -f "$SAMPLE_OUT/pipeline.done"; fi
+
+bash "$STAGE_DIR/run_dog_pipeline.sh" "$SHEET" "$ROW" "$FROM_STAGE"
 
 # The pipeline writes pipeline.done as its last act. Without this check a
 # truncated run reports exit 0 and the scheduler calls it a success — across 96
-# tasks that is silent, undetectable data loss. Column 5 of the sheet is the
-# sample's work dir, which is where the marker lands (a local-scratch run copies
-# it back there too).
-SAMPLE_OUT=$(awk -F'\t' -v r="$ROW" 'NR==r {print $5}' "$SHEET")
+# tasks that is silent, undetectable data loss.
 if [[ -n "$SAMPLE_OUT" && ! -e "$SAMPLE_OUT/pipeline.done" ]]; then
   echo "ERROR: task $ROW ended without $SAMPLE_OUT/pipeline.done — the run did NOT" >&2
   echo "       reach the end of the pipeline. Check which stages appear in"        >&2
