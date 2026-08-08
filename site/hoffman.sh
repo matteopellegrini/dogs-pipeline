@@ -16,6 +16,12 @@ METAPHLAN_BIN="${METAPHLAN_BIN:-$D/envs/genomics/bin/metaphlan}"
 # tool, so it lives beside the other reference data rather than inside the conda
 # env. Passed to MetaPhlAn as --bowtie2db, so it is never re-downloaded.
 METAPHLAN_DB="${METAPHLAN_DB:-$D/metaphlan_db}"
+
+# Pin the index version. Without this MetaPhlAn queries the server for the
+# "latest" index, decides whatever is in db_dir is "not present or partially
+# present", and silently starts downloading a different ~40GB database — which
+# would also make results incomparable with the Mac, which runs vJan25.
+METAPHLAN_INDEX="${METAPHLAN_INDEX:-mpa_vJan25_CHOCOPhlAnSGB_202503}"
 DATA_PYTHON="${DATA_PYTHON:-$D/envs/genomics/bin/python3}"
 
 # Threads come from the scheduler: `qsub -pe shared N` exports NSLOTS.

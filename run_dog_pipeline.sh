@@ -173,6 +173,12 @@ preflight() {
   # around 40 minutes into a run.
   if [[ -n "${METAPHLAN_DB:-}" ]]; then
     [[ -d "$METAPHLAN_DB" ]] || { log "  METAPHLAN_DB is not a directory: $METAPHLAN_DB"; missing=1; }
+    # A pinned index must actually be there, or MetaPhlAn quietly downloads ~40GB
+    # of a different version instead of failing.
+    if [[ -n "${METAPHLAN_INDEX:-}" && -d "$METAPHLAN_DB" ]]; then
+      compgen -G "$METAPHLAN_DB/${METAPHLAN_INDEX}*.bt2l" >/dev/null \
+        || { log "  METAPHLAN_INDEX $METAPHLAN_INDEX has no .bt2l files in $METAPHLAN_DB"; missing=1; }
+    fi
   elif [[ -x "$METAPHLAN_BIN" ]]; then
     "$METAPHLAN_BIN" --version 2>&1 | grep -qi "installed databases" \
       || log "  WARNING: MetaPhlAn reports no installed database — Stage 15 will fail. Either run
@@ -2643,6 +2649,8 @@ MICRO_BT2="$OUT/${DOG_LOWER}_metaphlan.mapout.bz2"
         [[ -d "$METAPHLAN_DB" ]] || die "METAPHLAN_DB set but not a directory: $METAPHLAN_DB"
         # MetaPhlAn 4.2 renamed --bowtie2db to --db_dir; the old name is rejected.
         MPA_DB_ARG=(--db_dir "$METAPHLAN_DB")
+        # Pin the index too, or MetaPhlAn ignores db_dir and fetches "latest".
+        [[ -n "${METAPHLAN_INDEX:-}" ]] && MPA_DB_ARG+=(--index "$METAPHLAN_INDEX")
         log "  Using MetaPhlAn database: $METAPHLAN_DB"
     fi
     # Ensure MetaPhlAn4's Python bin is in PATH so its helper scripts (read_fastx.py) can be found
