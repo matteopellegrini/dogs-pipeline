@@ -40,6 +40,12 @@ NPROC="${NPROC:-${NSLOTS:-8}}"
 # explicitly if you ever request a single-slot job.
 GLIMPSE_PARALLEL="${GLIMPSE_PARALLEL:-${NSLOTS:-8}}"
 
+# Work on node-local disk, not shared project storage. Each sample generates
+# ~15-20GB of intermediates; 96 concurrent tasks writing that to /u/project would
+# be slow for us and disruptive for everyone else on the filesystem. Only the
+# result JSONs, coverage tracks, MetaPhlAn profile and logs are copied back.
+USE_LOCAL_SCRATCH="${USE_LOCAL_SCRATCH:-1}"
+
 # Compute nodes generally have no outbound internet, so the pipeline stops after
 # staging results locally. Publish afterwards from a login node:
 #     bash cluster/publish-pending.sh

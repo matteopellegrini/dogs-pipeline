@@ -111,6 +111,29 @@ MM_GLIMPSE="env PATH=$ENV_GLIMPSE/bin:$PATH LD_LIBRARY_PATH=$ENV_GLIMPSE/lib"
 NPROC="${NPROC:-8}"
 GLIMPSE_PARALLEL="${GLIMPSE_PARALLEL:-8}"
 
+# ── Node-local scratch ───────────────────────────────────────
+# On a cluster, $OUT accumulates ~15-20GB of intermediates per sample (3GB BAM,
+# merged/trimmed FASTQs, GLIMPSE chunks, SnpEff output). Ninety-six tasks doing
+# that on shared project storage is slow and antisocial, so the working
+# directory moves to node-local disk and only small artifacts are copied back.
+#
+# $PUB is NOT redirected — the result JSONs are the product and belong on
+# shared storage.
+#
+# Consequence: intermediates vanish with the job, so --from-stage resume is not
+# possible for local-scratch runs. Array jobs always start from stage 1 anyway.
+FINAL_OUT=""
+if [[ "${USE_LOCAL_SCRATCH:-0}" == "1" ]]; then
+  _scratch="${TMPDIR:-}"
+  if [[ -n "$_scratch" && -d "$_scratch" ]]; then
+    FINAL_OUT="$OUT"
+    OUT="$_scratch/${DOG_LOWER}/analysis"
+    mkdir -p "$FINAL_OUT"
+  else
+    echo "WARNING: USE_LOCAL_SCRATCH=1 but TMPDIR is unset or missing — using $OUT"
+  fi
+fi
+
 mkdir -p "$OUT" "$PUB"
 LOG=$OUT/pipeline.log
 
@@ -230,8 +253,28 @@ echo 0 > "$PEAK_MEM_FILE"
 MEM_POLL_PID=$!
 
 # Print runtime + peak memory summary on exit (normal or error)
+# Small, high-value artifacts worth keeping from a local-scratch run. The BAM,
+# FASTQs, GLIMPSE chunks and SnpEff output are deliberately NOT kept — the JSONs
+# in $PUB are the product, and realigning is cheaper than storing 3GB x 96.
+#   coverage_*.tsv     feed the panel-of-normals work
+#   *_metaphlan.*      let stage 15 be re-run without remapping
+#   fastp.*            QC provenance
+_keep_from_scratch() {
+  [[ -n "$FINAL_OUT" && -d "$OUT" ]] || return 0
+  mkdir -p "$FINAL_OUT"
+  local f
+  for f in pipeline.log pipeline.done fastp.json fastp.html \
+           coverage_1mb.tsv coverage_cnv.tsv \
+           "${DOG_LOWER}_metaphlan.txt" "${DOG_LOWER}_metaphlan.mapout.bz2"; do
+    [[ -e "$OUT/$f" ]] && cp -p "$OUT/$f" "$FINAL_OUT/$f" 2>/dev/null || true
+  done
+  echo "[$(date '+%H:%M:%S')] Kept artifacts in $FINAL_OUT (intermediates discarded with $OUT)" \
+    | tee -a "$FINAL_OUT/pipeline.log" 2>/dev/null || true
+}
+
 _finish() {
   kill "$MEM_POLL_PID" 2>/dev/null || true
+  _keep_from_scratch
   local end=$(date +%s)
   local elapsed=$(( end - PIPELINE_START ))
   local h=$(( elapsed / 3600 ))
