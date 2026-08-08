@@ -49,15 +49,19 @@ USE_LOCAL_SCRATCH="${USE_LOCAL_SCRATCH:-1}"
 # Where that working directory lives.
 #
 # Hoffman2 does NOT set $TMPDIR (verified on a qrsh node — it is empty), so
-# there is no node-local scratch to use. /u/scratch is a 9.5PB NFS filesystem
-# with a 2TB per-user quota; it is still network storage, but separating
-# write-heavy intermediates from /u/project keeps them off the same filesystem
-# that is concurrently serving 39GB of reference reads.
+# there is no node-local scratch. That leaves two network filesystems:
 #
-# The pipeline removes its own working directory on success (scratch is not
-# purged per job). A sample needs ~15-20GB, so against a 2TB quota keep
-# concurrency under ~100 tasks — see -tc in cluster/submit-array.sh.
-LOCAL_SCRATCH_ROOT="${LOCAL_SCRATCH_ROOT:-/u/scratch/${USER:0:1}/$USER}"
+#   /u/scratch/<i>/<user>  2TB quota, ~500GB free here and not reclaimable
+#   $D/scratch             on /u/project/pellegrini, ~7TB free
+#
+# Project storage wins on capacity, which is the binding constraint. It does
+# mean intermediates share a filesystem with the reference data every task
+# reads — the separation we would have preferred — but with no local disk on
+# offer, headroom matters more than that marginal contention.
+#
+# The pipeline removes its working directory on success, so usage is bounded by
+# CONCURRENT tasks (~15-20GB each), not by the total number of samples.
+LOCAL_SCRATCH_ROOT="${LOCAL_SCRATCH_ROOT:-$D/scratch}"
 
 # Compute nodes generally have no outbound internet, so the pipeline stops after
 # staging results locally. Publish afterwards from a login node:
