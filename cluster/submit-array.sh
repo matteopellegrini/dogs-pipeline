@@ -20,11 +20,23 @@
 # Stage 7 peaks near 1.5GB and Stage 4 holds the ~10GB bwa-mem2 index, so
 # neither is the binding constraint.
 #
-# MEASURED on COSMO3 (job 14263314), the first fully fresh sample — no cached
-# GLIMPSE chunks, MetaPhlAn index loaded for real: qacct maxvmem 45.0G, wallclock
-# 1h23m. That is 94% of a 48G request. Raised to 64G so a sample slightly heavier
-# than COSMO3 does not die at the 55-minute mark; at -tc 40 a wave of Stage 15
-# OOMs would be expensive to redo.
+# MEASURED across five fresh samples (COSMO3 job 14263314; DOGS-Gen-2/3/5/6 job
+# 14264885), all with no cached GLIMPSE chunks and a real MetaPhlAn index load:
+#
+#   DOGS-Gen-3   70min  45.0G      DOGS-Gen-2   81min  54.2G
+#   DOGS-Gen-6   76min  48.0G      DOGS-Gen-5  150min  45.0G
+#   COSMO3       83min  45.0G
+#
+# Two things that spread of numbers settles. First, 48G was genuinely too small:
+# DOGS-Gen-2 would have been killed at Stage 15. Second, memory does NOT track
+# input size — DOGS-Gen-5 is the largest sample (13.5GB of FASTQ, 150 min) and
+# used the LEAST memory, while DOGS-Gen-2 is a third its size and used the most.
+# Probably Stage 7: eight parallel GLIMPSE2 processes, whose vmem sums and whose
+# chunk sizes vary per sample. So file size cannot be used to predict which
+# samples are risky, and every task needs headroom for the worst case.
+#
+# 9G x 8 = 72G. Four samples already span 45-54G, so across 96 the tail will
+# exceed anything measured here; 54.2G was already 85% of a 64G request.
 #
 # Size from qacct, never from the pipeline's own poller: the poller reports RSS
 # (34.7G here) and vmem ran ~1.3x that. Earlier runs that reused cached chunks
@@ -35,7 +47,7 @@
 #$ -cwd
 #$ -j y
 #$ -o logs/$JOB_NAME.$JOB_ID.$TASK_ID.log
-#$ -l h_data=8G,h_rt=8:00:00
+#$ -l h_data=9G,h_rt=8:00:00
 #$ -pe shared 8
 
 set -euo pipefail
