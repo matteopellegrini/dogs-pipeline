@@ -1080,12 +1080,14 @@ print(f"Phat shape: {P.shape}")
 
 # Breed ordering matches the column ordering in Phat (order of unique breeds in scope_clust.txt)
 breed_labels = []
+breed_counts = {}      # reference individuals per population; used to weight merges
 seen = set()
 with open(CLUST) as f:
     for line in f:
         parts = line.split()
         if len(parts) >= 3:
             b = parts[2]
+            breed_counts[b] = breed_counts.get(b, 0) + 1
             if b not in seen:
                 seen.add(b)
                 breed_labels.append(b)
@@ -1108,6 +1110,43 @@ if len(_keep) != len(breed_labels):
     P = P[:, _keep]
     breed_labels = [breed_labels[i] for i in _keep]
     print(f"Breed labels after filtering: {len(breed_labels)}")
+
+# ── Merge regional sub-populations of one breed (MODEL level) ────────
+# SALU_ArabPen, SALU_CentAsia and SALU_Tribal are Salukis from different
+# regions, not different breeds. Leave-one-out proved the panel cannot tell
+# them apart from each other: all four SALU_ArabPen dogs predicted as SALU, and
+# SALU_CentAsia predicted as SALU_ArabPen. Keeping them as separate columns
+# makes near-collinear predictors that split one dog's Saluki ancestry
+# unstably across four labels.
+#
+# Merging at the model level rather than summing afterwards is deliberate:
+# pooling gives ONE population with n=19 and better-estimated frequencies,
+# instead of four thin ones competing. Phat is a per-breed empirical allele
+# frequency, so the pooled column is the n-weighted mean.
+#
+# SLOU_NAfrica (Sloughi) and AZWK_Mali (Azawakh) are NOT merged — different
+# breeds that merely resemble Salukis.
+MERGE_POPULATIONS = {
+    'SALU_ArabPen': 'SALU',
+    'SALU_CentAsia': 'SALU',
+    'SALU_Tribal': 'SALU',
+}
+if any(b in MERGE_POPULATIONS for b in breed_labels):
+    _tgt = [MERGE_POPULATIONS.get(b, b) for b in breed_labels]
+    _new = []
+    for t in _tgt:
+        if t not in _new:
+            _new.append(t)
+    _merged = np.zeros((P.shape[0], len(_new)), dtype=P.dtype)
+    for j, t in enumerate(_new):
+        srcs = [i for i, x in enumerate(_tgt) if x == t]
+        w = np.array([float(breed_counts.get(breed_labels[i], 1)) for i in srcs])
+        _merged[:, j] = (P[:, srcs] * w).sum(axis=1) / w.sum()
+        if len(srcs) > 1:
+            print(f"  merged into {t}: "
+                  + ", ".join(f"{breed_labels[i]}(n={int(w[k])})" for k, i in enumerate(srcs)))
+    P, breed_labels = _merged, _new
+    print(f"Breed labels after merging: {len(breed_labels)}")
 
 # NNLS supervised projection: find q s.t. P_valid @ q ≈ dosages_valid, q ≥ 0
 P_v = P[valid, :]          # restrict to genotyped sites
@@ -1238,16 +1277,66 @@ PARKER_NAMES = {
     'XIGO_China':'Xigou (China)',
 }
 
+# ── AKC display grouping (PRESENTATION level) ────────────────────────
+# Two separate problems, one mechanism: group by the name a customer should see
+# and sum the proportions.
+#
+# 1. Same breed, two reference cohorts. AUSS/AUST are both "Australian
+#    Shepherd", as are BELS/BMAL, BRIT/BRTR, CHIN/CRES and TIBM/TIBT. Showing a
+#    customer two "Australian Shepherd" rows is simply wrong. These are caught
+#    automatically by grouping on the display name.
+#
+# 2. AKC treats separately-bred varieties as ONE breed. Poodles are bred within
+#    size variety so they form real genetic clusters, and Parker is right to
+#    keep them apart for the MODEL — but a Labradoodle owner should see
+#    "Poodle 59%", not Standard 27% / Miniature 20% / Toy 12%. Leave-one-out
+#    supports this: Miniature Poodle reference dogs get called Toy Poodle, so
+#    the panel cannot reliably separate the varieties anyway.
+#
+# Only merged where AKC calls it one breed. Schnauzers stay separate (Giant,
+# Miniature and Standard are three distinct AKC breeds), as do Parson vs Russell
+# Terrier and Bull Terrier vs Miniature Bull Terrier.
+AKC_DISPLAY = {
+    'SPOO': 'Poodle', 'MPOO': 'Poodle', 'TPOO': 'Poodle',
+    'COLL': 'Collie', 'SSHP': 'Collie',              # AKC: Rough + Smooth varieties
+    'XOLO': 'Xoloitzcuintli', 'MXOL': 'Xoloitzcuintli',  # Mexican Hairless IS the Xolo
+}
+
+def _display(code):
+    return AKC_DISPLAY.get(code) or PARKER_NAMES.get(code, code)
+
+_grouped = {}
+_best = {}
+for _b, _s in zip(breed_labels, q.tolist()):
+    d = _display(_b)
+    g = _grouped.setdefault(d, {'breed': _b, 'breed_name': d, 'proportion': 0.0,
+                                'components': []})
+    g['proportion'] += _s
+    g['components'].append({'code': _b, 'proportion': round(_s, 6)})
+    if _s > _best.get(d, -1.0):
+        _best[d] = _s
+        g['breed'] = _b        # keep the dominant contributing code for provenance
+
+_display_list = sorted(_grouped.values(), key=lambda g: -g['proportion'])
+for g in _display_list:
+    g['proportion'] = round(g['proportion'], 6)
+    g['components'] = sorted(g['components'], key=lambda c: -c['proportion'])
+    if len(g['components']) == 1:
+        del g['components']    # only carry provenance where something was merged
+
 breed_result = {
-    # breed_composition: all 177 breeds sorted by proportion (dashboard shows top 6)
-    'breed_composition': [{'breed': b,
-                           'breed_name': PARKER_NAMES.get(b, b),
-                           'proportion': round(s, 6)}
-                          for b, s in sorted(zip(breed_labels, q.tolist()), key=lambda x: -x[1])],
+    # Grouped for display: what the dashboard renders (it shows breed_name and
+    # takes the top 6). breed_composition_raw keeps the per-population values.
+    'breed_composition': _display_list,
+    'breed_composition_raw': [{'breed': b,
+                               'breed_name': PARKER_NAMES.get(b, b),
+                               'proportion': round(s, 6)}
+                              for b, s in sorted(zip(breed_labels, q.tolist()), key=lambda x: -x[1])],
     'snps_used': int(valid.sum()),
     'k': P.shape[1],
     'pct_parker_covered': round(pct_covered, 1),
-    'reference_panel': 'Parker 2017 (Science) — 143,933 SNPs, 177 breeds',
+    'reference_panel': (f'Parker 2017 (Science) — {P.shape[0]:,} SNPs, {P.shape[1]} populations '
+                        '(177 less 7 wolf populations and 3 merged regional Salukis)'),
     'method': ('Supervised SCOPE NNLS projection onto Parker 2017 allele frequency matrix. '
                f'P matrix: {P.shape[0]} SNPs × {P.shape[1]} breeds. '
                'Dosages from GLIMPSE2 Dog10K imputed BCF (posterior GP-weighted, E[a1]).')
