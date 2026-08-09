@@ -1344,7 +1344,8 @@ breed_result = {
     'k': P.shape[1],
     'pct_parker_covered': round(pct_covered, 1),
     'reference_panel': (f'Parker 2017 (Science) — {P.shape[0]:,} SNPs, {P.shape[1]} populations '
-                        '(177 less 7 wolf populations and 3 merged regional Salukis)'),
+                        'from 177 (regional Salukis pooled into one; the seven '
+                        'geographic wolf populations pooled into one)'),
     'method': ('Supervised SCOPE NNLS projection onto Parker 2017 allele frequency matrix. '
                f'P matrix: {P.shape[0]} SNPs × {P.shape[1]} breeds. '
                'Dosages from GLIMPSE2 Dog10K imputed BCF (posterior GP-weighted, E[a1]).')
