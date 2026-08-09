@@ -101,7 +101,18 @@ echo "    running from node-local $STAGE_DIR"
 SAMPLE_OUT=$(awk -F'\t' -v r="$ROW" 'NR==r {print $5}' "$SHEET")
 if [[ -n "$SAMPLE_OUT" ]]; then rm -f "$SAMPLE_OUT/pipeline.done"; fi
 
-bash "$STAGE_DIR/run_dog_pipeline.sh" "$SHEET" "$ROW" "$FROM_STAGE"
+# Capture the exit code rather than letting set -e abort here. Otherwise a
+# pipeline that dies via die() takes this script down at this line, the marker
+# check below never runs, and the task leaves NO "ERROR: task" line at all —
+# so grepping the logs for failures silently misses exactly the tasks that
+# failed hardest. Job 14270502 had one such sample.
+rc=0
+bash "$STAGE_DIR/run_dog_pipeline.sh" "$SHEET" "$ROW" "$FROM_STAGE" || rc=$?
+if (( rc != 0 )); then
+  echo "ERROR: task $ROW ($(awk -F'\t' -v r="$ROW" 'NR==r{print $1}' "$SHEET")):" \
+       "pipeline exited $rc — see $SAMPLE_OUT/pipeline.log" >&2
+  exit "$rc"
+fi
 
 # The pipeline writes pipeline.done as its last act. Without this check a
 # truncated run reports exit 0 and the scheduler calls it a success — across 96
