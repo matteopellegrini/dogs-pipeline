@@ -46,6 +46,7 @@
 #
 #$ -cwd
 #$ -j y
+#$ -r y
 #$ -o logs/$JOB_NAME.$JOB_ID.$TASK_ID.log
 #$ -l h_data=9G,h_rt=8:00:00
 #$ -pe shared 8
@@ -62,6 +63,21 @@ FROM_STAGE="${2:-1}"
 ROW="${SGE_TASK_ID:?this script must be submitted as an array job (-t)}"
 
 export DOGS_SITE=hoffman
+
+# Bounce off nodes that cannot run GLIMPSE2 before doing 45 minutes of work.
+# GLIMPSE2 is built with AVX2; on a node without it, Stage 7 dies with SIGILL
+# after alignment has already completed (job 14270502 task 19, node n6161).
+# Exit 99 is Grid Engine's "reschedule me" status, so the task is simply handed
+# to another node instead of being lost — with -r y above making it rerunnable.
+#
+# Safe against a requeue loop only because this is a property of the NODE, not
+# the job: 95 of 96 nodes had avx2. If a cluster ever lacked it everywhere this
+# would spin, so the message says plainly what is being tested.
+if [[ -r /proc/cpuinfo ]] && ! grep -qm1 '\bavx2\b' /proc/cpuinfo; then
+  echo "NODE UNSUITABLE: $(hostname) lacks avx2, which GLIMPSE2 requires." >&2
+  echo "Exiting 99 to reschedule task $ROW on another node." >&2
+  exit 99
+fi
 
 echo "=== task $ROW of $JOB_ID on $(hostname) ==="
 echo "    slots=${NSLOTS:-?}  sheet=$SHEET  from_stage=$FROM_STAGE"
