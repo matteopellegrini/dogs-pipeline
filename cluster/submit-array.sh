@@ -12,22 +12,30 @@
 # start at 2. The pipeline already takes the row as its second argument, so no
 # translation is needed.
 #
-# Resources. h_data is PER SLOT on Hoffman2, so 8 x 6G = 48G total.
+# Resources. h_data is PER SLOT on Hoffman2, so 8 x 8G = 64G total.
 #
 # Stage 15 sets the memory floor, not alignment: bowtie2 loads the MetaPhlAn
 # index — forward AND mirror (.1/.2 plus .rev.1/.rev.2), ~28.5GB total — into
 # RAM, and a 32GB job died with "Out of memory allocating the ebwt[] array".
 # Stage 7 peaks near 1.5GB and Stage 4 holds the ~10GB bwa-mem2 index, so
-# neither is the binding constraint. 48G leaves ~19GB of headroom over the
-# index; do not trim below ~40G without testing Stage 15 specifically.
+# neither is the binding constraint.
 #
-# Confirm on a real run and trim if there is headroom:
-#     qacct -j <job_id> | grep maxvmem
+# MEASURED on COSMO3 (job 14263314), the first fully fresh sample — no cached
+# GLIMPSE chunks, MetaPhlAn index loaded for real: qacct maxvmem 45.0G, wallclock
+# 1h23m. That is 94% of a 48G request. Raised to 64G so a sample slightly heavier
+# than COSMO3 does not die at the 55-minute mark; at -tc 40 a wave of Stage 15
+# OOMs would be expensive to redo.
+#
+# Size from qacct, never from the pipeline's own poller: the poller reports RSS
+# (34.7G here) and vmem ran ~1.3x that. Earlier runs that reused cached chunks
+# and an existing mapout peaked at 32G and are NOT representative.
+#
+#     qacct -j <job_id> | grep -E "maxvmem|exit_status"
 #
 #$ -cwd
 #$ -j y
 #$ -o logs/$JOB_NAME.$JOB_ID.$TASK_ID.log
-#$ -l h_data=6G,h_rt=8:00:00
+#$ -l h_data=8G,h_rt=8:00:00
 #$ -pe shared 8
 
 set -euo pipefail
