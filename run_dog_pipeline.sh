@@ -292,6 +292,11 @@ _keep_from_scratch() {
     echo "[$(date '+%H:%M:%S')] Kept artifacts in $FINAL_OUT; removing scratch $OUT" \
       | tee -a "$FINAL_OUT/pipeline.log" 2>/dev/null || true
     rm -rf "$OUT" 2>/dev/null || true
+    # $OUT is <scratch>/<dog>/analysis — take the <dog> wrapper too, or scratch
+    # accumulates one empty directory per sample (96 here, 1045 for the
+    # microbiome reference rebuild). rmdir only ever removes an empty directory,
+    # so this cannot touch a sibling run's data.
+    rmdir "$(dirname "$OUT")" 2>/dev/null || true
   else
     echo "[$(date '+%H:%M:%S')] Kept artifacts in $FINAL_OUT; scratch RETAINED for debugging: $OUT" \
       | tee -a "$FINAL_OUT/pipeline.log" 2>/dev/null || true
