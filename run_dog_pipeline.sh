@@ -128,12 +128,24 @@ if [[ "${USE_LOCAL_SCRATCH:-0}" == "1" ]]; then
   # LOCAL_SCRATCH_ROOT to a shared scratch filesystem instead if $TMPDIR is too
   # small — that trades local-disk speed for capacity, and we clean up ourselves.
   _scratch="${LOCAL_SCRATCH_ROOT:-${TMPDIR:-}}"
+  # A site profile that sets LOCAL_SCRATCH_ROOT is stating where intermediates
+  # belong, so create it rather than treating "does not exist yet" as "disabled".
+  # Falling back silently is worse than failing: 96 samples x ~18GB of
+  # intermediates then accumulate in $OUT forever instead of being cleaned up
+  # after each sample, and nothing says so except one line of stderr.
+  # $TMPDIR is different — it is a fallback guess, so a missing one just disables.
+  if [[ -n "${LOCAL_SCRATCH_ROOT:-}" ]] && ! mkdir -p "$_scratch" 2>/dev/null; then
+    echo "ERROR: LOCAL_SCRATCH_ROOT=$_scratch does not exist and cannot be created" >&2
+    exit 1
+  fi
   if [[ -n "$_scratch" && -d "$_scratch" ]]; then
     FINAL_OUT="$OUT"
     OUT="$_scratch/${DOG_LOWER}/analysis"
     mkdir -p "$FINAL_OUT"
   else
-    echo "WARNING: USE_LOCAL_SCRATCH=1 but TMPDIR is unset or missing — using $OUT"
+    echo "WARNING: USE_LOCAL_SCRATCH=1 but no usable scratch root" \
+         "(LOCAL_SCRATCH_ROOT='${LOCAL_SCRATCH_ROOT:-}', TMPDIR='${TMPDIR:-}')" \
+         "— intermediates stay in $OUT and will NOT be cleaned up" >&2
   fi
 fi
 
