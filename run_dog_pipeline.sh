@@ -1091,6 +1091,24 @@ with open(CLUST) as f:
                 breed_labels.append(b)
 print(f"Breed labels: {len(breed_labels)} (first 3: {breed_labels[:3]})")
 
+# Drop the wolf reference populations from the projection.
+#
+# There are seven (WOLF-China, -Croatia, -India, -Israel, -Italy, -Portugal,
+# -Yellowstone) and every one has n=1. A single individual makes the "allele
+# frequency" for that population exactly that animal's genotype, which is not an
+# estimate of anything — leave-one-out cannot even test them, because removing
+# the one dog removes the population. They contribute nothing a customer report
+# should rest on, and NNLS can still assign mass to them, so a pet dog can pick
+# up spurious wolf ancestry from what is really noise.
+#
+# Columns of P line up with breed_labels, so both are filtered together.
+_keep = [i for i, b in enumerate(breed_labels) if not b.upper().startswith('WOLF')]
+if len(_keep) != len(breed_labels):
+    print(f"Excluding {len(breed_labels) - len(_keep)} wolf populations (n=1 each)")
+    P = P[:, _keep]
+    breed_labels = [breed_labels[i] for i in _keep]
+    print(f"Breed labels after filtering: {len(breed_labels)}")
+
 # NNLS supervised projection: find q s.t. P_valid @ q ≈ dosages_valid, q ≥ 0
 P_v = P[valid, :]          # restrict to genotyped sites
 x_v = dosages[valid]
