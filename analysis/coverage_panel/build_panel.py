@@ -105,6 +105,7 @@ def main():
         windows.update(r)
 
     panel = {}
+    dropped = {}
     n_windows = 0
     for chrom, start in sorted(windows, key=lambda w: (w[0], w[1])):
         if chrom == 'chrX':
@@ -118,6 +119,7 @@ def main():
         entry = {'start': start}
         for key, vals in groups.items():
             if len(vals) < MIN_SAMPLES:
+                dropped[(chrom, key)] = dropped.get((chrom, key), 0) + 1
                 continue
             med = statistics.median(vals)
             entry[key] = {
@@ -152,6 +154,11 @@ def main():
     print(f"written   : {out_path}")
     for d, why in skipped:
         print(f"  SKIPPED {d}: {why}")
+    # Never drop windows silently — a chromosome missing from the panel means
+    # no new dog can ever be scored there, and that must be visible.
+    for (chrom, key), n in sorted(dropped.items()):
+        grp = '' if key == 'all' else f' [{key}]'
+        print(f"  DROPPED {chrom}{grp}: {n} windows with < {MIN_SAMPLES} samples")
 
     # A quick sense of how tight the panel is. Windows with a large spread are
     # the ones where no per-sample call will ever be confident.
