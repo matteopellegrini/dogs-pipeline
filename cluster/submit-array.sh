@@ -12,7 +12,7 @@
 # start at 2. The pipeline already takes the row as its second argument, so no
 # translation is needed.
 #
-# Resources. h_data is PER SLOT on Hoffman2, so 8 x 8G = 64G total.
+# Resources. h_data is PER SLOT on Hoffman2, so 8 x 9G = 72G total.
 #
 # Stage 15 sets the memory floor, not alignment: bowtie2 loads the MetaPhlAn
 # index — forward AND mirror (.1/.2 plus .rev.1/.rev.2), ~28.5GB total — into
