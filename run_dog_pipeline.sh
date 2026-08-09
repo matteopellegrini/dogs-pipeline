@@ -182,6 +182,16 @@ preflight() {
     [[ -e "$f" ]] || { log "  MISSING REFERENCE: $f"; missing=1; }
   done
   [[ -d "$CHUNKS_DIR" ]] || { log "  MISSING REFERENCE: $CHUNKS_DIR"; missing=1; }
+  # GLIMPSE2 is built with AVX2. On a node without it the binary prints its
+  # banner and then dies with SIGILL *inside the compute loop* — so it cannot be
+  # caught by running --help. Every chunk fails in ~0.2s, Stage 7 produces no
+  # genotypes, and the run dies 45 minutes later when bcftools concat gets no
+  # input. Job 14270502 task 19 lost DOGS-Gen-28 exactly this way on n6161.
+  # A heterogeneous cluster will keep handing us such nodes; catch it in 1ms.
+  if [[ -r /proc/cpuinfo ]] && ! grep -qm1 '\bavx2\b' /proc/cpuinfo; then
+    log "  CPU LACKS avx2 on $(hostname) — GLIMPSE2 would crash with SIGILL in Stage 7"
+    missing=1
+  fi
   # Inline Python calls these by bare name — make sure PATH resolves them into
   # the pinned env rather than to a host copy (or nothing).
   for b in samtools bcftools; do
