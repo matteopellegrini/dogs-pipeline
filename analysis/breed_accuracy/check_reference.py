@@ -1,182 +1,183 @@
 #!/usr/bin/env python3
 """
-Self-check the Parker reference panel: does each reference dog predict as its
-own breed?
+Leave-one-out self-check of the Parker reference panel.
 
-    python3 check_reference.py PLINK_PREFIX PHAT.txt CLUST.txt
+    python3 check_reference.py PREFIX PHAT.txt CLUST.txt NAMES.json [flags]
 
-Runs exactly the projection Stage 9 runs for a customer dog — NNLS of
-dosage-of-a1 against the SCOPE Phat matrix with a sum-to-1 row appended — but
-on the reference individuals themselves.
+    --loo            leave-one-out (otherwise in-sample, which is meaningless)
+    --no-wolves      drop the 7 n=1 wolf populations
+    --merge-saluki   pool SALU_ArabPen/CentAsia/Tribal into SALU
+    --akc-display    score on the AKC display name, not the raw population
 
-This is an IN-SAMPLE check: every dog contributed to its own breed's allele
-frequencies, so it is the easiest possible test and accuracy here is an upper
-bound. That is what makes failures informative. A reference dog that cannot
-recover its own breed, when that breed's frequencies were estimated partly from
-it, marks a reference population that is too small, mislabelled, or not
-genetically distinct from a neighbour.
+Runs the same projection Stage 9 runs for a customer dog — NNLS of dosage-of-a1
+against Phat with a sum-to-1 row — on the reference individuals themselves.
 
-Speed note: solving 1356 separate NNLS problems on a 143933 x 177 design is
-prohibitive, so the normal equations are used instead. For A = [P; 1...1],
-min ||Aq - b|| is equivalent to min ||Rq - R^-T A^T b|| where A^T A = R^T R
-(Cholesky). Each solve becomes 177x177 and the answer is identical.
+In-sample is circular and always ~100%: Phat is the per-breed empirical allele
+frequency (verified, corr 0.9997+ against the genotypes), so every dog helped
+define its own target and an n=1 population recovers itself by construction.
+
+Leave-one-out is the real test, and Phat being an empirical mean makes it cheap:
+a dog's own contribution comes out analytically as
+    p_loo = (n*p - x/2)/(n-1)   =>   delta = (p - x/2)/(n-1)
+Only that one column changes, so the Gram matrix takes a rank-2 update instead
+of re-running SCOPE once per dog.
+
+The flags separate effects that are easy to conflate. --no-wolves is a pure
+model change. --merge-saluki also relabels 9 dogs, so some of its gain is the
+taxonomy becoming correct rather than the model discriminating better.
+--akc-display changes only the scoring, not the model.
 """
+import json
 import sys
+from collections import defaultdict
 
 import numpy as np
-from scipy.linalg import cho_factor, solve_triangular
+from scipy.linalg import solve_triangular
 from scipy.optimize import nnls
 
 CHUNK = 200
+SALUKI_MERGE = {'SALU_ArabPen': 'SALU', 'SALU_CentAsia': 'SALU', 'SALU_Tribal': 'SALU'}
+AKC_DISPLAY = {'SPOO': 'Poodle', 'MPOO': 'Poodle', 'TPOO': 'Poodle',
+               'COLL': 'Collie', 'SSHP': 'Collie',
+               'XOLO': 'Xoloitzcuintli', 'MXOL': 'Xoloitzcuintli'}
 
 
 def read_bed(prefix, n_ind, n_snp):
     raw = np.fromfile(prefix + '.bed', dtype=np.uint8)
-    assert raw[0] == 108 and raw[1] == 27 and raw[2] == 1, 'not a PLINK1 SNP-major bed'
+    assert raw[0] == 108 and raw[1] == 27 and raw[2] == 1
     bps = (n_ind + 3) // 4
     data = raw[3:].reshape(n_snp, bps)
     codes = np.empty((n_snp, bps * 4), dtype=np.uint8)
     for k in range(4):
         codes[:, k::4] = (data >> (2 * k)) & 3
-    codes = codes[:, :n_ind]
-    # PLINK1: 0=hom a1, 1=missing, 2=het, 3=hom a2  ->  dosage of a1
-    lut = np.array([2, -1, 1, 0], dtype=np.int8)
-    return lut[codes]
+    return np.array([2, -1, 1, 0], dtype=np.int8)[codes[:, :n_ind]]
 
 
 def main():
-    prefix, phat_path, clust_path = sys.argv[1:4]
+    prefix, phat_path, clust_path, names_path = sys.argv[1:5]
+    flags = set(a for a in sys.argv[5:])
+    loo = '--loo' in flags
+    names = json.load(open(names_path))
 
     fam = [l.split() for l in open(prefix + '.fam')]
     ids = [f[1] for f in fam]
-    n_ind = len(fam)
-    n_snp = sum(1 for _ in open(prefix + '.bim'))
+    n_ind, n_snp = len(fam), sum(1 for _ in open(prefix + '.bim'))
 
-    truth = {}
-    order = []
+    truth, labels = {}, []
     for line in open(clust_path):
         p = line.split()
         if len(p) >= 3:
             truth[p[1]] = p[2]
-            if p[2] not in order:
-                order.append(p[2])
-    labels = order
-    K = len(labels)
+            if p[2] not in labels:
+                labels.append(p[2])
 
     P = np.loadtxt(phat_path, dtype=np.float32)
-    assert P.shape == (n_snp, K), f'Phat {P.shape} vs {(n_snp, K)}'
-
+    assert P.shape == (n_snp, len(labels))
     dos = read_bed(prefix, n_ind, n_snp)
     miss = dos < 0
-    print(f"individuals {n_ind}  snps {n_snp}  breeds {K}")
-    print(f"missing genotypes: {100*miss.mean():.3f}%")
+    counts = defaultdict(int)
+    for b in truth.values():
+        counts[b] += 1
 
-    exp = (2.0 * P.mean(axis=1)).astype(np.float32)   # expected dosage under panel average
+    # ── panel modifications, applied exactly as the pipeline does ────
+    if '--no-wolves' in flags:
+        keep = [i for i, b in enumerate(labels) if not b.upper().startswith('WOLF')]
+        dropped = len(labels) - len(keep)
+        P = P[:, keep]
+        labels = [labels[i] for i in keep]
+        print(f"dropped {dropped} wolf populations")
 
-    # Normal equations for A = [P ; ones(1,K)]
-    G = (P.T @ P) + np.ones((K, K), dtype=np.float32)
-    G = G.astype(np.float64)
-    G[np.diag_indices_from(G)] += 1e-6
-    R = np.linalg.cholesky(G).T                      # G = R^T R
+    if '--merge-saluki' in flags:
+        tgt = [SALUKI_MERGE.get(b, b) for b in labels]
+        new = []
+        for t in tgt:
+            if t not in new:
+                new.append(t)
+        M = np.zeros((P.shape[0], len(new)), dtype=P.dtype)
+        for j, t in enumerate(new):
+            srcs = [i for i, x in enumerate(tgt) if x == t]
+            w = np.array([float(counts[labels[i]]) for i in srcs])
+            M[:, j] = (P[:, srcs] * w).sum(axis=1) / w.sum()
+        P, labels = M, new
+        truth = {d: SALUKI_MERGE.get(b, b) for d, b in truth.items()}
+        counts = defaultdict(int)
+        for b in truth.values():
+            counts[b] += 1
+        print(f"merged regional Salukis -> SALU (n={counts['SALU']})")
 
-    # Leave-one-out. Phat is the per-breed empirical allele frequency (verified:
-    # corr 0.9997+ against the genotypes), so a dog's own contribution can be
-    # removed analytically instead of re-running SCOPE 1355 times:
-    #     p_loo = (n*p - x/2)/(n-1)   =>   delta = p_loo - p = (p - x/2)/(n-1)
-    # Only column b changes, so the Gram matrix takes a rank-2 update rather
-    # than a full recomputation.
-    #
-    # Without this the test is circular. A breed with n=1 has Phat equal to that
-    # single dog's genotype and recovers itself perfectly by construction, which
-    # says nothing about whether the panel can identify that breed in a new dog.
-    loo = '--loo' in sys.argv
     idx_of = {b: i for i, b in enumerate(labels)}
-    counts = {}
-    for d, b in truth.items():
-        counts[b] = counts.get(b, 0) + 1
+    K = len(labels)
+    exp = (2.0 * P.mean(axis=1)).astype(np.float32)
+    G = ((P.T @ P) + np.ones((K, K), dtype=np.float32)).astype(np.float64)
+    G[np.diag_indices_from(G)] += 1e-6
 
-    top1 = []
-    untestable = 0
+    top1 = [None] * n_ind
     for s in range(0, n_ind, CHUNK):
         e = min(s + CHUNK, n_ind)
         X = dos[:, s:e].astype(np.float32)
         m = miss[:, s:e]
         if m.any():
             X[m] = np.broadcast_to(exp[:, None], X.shape)[m]
-        B = (P.T @ X) + 1.0                           # (K, chunk)
+        B = (P.T @ X) + 1.0
         for j in range(B.shape[1]):
             i = s + j
+            lab = truth.get(ids[i])
+            if lab is None or lab not in idx_of:
+                continue                       # e.g. a wolf after --no-wolves
             bb = B[:, j].astype(np.float64)
             Gd = G
-            b_lab = truth.get(ids[i])
-            if loo and b_lab is not None and counts.get(b_lab, 0) > 1:
-                col = idx_of[b_lab]
+            if loo:
+                if counts[lab] <= 1:
+                    continue                   # n=1: LOO removes the population
+                col = idx_of[lab]
                 x = X[:, j]
-                delta = ((P[:, col] - x / 2.0) / (counts[b_lab] - 1)).astype(np.float32)
+                delta = ((P[:, col] - x / 2.0) / (counts[lab] - 1)).astype(np.float32)
                 u = (P.T @ delta).astype(np.float64)
                 Gd = G.copy()
                 Gd[col, :] += u
                 Gd[:, col] += u
                 Gd[col, col] += float(delta @ delta)
                 bb[col] += float(delta @ x)
-            elif loo and b_lab is not None:
-                untestable += 1
-                top1.append(None)
-                continue
             try:
                 Rd = np.linalg.cholesky(Gd).T
             except np.linalg.LinAlgError:
-                top1.append(None)
                 continue
             y = solve_triangular(Rd.T, bb, lower=True)
             q, _ = nnls(Rd, y)
-            top1.append(labels[int(np.argmax(q))])
-        print(f"  scored {e}/{n_ind}", end='\r', flush=True)
-    print(" " * 30, end='\r')
-    if loo:
-        print(f"mode: LEAVE-ONE-OUT   (untestable, n=1 breeds: {untestable})")
-    else:
-        print("mode: IN-SAMPLE (upper bound; circular for small breeds)")
+            top1[i] = labels[int(np.argmax(q))]
 
-    # ── results ──────────────────────────────────────────────────
-    have = [(i, ids[i]) for i in range(n_ind) if ids[i] in truth and top1[i] is not None]
-    correct = [i for i, d in have if top1[i] == truth[d]]
-    print(f"\nreference dogs scored: {len(have)}")
-    print(f"top-1 == own breed   : {len(correct)}/{len(have)} "
-          f"({100*len(correct)/len(have):.1f}%)\n")
+    def disp(code):
+        if '--akc-display' in flags:
+            return AKC_DISPLAY.get(code) or names.get(code, code)
+        return code
 
-    from collections import defaultdict
+    scored = [(i, ids[i]) for i in range(n_ind) if top1[i] is not None and ids[i] in truth]
     per = defaultdict(lambda: [0, 0])
     wrong = []
-    for i, d in have:
-        b = truth[d]
-        per[b][1] += 1
-        if top1[i] == b:
-            per[b][0] += 1
+    for i, d in scored:
+        t = truth[d]
+        per[t][1] += 1
+        if disp(top1[i]) == disp(t):
+            per[t][0] += 1
         else:
-            wrong.append((d, b, top1[i]))
+            wrong.append((d, t, top1[i]))
+    ok = sum(v[0] for v in per.values())
+    tot = sum(v[1] for v in per.values())
 
-    bad = sorted(((c / n, n, b) for b, (c, n) in per.items()), key=lambda x: (x[0], -x[1]))
-    print("worst-performing reference populations:")
-    print(f"  {'breed':<34} {'n':>3}  {'self-recovered':>14}")
-    for frac, n, b in bad[:18]:
-        print(f"  {b:<34} {n:>3}  {int(frac*n):>6}/{n} ({100*frac:>3.0f}%)")
+    tag = ' '.join(sorted(flags - {'--loo'})) or '(baseline panel)'
+    print(f"\n=== {tag} ===")
+    print(f"scored {tot} dogs   correct {ok}  ({100*ok/tot:.2f}%)   errors {len(wrong)}")
 
-    sizes = {b: per[b][1] for b in per}
-    small = [b for b in per if sizes[b] <= 3]
-    big = [b for b in per if sizes[b] >= 8]
-    def acc(bs):
-        c = sum(per[b][0] for b in bs); t = sum(per[b][1] for b in bs)
-        return 100 * c / t if t else float('nan'), t
-    a_s, n_s = acc(small)
-    a_b, n_b = acc(big)
-    print(f"\nreference size vs self-recovery:")
-    print(f"  populations with n<=3 : {a_s:.0f}% correct over {n_s} dogs ({len(small)} breeds)")
-    print(f"  populations with n>=8 : {a_b:.0f}% correct over {n_b} dogs ({len(big)} breeds)")
-
-    print(f"\nall {len(wrong)} misassigned reference dogs (first 30):")
-    for d, b, got in wrong[:30]:
-        print(f"  {d:<18} labelled {b:<16} -> predicted {got}")
+    small = [b for b in per if per[b][1] <= 3]
+    big = [b for b in per if per[b][1] >= 8]
+    for name, grp in (('n<=3', small), ('n>=8', big)):
+        c = sum(per[b][0] for b in grp); t = sum(per[b][1] for b in grp)
+        if t:
+            print(f"   {name}: {100*c/t:.0f}% over {t} dogs ({len(grp)} populations)")
+    if wrong:
+        print("   remaining errors:")
+        for d, t, g in wrong[:40]:
+            print(f"     {d:<18} {t:<16} -> {g}")
 
 
 if __name__ == '__main__':
