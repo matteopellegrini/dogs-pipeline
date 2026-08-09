@@ -1259,7 +1259,11 @@ PARKER_NAMES = {
     'MAAB_Italy':'Maremma Abruzzese Sheepdog','MBLT':'Miniature Bull Terrier',
     'MNTY':'Montenegrin Mountain Hound','MSNZ':'Miniature Schnauzer',
     'MXOL':'Mexican Hairless Dog','NEAP':'Neapolitan Mastiff',
-    'NELK':'Norrbottenspets','NEWF':'Newfoundland',
+    # NELK is Norwegian ELKhound, not Norrbottenspets. Confirmed empirically:
+    # a known Norwegian Elkhound sample projects onto NELK. The panel has no
+    # Norrbottenspets population, and the code NORW ('Norwegian Elkhound' in
+    # this table) is not in the panel at all.
+    'NELK':'Norwegian Elkhound','NEWF':'Newfoundland',
     'NORF':'Norfolk Terrier','NOWT':'Norwich Terrier',
     'NSDT':'Nova Scotia Duck Tolling Retriever','OES':'Old English Sheepdog',
     'OTTR':'Otterhound','PARS':'Parson Russell Terrier',
@@ -1306,8 +1310,24 @@ PARKER_NAMES = {
 # Terrier and Bull Terrier vs Miniature Bull Terrier.
 AKC_DISPLAY = {
     'SPOO': 'Poodle', 'MPOO': 'Poodle', 'TPOO': 'Poodle',
-    'COLL': 'Collie', 'SSHP': 'Collie',              # AKC: Rough + Smooth varieties
     'XOLO': 'Xoloitzcuintli', 'MXOL': 'Xoloitzcuintli',  # Mexican Hairless IS the Xolo
+    # COLL + SSHP -> "Collie" was here and is deliberately NOT, pending
+    # verification that SSHP is Smooth Collie at all. This name table has 236
+    # codes for a 177-population panel, and at least one panel code was given
+    # the wrong name from that superset: NELK was labelled Norrbottenspets when
+    # a known Norwegian Elkhound sample projects onto it, while NORW
+    # ('Norwegian Elkhound') is absent from the panel.
+    #
+    # SSHP fits the same pattern. It is in the panel (n=10) as "Smooth Collie",
+    # while SHED ('Shetland Sheepdog') is not in the panel — and SSHP reads as
+    # Shetland SHeePdog far more naturally than Smooth Collie, which would be
+    # SCOL. Shetland Sheepdog is a top-30 AKC breed whose absence from a
+    # 161-breed panel is otherwise hard to explain.
+    #
+    # The risk is asymmetric: if SSHP is Smooth Collie, not merging shows one
+    # extra row. If SSHP is Shetland Sheepdog, merging reports a Sheltie as a
+    # Collie and destroys the distinction. Verify by projecting a known
+    # Shetland Sheepdog, exactly as NELK was settled.
 }
 
 def _display(code):
