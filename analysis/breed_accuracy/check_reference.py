@@ -6,6 +6,7 @@ Leave-one-out self-check of the Parker reference panel.
 
     --loo            leave-one-out (otherwise in-sample, which is meaningless)
     --no-wolves      drop the 7 n=1 wolf populations
+    --merge-wolves   pool the 7 wolf populations into one WOLF (n=7)
     --merge-saluki   pool SALU_ArabPen/CentAsia/Tribal into SALU
     --akc-display    score on the AKC display name, not the raw population
 
@@ -37,6 +38,8 @@ from scipy.optimize import nnls
 
 CHUNK = 200
 SALUKI_MERGE = {'SALU_ArabPen': 'SALU', 'SALU_CentAsia': 'SALU', 'SALU_Tribal': 'SALU'}
+WOLF_MERGE = {f'WOLF-{r}': 'WOLF' for r in
+              ('China', 'Croatia', 'India', 'Israel', 'Italy', 'Portugal', 'Yellowstone')}
 AKC_DISPLAY = {'SPOO': 'Poodle', 'MPOO': 'Poodle', 'TPOO': 'Poodle',
                'COLL': 'Collie', 'SSHP': 'Collie',
                'XOLO': 'Xoloitzcuintli', 'MXOL': 'Xoloitzcuintli'}
@@ -87,8 +90,13 @@ def main():
         labels = [labels[i] for i in keep]
         print(f"dropped {dropped} wolf populations")
 
+    MERGE = {}
     if '--merge-saluki' in flags:
-        tgt = [SALUKI_MERGE.get(b, b) for b in labels]
+        MERGE.update(SALUKI_MERGE)
+    if '--merge-wolves' in flags:
+        MERGE.update(WOLF_MERGE)
+    if MERGE:
+        tgt = [MERGE.get(b, b) for b in labels]
         new = []
         for t in tgt:
             if t not in new:
@@ -99,11 +107,12 @@ def main():
             w = np.array([float(counts[labels[i]]) for i in srcs])
             M[:, j] = (P[:, srcs] * w).sum(axis=1) / w.sum()
         P, labels = M, new
-        truth = {d: SALUKI_MERGE.get(b, b) for d, b in truth.items()}
+        truth = {d: MERGE.get(b, b) for d, b in truth.items()}
         counts = defaultdict(int)
         for b in truth.values():
             counts[b] += 1
-        print(f"merged regional Salukis -> SALU (n={counts['SALU']})")
+        for t in sorted(set(MERGE.values())):
+            print(f"merged -> {t} (n={counts[t]})")
 
     idx_of = {b: i for i, b in enumerate(labels)}
     K = len(labels)
@@ -112,6 +121,7 @@ def main():
     G[np.diag_indices_from(G)] += 1e-6
 
     top1 = [None] * n_ind
+    wolf_frac = {}
     for s in range(0, n_ind, CHUNK):
         e = min(s + CHUNK, n_ind)
         X = dos[:, s:e].astype(np.float32)
@@ -145,6 +155,9 @@ def main():
             y = solve_triangular(Rd.T, bb, lower=True)
             q, _ = nnls(Rd, y)
             top1[i] = labels[int(np.argmax(q))]
+            qn = q / (q.sum() + 1e-12)
+            if 'WOLF' in idx_of:
+                wolf_frac[i] = float(qn[idx_of['WOLF']])
 
     def disp(code):
         if '--akc-display' in flags:
@@ -174,6 +187,22 @@ def main():
         c = sum(per[b][0] for b in grp); t = sum(per[b][1] for b in grp)
         if t:
             print(f"   {name}: {100*c/t:.0f}% over {t} dogs ({len(grp)} populations)")
+    if wolf_frac:
+        dogs = [v for i, v in wolf_frac.items() if truth.get(ids[i]) != 'WOLF']
+        wolves = [v for i, v in wolf_frac.items() if truth.get(ids[i]) == 'WOLF']
+        dogs.sort()
+        if dogs:
+            print(f"   wolf ancestry assigned to the {len(dogs)} NON-wolf dogs: "
+                  f"median {100*dogs[len(dogs)//2]:.2f}%  "
+                  f"95th {100*dogs[int(len(dogs)*0.95)]:.2f}%  max {100*dogs[-1]:.2f}%")
+        top = sorted(((v, ids[i], truth.get(ids[i])) for i, v in wolf_frac.items()
+                      if truth.get(ids[i]) != 'WOLF'), reverse=True)[:10]
+        print("   highest wolf fraction among non-wolf dogs:")
+        for v, d, t in top:
+            print(f"     {100*v:5.1f}%  {d:<18} {t} ({names.get(t, t)})")
+        if wolves:
+            print(f"   wolf ancestry recovered in the {len(wolves)} wolves: "
+                  + ", ".join(f"{100*v:.0f}%" for v in sorted(wolves, reverse=True)))
     if wrong:
         print("   remaining errors:")
         for d, t, g in wrong[:40]:

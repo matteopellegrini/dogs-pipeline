@@ -1104,13 +1104,6 @@ print(f"Breed labels: {len(breed_labels)} (first 3: {breed_labels[:3]})")
 # up spurious wolf ancestry from what is really noise.
 #
 # Columns of P line up with breed_labels, so both are filtered together.
-_keep = [i for i, b in enumerate(breed_labels) if not b.upper().startswith('WOLF')]
-if len(_keep) != len(breed_labels):
-    print(f"Excluding {len(breed_labels) - len(_keep)} wolf populations (n=1 each)")
-    P = P[:, _keep]
-    breed_labels = [breed_labels[i] for i in _keep]
-    print(f"Breed labels after filtering: {len(breed_labels)}")
-
 # ── Merge regional sub-populations of one breed (MODEL level) ────────
 # SALU_ArabPen, SALU_CentAsia and SALU_Tribal are Salukis from different
 # regions, not different breeds. Leave-one-out proved the panel cannot tell
@@ -1130,6 +1123,20 @@ MERGE_POPULATIONS = {
     'SALU_ArabPen': 'SALU',
     'SALU_CentAsia': 'SALU',
     'SALU_Tribal': 'SALU',
+    # The seven wolves are pooled rather than dropped. Individually they are
+    # n=1, so each "allele frequency" is one animal's genotype — unstable, and
+    # untestable by leave-one-out because removing the dog removes the
+    # population. But wolf-dog hybrids are a real thing a customer may ask
+    # about, and dropping wolves entirely makes that undetectable: the ancestry
+    # would be forced onto whichever northern breed fits least badly.
+    #
+    # Pooled they are n=7, comparable to other small populations, and the
+    # merged frequencies describe the wolf-versus-dog axis rather than any one
+    # geographic wolf population — which is exactly what "does this dog have
+    # wolf ancestry" asks.
+    'WOLF-China': 'WOLF', 'WOLF-Croatia': 'WOLF', 'WOLF-India': 'WOLF',
+    'WOLF-Israel': 'WOLF', 'WOLF-Italy': 'WOLF', 'WOLF-Portugal': 'WOLF',
+    'WOLF-Yellowstone': 'WOLF',
 }
 if any(b in MERGE_POPULATIONS for b in breed_labels):
     _tgt = [MERGE_POPULATIONS.get(b, b) for b in breed_labels]
@@ -1275,6 +1282,7 @@ PARKER_NAMES = {
     'WOLF-Italy':'Gray Wolf (Italy)','WOLF-Portugal':'Gray Wolf (Portugal)',
     'WOLF-Yellowstone':'Gray Wolf (Yellowstone)',
     'XIGO_China':'Xigou (China)',
+    'WOLF':'Gray Wolf',   # the seven regional wolf populations, pooled
 }
 
 # ── AKC display grouping (PRESENTATION level) ────────────────────────
