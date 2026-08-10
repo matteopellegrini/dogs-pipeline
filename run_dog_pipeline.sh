@@ -1120,9 +1120,19 @@ print(f"Breed labels: {len(breed_labels)} (first 3: {breed_labels[:3]})")
 # SLOU_NAfrica (Sloughi) and AZWK_Mali (Azawakh) are NOT merged — different
 # breeds that merely resemble Salukis.
 MERGE_POPULATIONS = {
-    'SALU_ArabPen': 'SALU',
-    'SALU_CentAsia': 'SALU',
-    'SALU_Tribal': 'SALU',
+    # The regional Salukis are deliberately NOT merged here. Pooling them was
+    # tried and reverted: leave-one-out liked it, but that gain was mostly the
+    # relabelling of the SALU_* dogs themselves. Projecting 608 held-out Dog10K
+    # samples showed the real cost — a pooled SALU (n=19, spanning Arabian
+    # Peninsula, Central Asia and Tribal) becomes a broad attractor that
+    # swallows Anatolian Shepherds, which are geographically adjacent:
+    #
+    #     pooled SALU     585/608 (96.2%)   ANAT 3/6 -> SALU
+    #     separate SALU   588/608 (96.7%)   ANAT 6/6
+    #
+    # They are still presented as one "Saluki" to the customer — see
+    # AKC_DISPLAY, which sums them at display time. Keeping the model's
+    # populations narrow and merging only for presentation gets both.
     # The seven wolves are pooled rather than dropped. Individually they are
     # n=1, so each "allele frequency" is one animal's genotype — unstable, and
     # untestable by leave-one-out because removing the dog removes the
@@ -1311,6 +1321,13 @@ PARKER_NAMES = {
 AKC_DISPLAY = {
     'SPOO': 'Poodle', 'MPOO': 'Poodle', 'TPOO': 'Poodle',
     'XOLO': 'Xoloitzcuintli', 'MXOL': 'Xoloitzcuintli',  # Mexican Hairless IS the Xolo
+    # Regional Salukis are one breed to a customer. Summed HERE rather than
+    # merged in the model, because pooling the model columns cost three
+    # Anatolian Shepherd calls on held-out Dog10K samples (see
+    # MERGE_POPULATIONS). Display grouping has no such effect — it cannot
+    # change what the model competes over.
+    'SALU': 'Saluki', 'SALU_ArabPen': 'Saluki',
+    'SALU_CentAsia': 'Saluki', 'SALU_Tribal': 'Saluki',
     # COLL + SSHP -> "Collie" was here and is deliberately NOT, pending
     # verification that SSHP is Smooth Collie at all. This name table has 236
     # codes for a 177-population panel, and at least one panel code was given
