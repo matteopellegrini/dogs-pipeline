@@ -80,7 +80,10 @@ def dosages_from_bcf(bcf, bim, bed_path):
 
 def main():
     pre = sys.argv[1]
-    bcfs = sys.argv[2:]
+    args = sys.argv[2:]
+    top_n = int(args[args.index('--top') + 1]) if '--top' in args else 8
+    min_q = float(args[args.index('--min') + 1]) if '--min' in args else 0.005
+    bcfs = [a for a in args if a.endswith('.bcf')]
     breeds, bim, P = load_panel(pre)
     K = len(breeds)
     G = ((P.T @ P) + np.ones((K, K), dtype=np.float32)).astype(np.float64)
@@ -107,8 +110,8 @@ def main():
         order = np.argsort(-q)
         name = os.path.basename(bcf).replace('_imputed_dog10k.bcf', '')
         print(f"=== {name}   ({100*cov.mean():.1f}% of panel SNPs covered) ===")
-        for i in order[:8]:
-            if q[i] < 0.005:
+        for i in order[:top_n]:
+            if q[i] < min_q:
                 break
             print(f"    {100*q[i]:5.1f}%  {breeds[i].replace('_',' ').title()}")
         print()

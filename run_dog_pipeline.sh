@@ -1179,10 +1179,18 @@ x_v = dosages[valid]
 # accuracy on held-out dogs — 95.09% -> 92.55% at w=1e4.
 #
 # Fitting x/2 instead makes sum(q)=1 correct, and then the constraint weight
-# makes no difference at all (95.09% at every weight tried). Regularisation was
-# swept too — ridge and shrinkage toward the panel average, across five orders
-# of magnitude — and nothing beat plain NNLS. See
-# analysis/breed_accuracy/regularization_sweep.py.
+# makes no difference at all (95.09% at every weight tried).
+#
+# Regularisation, on the other hand, splits: RIDGE is neutral to harmful (it
+# spreads mass across correlated breeds, which is exactly the leakage we want
+# less of), but a non-negative LASSO helps materially on MIXED dogs — 27% lower
+# proportion error against simulated crosses of known composition. Purebred
+# top-1 is a metric that cannot see this, which is why the first sweep missed
+# it. Adding the penalty is free: with q >= 0 it is linear, so
+#     ||Aq-b||^2 + lam*1'q  =  q'Gq - 2(A'b - lam/2)'q + const
+# i.e. the same Gram matrix with a shifted right-hand side. Beware a sharp
+# cliff — lam=1 is near-optimal, lam=3 collapses the solution entirely.
+# See analysis/breed_accuracy/{regularization_sweep,lasso_sweep}.py.
 A = np.vstack([P_v, np.ones((1, P_v.shape[1]))])
 b = np.hstack([x_v, [1.0]])
 q_raw, _ = nnls(A, b)
