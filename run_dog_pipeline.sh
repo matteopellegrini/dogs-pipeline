@@ -1330,7 +1330,14 @@ for _b, _s in zip(breed_labels, q.tolist()):
         _best[d] = _s
         g['breed'] = _b        # keep the dominant contributing code for provenance
 
-_display_list = sorted(_grouped.values(), key=lambda g: -g['proportion'])
+# Drop components the fit assigned no mass. The lasso makes the solution
+# genuinely sparse — typically ~14 non-zero of 230 — so without this the
+# dashboard's expandable "Other ancestry" list renders 200+ rows of 0.000%.
+# A component at exactly zero carries no information, in the report or in
+# breed_composition_raw.
+_MIN_REPORTED = 5e-5
+_display_list = sorted((g for g in _grouped.values() if g['proportion'] >= _MIN_REPORTED),
+                       key=lambda g: -g['proportion'])
 for g in _display_list:
     g['proportion'] = round(g['proportion'], 6)
     g['components'] = sorted(g['components'], key=lambda c: -c['proportion'])
@@ -1344,7 +1351,8 @@ breed_result = {
     'breed_composition_raw': [{'breed': b,
                                'breed_name': _pretty(b),
                                'proportion': round(s, 6)}
-                              for b, s in sorted(zip(breed_labels, q.tolist()), key=lambda x: -x[1])],
+                              for b, s in sorted(zip(breed_labels, q.tolist()), key=lambda x: -x[1])
+                              if s >= _MIN_REPORTED],
     'snps_used': int(valid.sum()),
     'k': P.shape[1],
     'pct_parker_covered': round(pct_covered, 1),
