@@ -131,6 +131,15 @@ GLIMPSE_PARALLEL="${GLIMPSE_PARALLEL:-8}"
 # Consequence: intermediates vanish with the job, so --from-stage resume is not
 # possible for local-scratch runs. Array jobs always start from stage 1 anyway.
 FINAL_OUT=""
+# Scratch is for FRESH runs only. A resume (--from-stage > 1) reads intermediates
+# that a previous run left in the persistent work directory; redirecting $OUT to
+# an empty scratch makes them invisible. That is not hypothetical — job 14285418
+# resumed 96 dogs from stage 9, found no BCF, and Stage 9 wrote a uniform
+# breed profile from zero coverage before Stage 10 died.
+if (( FROM_STAGE > 1 )) && [[ "${USE_LOCAL_SCRATCH:-0}" == "1" ]]; then
+  echo "NOTE: resuming from stage $FROM_STAGE — using $OUT directly, not scratch" >&2
+  USE_LOCAL_SCRATCH=0
+fi
 if [[ "${USE_LOCAL_SCRATCH:-0}" == "1" ]]; then
   # Defaults to $TMPDIR (node-local, auto-cleaned by the scheduler). Set
   # LOCAL_SCRATCH_ROOT to a shared scratch filesystem instead if $TMPDIR is too
@@ -1086,6 +1095,15 @@ for line in result.stdout.strip().split('\n'):
 
 valid = ~np.isnan(dosages)
 pct_covered = 100 * valid.sum() / n_snps
+# Refuse to produce a profile from too little data. With zero coverage NNLS
+# happily returns a near-uniform vector, which looks like a real result and is
+# not — that is exactly what got written for 96 dogs when a resume could not
+# find its BCF. 20% is well below any healthy sample (real dogs run ~86%).
+if pct_covered < 20:
+    raise SystemExit(
+        f"ERROR: only {valid.sum()}/{n_snps} panel SNPs genotyped "
+        f"({pct_covered:.1f}%). Refusing to write a breed profile. "
+        f"Check that {BCF} exists and is the imputed BCF for this dog.")
 print(f"Imputed dosages: {valid.sum()}/{n_snps} Parker SNPs ({pct_covered:.1f}%)")
 
 # Allele frequency matrix, one column per breed, rows aligned to SITES.
