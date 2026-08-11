@@ -44,6 +44,12 @@ def main():
     args = sys.argv[6:]
     step = int(args[args.index('--step') + 1]) if '--step' in args else 4
     min_n = int(args[args.index('--min-n') + 1]) if '--min-n' in args else 2
+    # --holdout FRAC reserves a fraction of each breed for testing. The .bed
+    # still contains every dog (SCOPE needs the cohort for latent subspace
+    # estimation, and deployment would likewise run reference + customer), but
+    # the FREQUENCIES come from the training dogs only. That is what makes the
+    # held-out dogs genuinely held out for both estimators.
+    hold = float(args[args.index('--holdout') + 1]) if '--holdout' in args else 0.0
 
     pdos, pids, bim = read_parker(prefix)
     keys = {}
@@ -96,6 +102,20 @@ def main():
     n_ind, n_snp = len(ids), len(ok)
     print(f"individuals: {n_ind}   breeds (n>={min_n}): {len(breeds)}")
 
+    test_ids = set()
+    if hold > 0:
+        rng = np.random.default_rng(15052011)
+        for b in breeds:
+            mem = [s for s in ids if truth[s] == b]
+            k = max(1, int(round(hold * len(mem))))
+            k = min(k, max(0, len(mem) - 4))     # keep >=4 training dogs per breed
+            if k:
+                test_ids.update(rng.choice(mem, size=k, replace=False).tolist())
+        with open(out + '.holdout', 'w') as fh:
+            fh.write("\n".join(sorted(test_ids)) + "\n")
+        print(f"held out {len(test_ids)} dogs; frequencies use the other "
+              f"{len(ids)-len(test_ids)}")
+
     with open(out + '.fam', 'w') as fh:
         for s in ids:
             fh.write(f"{truth[s]} {s} 0 0 0 -9\n")
@@ -121,7 +141,7 @@ def main():
     # frequency file, cluster-major within SNP, matching PLINK --freq --within
     sub = {}
     for b in breeds:
-        sel = [j for j, s in enumerate(ids) if truth[s] == b]
+        sel = [j for j, s in enumerate(ids) if truth[s] == b and s not in test_ids]
         x = dos[:, sel].astype(np.float32)
         x[x < 0] = np.nan
         sub[b] = x
