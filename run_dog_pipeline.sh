@@ -1303,6 +1303,17 @@ PARKER_NAMES = {
 AKC_DISPLAY = {
     'STANDARD_POODLE': 'Poodle', 'MINIATURE_POODLE': 'Poodle',
     'TOY_POODLE': 'Poodle',
+    # Old German Shepherd is a coat variant, not a breed AKC or FCI recognises,
+    # and the panel cannot separate it: its held-out dog is called German
+    # Shepherd with 0% assigned to its own population.
+    'OLD_GERMAN_SHEPHERD': 'German Shepherd', 'GERMAN_SHEPHERD': 'German Shepherd',
+    # White Swiss Shepherd is deliberately NOT folded in with them. It is a
+    # separate FCI breed and, unlike the Poodle varieties, the panel tells it
+    # apart: held-out White Swiss dogs are called White Swiss 2/2 (74% own
+    # share), held-out German Shepherds are called German Shepherd 2/2 (78%).
+    # Merging would erase working discrimination. Note a pure GSD carries ~19%
+    # White Swiss cross-loading, so only a materially higher share indicates
+    # real White Swiss ancestry.
 }
 
 def _pretty(label):
