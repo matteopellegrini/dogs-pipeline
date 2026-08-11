@@ -40,21 +40,22 @@ from xml.etree import ElementTree as ET
 NS = '{http://schemas.openxmlformats.org/spreadsheetml/2006/main}'
 
 REGION = {
-    'China': 'EastAsia', 'Vietnam': 'EastAsia', 'Thailand': 'EastAsia',
-    'Philippines': 'EastAsia', 'Taiwan': 'EastAsia', 'Indonesia': 'EastAsia',
-    'Papua New Guinea': 'Oceania', 'French Polynesia': 'Oceania', 'Fiji': 'Oceania',
-    'Iran': 'WestAsia', 'Afghanistan': 'WestAsia', 'Qatar': 'WestAsia',
-    'Lebanon': 'WestAsia', 'Turkey': 'WestAsia', 'Israel': 'WestAsia',
+    # Keys are the EXACT Breed/Type strings Dog10K uses for village dogs and
+    # wolves — several are not country names ('South America', 'Alaska',
+    # 'Mongolian Bankhar Dog', 'Turks and Caicos Islands'), which is precisely
+    # why a hand-written country list silently mis-bucketed them the first time.
+    'China': 'EastAsia', 'Thailand': 'EastAsia', 'Philippines': 'EastAsia',
+    'Cambodia': 'EastAsia', 'Myanmar': 'EastAsia', 'Vietnam': 'EastAsia',
+    'French Polynesia': 'Oceania', 'Fiji': 'Oceania',
+    'Iran': 'WestAsia', 'Afghanistan': 'WestAsia', 'Azerbaijan': 'WestAsia',
     'Uzbekistan': 'CentralAsia', 'Tajikistan': 'CentralAsia',
-    'Kazakhstan': 'CentralAsia', 'Kyrgyzstan': 'CentralAsia', 'Mongolia': 'CentralAsia',
-    'India': 'SouthAsia', 'Nepal': 'SouthAsia', 'Sri Lanka': 'SouthAsia',
-    'Pakistan': 'SouthAsia', 'Bangladesh': 'SouthAsia',
-    'Kenya': 'Africa', 'Liberia': 'Africa', 'Congo': 'Africa', 'Nigeria': 'Africa',
-    'Namibia': 'Africa', 'Uganda': 'Africa', 'Egypt': 'Africa', 'Morocco': 'Africa',
-    'Mali': 'Africa', 'Botswana': 'Africa',
-    'Mexico': 'Americas', 'Peru': 'Americas', 'Brazil': 'Americas',
-    'Colombia': 'Americas', 'Bahamas': 'Americas', 'Puerto Rico': 'Americas',
-    'USA': 'Americas', 'Belize': 'Americas', 'Costa Rica': 'Americas',
+    'Mongolian Bankhar Dog': 'CentralAsia', 'Mongolia': 'CentralAsia',
+    'Nepal': 'SouthAsia', 'Sri Lanka': 'SouthAsia', 'India': 'SouthAsia',
+    'Kenya': 'Africa', 'Liberia': 'Africa', 'Congo': 'Africa',
+    'Bulgaria': 'Europe', 'Greece': 'Europe',
+    'Belize': 'Americas', 'Costa Rica': 'Americas', 'Mexico': 'Americas',
+    'Cuba': 'Americas', 'South America': 'Americas', 'Alaska': 'Americas',
+    'Turks and Caicos Islands': 'Americas',
 }
 
 
@@ -126,6 +127,7 @@ def main():
             parker_codes.add(p[2])
 
     label = {}
+    unmapped = set()
     for c in parker_codes:
         nm = pn.get(c, c)
         if c.upper().startswith('WOLF'):
@@ -142,6 +144,8 @@ def main():
             if village == 'pooled':
                 label[c] = 'VILLAGE_DOG'
             elif village == 'region':
+                if nm not in REGION:
+                    unmapped.add((c, nm))
                 label[c] = 'VILLAGE_' + REGION.get(nm, 'Other')
             else:
                 label[c] = 'VILLAGE_' + re.sub(r'[^A-Za-z]', '', nm)
@@ -149,6 +153,15 @@ def main():
             label[c] = 'MIXED_OTHER'
         else:
             label[c] = canon(nm) or c
+
+    if unmapped:
+        # Silently bucketing these into VILLAGE_Other is what created a
+        # 24-dog grab-bag spanning Alaska to Cambodia — the same broad-attractor
+        # shape that made the Saluki merge fail. Refuse rather than repeat it.
+        print("ERROR: village populations with no region mapping:", file=sys.stderr)
+        for c, nm in sorted(unmapped):
+            print(f"   {c:<12} {nm!r}", file=sys.stderr)
+        sys.exit("add them to REGION in harmonize.py")
 
     json.dump(label, open(out, 'w'), indent=0, sort_keys=True)
 
