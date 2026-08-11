@@ -50,6 +50,10 @@ def main():
     # the FREQUENCIES come from the training dogs only. That is what makes the
     # held-out dogs genuinely held out for both estimators.
     hold = float(args[args.index('--holdout') + 1]) if '--holdout' in args else 0.0
+    # --labels applies the harmonised canonical breed map from harmonize.py, so
+    # the two panels' code vocabularies collapse onto one biology before any
+    # frequencies are computed.
+    labels_path = args[args.index('--labels') + 1] if '--labels' in args else None
 
     pdos, pids, bim = read_parker(prefix)
     keys = {}
@@ -93,6 +97,13 @@ def main():
     for s in dsamples:
         m = re.match(r'^([A-Za-z\-]+?)\d+$', s)
         truth[s] = m.group(1) if m else s
+
+    if labels_path:
+        import json
+        canon = json.load(open(labels_path))
+        before = len(set(truth.values()))
+        truth = {s: canon.get(b, b) for s, b in truth.items()}
+        print(f"harmonised labels: {before} codes -> {len(set(truth.values()))} breeds")
 
     cnt = Counter(truth[s] for s in ids if s in truth)
     breeds = sorted(b for b, n in cnt.items() if n >= min_n)
