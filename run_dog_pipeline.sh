@@ -79,6 +79,14 @@ REF_JSON=$D/reference_json                     # shared reference JSONs (genome 
                                                # outside public/ so no genomic data is
                                                # world-readable and the cluster needs no app checkout
 OMIA_DB=$REF_JSON/omia_variants.json           # OMIA variant catalogue (479 variants)
+# Merged Parker + Dog10K breed panel (see analysis/breed_accuracy/README.md).
+# Built by make_merged_plink.py with harmonised labels, village dogs grouped by
+# region, wolves pooled, min-n 6 -> 230 breeds over 131,353 SNPs.
+BREED_PANEL=$D/breed_panel
+BREED_SITES=$BREED_PANEL/sites.tsv     # chrom, pos, a1, a2 in Phat row order
+BREED_PHAT=$BREED_PANEL/phat.npy       # (131353 x 230) float32 allele frequencies
+BREED_LABELS=$BREED_PANEL/breeds.txt   # 230 canonical breed names, Phat column order
+BREED_LASSO=0.3                        # non-negative L1 penalty; see lasso_sweep.py
 SCOPE_P=$D/COSMO/analysis/cosmo_scope177Phat.txt     # (143933 SNPs × 177 breeds) full Parker panel allele freq matrix
 SCOPE_CLUST=$D/COSMO/analysis/scope_clust.txt        # breed ordering for Phat columns
 PARKER_BIM=$D/COSMO/analysis/cosmo_parker_full.bim
@@ -1011,32 +1019,38 @@ if (( FROM_STAGE <= 9 )); then
 #   estimates admixture proportions across all breeds.
 log "=== Stage 9: Breed prediction (GLIMPSE2 genotypes at Parker sites → supervised SCOPE) ==="
 "$DATA_PYTHON" - << PYEOF
-import subprocess, tempfile, os, numpy as np, json
+import subprocess, tempfile, os, re, numpy as np, json
 from scipy.optimize import nnls
+from scipy.linalg import solve_triangular
 
 BCF     = "$IMPUTED_BCF"
-BIM     = "$PARKER_BIM"
-SCOPE_P = "$SCOPE_P"    # (103542 SNPs × 177 breeds) allele freq matrix
-CLUST   = "$SCOPE_CLUST"
+SITES   = "$BREED_SITES"
+PHAT    = "$BREED_PHAT"
+BREEDS  = "$BREED_LABELS"
+LASSO   = float("$BREED_LASSO")
 PUB     = "$PUB"
 DOG     = "$DOG_NAME"
 
 # Load Parker SNP positions and build lookup: (chr_with_prefix, pos) → row index
+# Sites come from the panel itself, in Phat row order, carrying the a1/a2
+# orientation its frequencies were computed against. Deriving them from a .bim
+# instead would risk a silent row/allele mismatch against Phat.
 parker_snps = []
 pos_index = {}
-with open(BIM) as f:
+with open(SITES) as f:
+    next(f)
     for line in f:
-        p = line.strip().split()
-        chrom_num, pos = p[0], int(p[3])
-        parker_snps.append({'chrom_num': chrom_num, 'pos': pos, 'a1': p[4], 'a2': p[5]})
-        pos_index[(f'chr{chrom_num}', pos)] = len(parker_snps) - 1
+        c, pos_s, a1, a2 = line.rstrip('\n').split('\t')
+        pos = int(pos_s)
+        parker_snps.append({'chrom': c, 'pos': pos, 'a1': a1, 'a2': a2})
+        pos_index[(c, pos)] = len(parker_snps) - 1
 n_snps = len(parker_snps)
-print(f"Parker panel: {n_snps} SNPs to query")
+print(f"Breed panel: {n_snps} SNPs to query")
 
 # Write a BED file for bcftools -R (avoids ARG_MAX on 100k+ positions)
 bed_fh = tempfile.NamedTemporaryFile(mode='w', suffix='.bed', delete=False)
 for s in parker_snps:
-    bed_fh.write(f"chr{s['chrom_num']}\t{s['pos']-1}\t{s['pos']}\n")
+    bed_fh.write(f"{s['chrom']}\t{s['pos']-1}\t{s['pos']}\n")
 bed_fh.close()
 
 # Extract GP posteriors for all Parker SNPs in a single bcftools call
@@ -1074,96 +1088,21 @@ valid = ~np.isnan(dosages)
 pct_covered = 100 * valid.sum() / n_snps
 print(f"Imputed dosages: {valid.sum()}/{n_snps} Parker SNPs ({pct_covered:.1f}%)")
 
-# Load SCOPE Phat: (n_snps=103542, K=177) — allele freq per SNP per breed component
-P = np.loadtxt(SCOPE_P)   # (103542, 177)
+# Allele frequency matrix, one column per breed, rows aligned to SITES.
+# Stored as .npy rather than text: 115MB and instant to load, against ~170MB
+# and ~30s for np.loadtxt on the same numbers.
+P = np.load(PHAT)
 print(f"Phat shape: {P.shape}")
 
-# Breed ordering matches the column ordering in Phat (order of unique breeds in scope_clust.txt)
-breed_labels = []
-breed_counts = {}      # reference individuals per population; used to weight merges
-seen = set()
-with open(CLUST) as f:
-    for line in f:
-        parts = line.split()
-        if len(parts) >= 3:
-            b = parts[2]
-            breed_counts[b] = breed_counts.get(b, 0) + 1
-            if b not in seen:
-                seen.add(b)
-                breed_labels.append(b)
+# Breed labels, one per Phat column. Already canonical and harmonised by
+# analysis/breed_accuracy/harmonize.py — Parker and Dog10K code vocabularies
+# collapsed onto one biology, village dogs grouped by region, wolves pooled.
+# So no merging happens here any more; the panel arrives ready to use.
+breed_labels = [l.strip() for l in open(BREEDS) if l.strip()]
+breed_counts = {}
+assert P.shape == (n_snps, len(breed_labels)), \
+    f"panel mismatch: Phat {P.shape} vs {n_snps} sites x {len(breed_labels)} breeds"
 print(f"Breed labels: {len(breed_labels)} (first 3: {breed_labels[:3]})")
-
-# Drop the wolf reference populations from the projection.
-#
-# There are seven (WOLF-China, -Croatia, -India, -Israel, -Italy, -Portugal,
-# -Yellowstone) and every one has n=1. A single individual makes the "allele
-# frequency" for that population exactly that animal's genotype, which is not an
-# estimate of anything — leave-one-out cannot even test them, because removing
-# the one dog removes the population. They contribute nothing a customer report
-# should rest on, and NNLS can still assign mass to them, so a pet dog can pick
-# up spurious wolf ancestry from what is really noise.
-#
-# Columns of P line up with breed_labels, so both are filtered together.
-# ── Merge regional sub-populations of one breed (MODEL level) ────────
-# SALU_ArabPen, SALU_CentAsia and SALU_Tribal are Salukis from different
-# regions, not different breeds. Leave-one-out proved the panel cannot tell
-# them apart from each other: all four SALU_ArabPen dogs predicted as SALU, and
-# SALU_CentAsia predicted as SALU_ArabPen. Keeping them as separate columns
-# makes near-collinear predictors that split one dog's Saluki ancestry
-# unstably across four labels.
-#
-# Merging at the model level rather than summing afterwards is deliberate:
-# pooling gives ONE population with n=19 and better-estimated frequencies,
-# instead of four thin ones competing. Phat is a per-breed empirical allele
-# frequency, so the pooled column is the n-weighted mean.
-#
-# SLOU_NAfrica (Sloughi) and AZWK_Mali (Azawakh) are NOT merged — different
-# breeds that merely resemble Salukis.
-MERGE_POPULATIONS = {
-    # The regional Salukis are deliberately NOT merged here. Pooling them was
-    # tried and reverted: leave-one-out liked it, but that gain was mostly the
-    # relabelling of the SALU_* dogs themselves. Projecting 608 held-out Dog10K
-    # samples showed the real cost — a pooled SALU (n=19, spanning Arabian
-    # Peninsula, Central Asia and Tribal) becomes a broad attractor that
-    # swallows Anatolian Shepherds, which are geographically adjacent:
-    #
-    #     pooled SALU     585/608 (96.2%)   ANAT 3/6 -> SALU
-    #     separate SALU   588/608 (96.7%)   ANAT 6/6
-    #
-    # They are still presented as one "Saluki" to the customer — see
-    # AKC_DISPLAY, which sums them at display time. Keeping the model's
-    # populations narrow and merging only for presentation gets both.
-    # The seven wolves are pooled rather than dropped. Individually they are
-    # n=1, so each "allele frequency" is one animal's genotype — unstable, and
-    # untestable by leave-one-out because removing the dog removes the
-    # population. But wolf-dog hybrids are a real thing a customer may ask
-    # about, and dropping wolves entirely makes that undetectable: the ancestry
-    # would be forced onto whichever northern breed fits least badly.
-    #
-    # Pooled they are n=7, comparable to other small populations, and the
-    # merged frequencies describe the wolf-versus-dog axis rather than any one
-    # geographic wolf population — which is exactly what "does this dog have
-    # wolf ancestry" asks.
-    'WOLF-China': 'WOLF', 'WOLF-Croatia': 'WOLF', 'WOLF-India': 'WOLF',
-    'WOLF-Israel': 'WOLF', 'WOLF-Italy': 'WOLF', 'WOLF-Portugal': 'WOLF',
-    'WOLF-Yellowstone': 'WOLF',
-}
-if any(b in MERGE_POPULATIONS for b in breed_labels):
-    _tgt = [MERGE_POPULATIONS.get(b, b) for b in breed_labels]
-    _new = []
-    for t in _tgt:
-        if t not in _new:
-            _new.append(t)
-    _merged = np.zeros((P.shape[0], len(_new)), dtype=P.dtype)
-    for j, t in enumerate(_new):
-        srcs = [i for i, x in enumerate(_tgt) if x == t]
-        w = np.array([float(breed_counts.get(breed_labels[i], 1)) for i in srcs])
-        _merged[:, j] = (P[:, srcs] * w).sum(axis=1) / w.sum()
-        if len(srcs) > 1:
-            print(f"  merged into {t}: "
-                  + ", ".join(f"{breed_labels[i]}(n={int(w[k])})" for k, i in enumerate(srcs)))
-    P, breed_labels = _merged, _new
-    print(f"Breed labels after merging: {len(breed_labels)}")
 
 # NNLS supervised projection: find q s.t. P_valid @ q ≈ dosages_valid, q ≥ 0
 P_v = P[valid, :]          # restrict to genotyped sites
@@ -1193,7 +1132,17 @@ x_v = dosages[valid]
 # See analysis/breed_accuracy/{regularization_sweep,lasso_sweep}.py.
 A = np.vstack([P_v, np.ones((1, P_v.shape[1]))])
 b = np.hstack([x_v, [1.0]])
-q_raw, _ = nnls(A, b)
+if LASSO:
+    # Non-negative L1. With q >= 0 the penalty is linear, so it is a shift of
+    # the normal-equation right-hand side rather than a different solver:
+    #   ||Aq-b||^2 + lam*1'q = q'(A'A)q - 2(A'b - lam/2)'q + const
+    G = (A.T @ A).astype(np.float64)
+    rhs = (A.T @ b).astype(np.float64) - 0.5 * LASSO * float(np.mean(np.diag(P_v.T @ P_v)))
+    G[np.diag_indices_from(G)] += 1e-6
+    R = np.linalg.cholesky(G).T
+    q_raw, _ = nnls(R, solve_triangular(R.T, rhs, lower=True))
+else:
+    q_raw, _ = nnls(A, b)
 q_total = q_raw.sum()
 q = q_raw / (q_total + 1e-12)  # normalize to sum to 1
 
@@ -1345,37 +1294,29 @@ PARKER_NAMES = {
 # Only merged where AKC calls it one breed. Schnauzers stay separate (Giant,
 # Miniature and Standard are three distinct AKC breeds), as do Parson vs Russell
 # Terrier and Bull Terrier vs Miniature Bull Terrier.
+# Breed labels are already canonical names (STANDARD_POODLE, VILLAGE_EastAsia).
+# This groups them into what a customer should actually read, and sums the
+# proportions. Only where AKC treats the varieties as ONE breed — Schnauzers
+# stay separate, and Shetland Sheepdog is NOT folded into Collie (SSHP was
+# mislabelled "Smooth Collie" in the old Parker table; Dog10K Table S1 confirms
+# it is a Sheltie).
 AKC_DISPLAY = {
-    'SPOO': 'Poodle', 'MPOO': 'Poodle', 'TPOO': 'Poodle',
-    'XOLO': 'Xoloitzcuintli', 'MXOL': 'Xoloitzcuintli',  # Mexican Hairless IS the Xolo
-    # Regional Salukis are one breed to a customer. Summed HERE rather than
-    # merged in the model, because pooling the model columns cost three
-    # Anatolian Shepherd calls on held-out Dog10K samples (see
-    # MERGE_POPULATIONS). Display grouping has no such effect — it cannot
-    # change what the model competes over.
-    'SALU': 'Saluki', 'SALU_ArabPen': 'Saluki',
-    'SALU_CentAsia': 'Saluki', 'SALU_Tribal': 'Saluki',
-    # COLL + SSHP -> "Collie" was here and is deliberately NOT, pending
-    # verification that SSHP is Smooth Collie at all. This name table has 236
-    # codes for a 177-population panel, and at least one panel code was given
-    # the wrong name from that superset: NELK was labelled Norrbottenspets when
-    # a known Norwegian Elkhound sample projects onto it, while NORW
-    # ('Norwegian Elkhound') is absent from the panel.
-    #
-    # SSHP fits the same pattern. It is in the panel (n=10) as "Smooth Collie",
-    # while SHED ('Shetland Sheepdog') is not in the panel — and SSHP reads as
-    # Shetland SHeePdog far more naturally than Smooth Collie, which would be
-    # SCOL. Shetland Sheepdog is a top-30 AKC breed whose absence from a
-    # 161-breed panel is otherwise hard to explain.
-    #
-    # The risk is asymmetric: if SSHP is Smooth Collie, not merging shows one
-    # extra row. If SSHP is Shetland Sheepdog, merging reports a Sheltie as a
-    # Collie and destroys the distinction. Verify by projecting a known
-    # Shetland Sheepdog, exactly as NELK was settled.
+    'STANDARD_POODLE': 'Poodle', 'MINIATURE_POODLE': 'Poodle',
+    'TOY_POODLE': 'Poodle',
 }
 
+def _pretty(label):
+    """canonical panel label -> the string a customer sees"""
+    if label == 'GRAY_WOLF':
+        return 'Gray Wolf'
+    if label.startswith('VILLAGE_'):
+        region = re.sub(r'(?<!^)(?=[A-Z])', ' ', label[len('VILLAGE_'):])
+        return f'Village Dog ({region})'
+    return label.replace('_', ' ').title()
+
+
 def _display(code):
-    return AKC_DISPLAY.get(code) or PARKER_NAMES.get(code, code)
+    return AKC_DISPLAY.get(code) or _pretty(code)
 
 _grouped = {}
 _best = {}
@@ -1401,7 +1342,7 @@ breed_result = {
     # takes the top 6). breed_composition_raw keeps the per-population values.
     'breed_composition': _display_list,
     'breed_composition_raw': [{'breed': b,
-                               'breed_name': PARKER_NAMES.get(b, b),
+                               'breed_name': _pretty(b),
                                'proportion': round(s, 6)}
                               for b, s in sorted(zip(breed_labels, q.tolist()), key=lambda x: -x[1])],
     'snps_used': int(valid.sum()),

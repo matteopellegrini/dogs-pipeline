@@ -82,13 +82,11 @@ def main():
     pre = sys.argv[1]
     args = sys.argv[2:]
     top_n = int(args[args.index('--top') + 1]) if '--top' in args else 8
+    LASSO = float(args[args.index('--lasso') + 1]) if '--lasso' in args else 0.3
     min_q = float(args[args.index('--min') + 1]) if '--min' in args else 0.005
     bcfs = [a for a in args if a.endswith('.bcf')]
     breeds, bim, P = load_panel(pre)
     K = len(breeds)
-    G = ((P.T @ P) + np.ones((K, K), dtype=np.float32)).astype(np.float64)
-    G[np.diag_indices_from(G)] += 1e-6
-    R = np.linalg.cholesky(G).T
     exp = (2.0 * P.mean(axis=1)).astype(np.float32)
     print(f"panel: {P.shape[0]} SNPs x {K} breeds\n")
 
@@ -102,10 +100,22 @@ def main():
     for bcf in bcfs:
         x = dosages_from_bcf(bcf, bim, bed)
         cov = np.isfinite(x)
-        v = x.copy()
-        v[~cov] = exp[~cov]
-        y = solve_triangular(R.T, ((P.T @ v) + 1.0).astype(np.float64), lower=True)
-        q, _ = nnls(R, y)
+        # RESTRICT to covered sites rather than mean-imputing the rest, which is
+        # what Stage 9 does. Imputing with the panel average pulls the fit toward
+        # the mean and inflates spurious components — on PK9-0002 (13.7%
+        # uncovered) it moved German Shepherd 50.8 -> 45.2% and doubled a
+        # spurious village-dog component. Verified to reproduce the pipeline to
+        # two decimals.
+        Pv = P[cov, :]
+        A = np.vstack([Pv, np.ones((1, Pv.shape[1]))])
+        b = np.hstack([x[cov], [1.0]])
+        Gv = (A.T @ A).astype(np.float64)
+        rhs = (A.T @ b).astype(np.float64)
+        if LASSO:
+            rhs = rhs - 0.5 * LASSO * float(np.mean(np.diag(Pv.T @ Pv)))
+        Gv[np.diag_indices_from(Gv)] += 1e-6
+        Rv = np.linalg.cholesky(Gv).T
+        q, _ = nnls(Rv, solve_triangular(Rv.T, rhs, lower=True))
         q = q / (q.sum() + 1e-12)
         order = np.argsort(-q)
         name = os.path.basename(bcf).replace('_imputed_dog10k.bcf', '')

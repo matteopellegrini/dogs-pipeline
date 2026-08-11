@@ -47,3 +47,7 @@ varcall.log
 
 # ── macOS ─────────────────────────────────────────────────────
 .DS_Store
+
+# Merged breed panel: 115MB of derived data, rebuilt by
+# analysis/breed_accuracy/make_merged_plink.py + harmonize.py
+breed_panel/
