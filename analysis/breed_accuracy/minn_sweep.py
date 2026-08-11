@@ -79,8 +79,8 @@ def main():
     print(f"{len(samples)} simulated crosses, {len(pure)} held-out purebreds, "
           f"lasso lambda={lam}\n")
     print(f"  {'min-n':>6} {'breeds':>7} | {'mix err':>8} {'SPURIOUS':>9} | "
-          f"{'purebred':>9} {'lost':>6}")
-    print("  " + "-" * 56)
+          f"{'purebred':>9} {'lost':>6} {'broken':>7}")
+    print("  " + "-" * 64)
     for minn in MIN_NS:
         keep = [j for j, b in enumerate(breeds) if n[b] >= minn]
         Pk = P[:, keep]
@@ -96,13 +96,23 @@ def main():
             q, _ = nnls(R, solve_triangular(R.T, rhs, lower=True))
             return q / (q.sum() + 1e-12)
 
-        errs, spur = [], []
+        errs, spur, impossible = [], [], 0
         for comp, e, x in samples:
-            if not all(c in bidx for c in comp):
+            # A parent breed filtered out of the panel gets proportion 0 by
+            # construction, so its error is its true proportion. Skipping these
+            # crosses instead would make over-filtering look better by quietly
+            # removing the cases it just broke.
+            missing = [c for c in comp if c not in bidx]
+            if len(missing) == len(comp):
+                impossible += 1
+                errs += list(e)
                 continue
             q = solve(x)
-            errs += [abs(q[bidx[c]] - t) for c, t in zip(comp, e)]
-            idx = {bidx[c] for c in comp}
+            errs += [abs(q[bidx[c]] - t) if c in bidx else t
+                     for c, t in zip(comp, e)]
+            if missing:
+                impossible += 1
+            idx = {bidx[c] for c in comp if c in bidx}
             spur.append(sum(q[i] for i in range(K) if i not in idx))
         ok = tot = 0
         for j, t in pure:
@@ -112,7 +122,7 @@ def main():
             tot += 1
         print(f"  {minn:>6} {K:>7} | {100*np.mean(errs):>7.2f}pp "
               f"{100*np.mean(spur):>8.1f}% | {100*ok/tot:>8.2f}% "
-              f"{len(breeds)-K:>6}")
+              f"{len(breeds)-K:>6} {impossible:>7}")
 
 
 if __name__ == '__main__':
