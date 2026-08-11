@@ -1169,7 +1169,20 @@ if any(b in MERGE_POPULATIONS for b in breed_labels):
 P_v = P[valid, :]          # restrict to genotyped sites
 x_v = dosages[valid]
 
-# Constrained NNLS with sum-to-1 row appended
+# Constrained NNLS with sum-to-1 row appended.
+#
+# That row is effectively inert — one row against ~131k data rows — and the
+# simplex is really imposed by the normalisation two lines below. Do NOT
+# "fix" this by weighting the row so it binds: P holds allele frequencies in
+# [0,1] while the dosages are in [0,2], so the correct scale is sum(q) ~ 2 and
+# forcing sum(q) = 1 is a misspecified constraint. Weighting it costs real
+# accuracy on held-out dogs — 95.09% -> 92.55% at w=1e4.
+#
+# Fitting x/2 instead makes sum(q)=1 correct, and then the constraint weight
+# makes no difference at all (95.09% at every weight tried). Regularisation was
+# swept too — ridge and shrinkage toward the panel average, across five orders
+# of magnitude — and nothing beat plain NNLS. See
+# analysis/breed_accuracy/regularization_sweep.py.
 A = np.vstack([P_v, np.ones((1, P_v.shape[1]))])
 b = np.hstack([x_v, [1.0]])
 q_raw, _ = nnls(A, b)
