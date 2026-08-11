@@ -1285,7 +1285,13 @@ PARKER_NAMES = {
     'SALU_CentAsia':'Saluki (Central Asia)','SALU_Tribal':'Saluki (Tribal)',
     'SCWT':'Soft Coated Wheaten Terrier','SKIP':'Schipperke',
     'SLOU_NAfrica':'Sloughi (North Africa)','SPIN':'Spinone Italiano',
-    'SSHP':'Smooth Collie','SSNZ':'Standard Schnauzer',
+    # SSHP is Shetland Sheepdog, not Smooth Collie — confirmed by Dog10K Table S1
+    # (Nature/Genome Biology supplement), which lists every SSHP sample as
+    # "Shetland Sheepdog". Same class of error as NELK: this name table carries
+    # 236 codes for a 177-population panel and some panel codes were given the
+    # wrong name out of that superset. Shetland Sheepdog is a top-30 AKC breed
+    # whose apparent absence from the panel was the tell.
+    'SSHP':'Shetland Sheepdog','SSNZ':'Standard Schnauzer',
     'STBD':'Saint Bernard','SVAL':'Swedish Vallhund',
     'TIBM':'Tibetan Mastiff','TIBM_China':'Tibetan Mastiff (China)',
     'TURV':'Belgian Tervuren','TYFX':'Toy Fox Terrier',
