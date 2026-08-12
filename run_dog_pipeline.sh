@@ -311,6 +311,18 @@ _keep_from_scratch() {
            "${DOG_LOWER}_metaphlan.txt" "${DOG_LOWER}_metaphlan.mapout.bz2"; do
     [[ -e "$OUT/$f" ]] && cp -p "$OUT/$f" "$FINAL_OUT/$f" 2>/dev/null || true
   done
+  # The imputed BCF too. It was deliberately left out as an intermediate, but
+  # that made stages 8-13 unrepeatable: re-scoring 96 dogs against a revised
+  # breed panel needed a full re-run from stage 1 (~90 min each) instead of
+  # minutes, and we have now wanted exactly that twice. ~200MB per dog, so ~19GB
+  # for 96 against ~7TB free — cheap insurance for a pipeline whose downstream
+  # models are still being iterated on.
+  if [[ -d "$OUT/glimpse2" ]]; then
+    mkdir -p "$FINAL_OUT/glimpse2"
+    for f in "$OUT/glimpse2/"*_imputed_dog10k.bcf*; do
+      [[ -e "$f" ]] && cp -p "$f" "$FINAL_OUT/glimpse2/" 2>/dev/null || true
+    done
+  fi
   # Remove the working directory ourselves, but ONLY on success. $TMPDIR would be
   # cleaned by the scheduler anyway; a shared scratch root would not, and 96 x
   # ~18GB left behind fills 2TB fast. On failure it is left in place so the run
