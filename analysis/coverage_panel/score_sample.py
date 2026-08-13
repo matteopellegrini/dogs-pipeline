@@ -32,13 +32,32 @@ import json
 import statistics
 import sys
 
-MIN_SD = 0.02        # below this the panel is too tight to divide by
+# MIN_SD guards against dividing by a spread that is really zero. It was 0.02,
+# chosen when the only panel available came from 8 replicate-heavy samples. On
+# the real 96-dog panel that excluded 1,702 of 2,248 windows — three quarters of
+# the genome — because a well-measured 1Mb window genuinely has SD ~0.015. With
+# n=96 the sampling error on that estimate is ~0.001, so it is a measurement,
+# not noise. The floor now only catches degenerate windows.
+#
+# For scale: observed SDs match Poisson counting noise at both resolutions
+# (1Mb ~13k reads -> 0.009 expected vs 0.015 seen; 50kb ~650 reads -> 0.039 vs
+# 0.044), so the panel is measuring the genome rather than batch effects.
+MIN_SD = 0.004
 MAX_SD = 0.30        # above this the window is uninformative (mappability etc.)
 REPORT_Z = 5.0       # default per-window reporting threshold
 
 
-def read_coverage(path):
-    out = {}
+def read_coverage(path, bin_bp=None):
+    """Per-window mean depth, keyed by (chrom, start).
+
+    With bin_bp set, the sample is first re-binned onto that fixed grid. This is
+    required for the CNV panel: Stage 5 sizes CNV windows per dog as
+    50000/mean_depth, so a sample's native windows never line up with a shared
+    grid and every one of them would score as uncallable. Re-binning splits each
+    source window's summed depth across target bins by overlap — the same
+    uniform-depth assumption the original binning makes.
+    """
+    rows = []
     with open(path) as fh:
         for line in fh:
             f = line.split()
@@ -46,8 +65,24 @@ def read_coverage(path):
                 continue
             chrom, start, end, total = f[0], int(f[1]), int(f[2]), float(f[3])
             if end > start:
-                out[(chrom, start)] = total / (end - start)
-    return out
+                rows.append((chrom, start, end, total))
+    if bin_bp is None:
+        return {(c, s): t / (e - s) for c, s, e, t in rows}
+
+    widest = max((e - s) for c, s, e, t in rows) if rows else 0
+    if widest > bin_bp:
+        raise SystemExit(
+            f"ERROR: {path} has native windows up to {widest}bp, wider than the "
+            f"panel's {bin_bp}bp grid. Re-binning upward would invent resolution "
+            f"that was never measured.")
+    acc = {}
+    for chrom, s, e, total in rows:
+        per_bp = total / (e - s)
+        for b in range(s // bin_bp, (e - 1) // bin_bp + 1):
+            lo, hi = max(s, b * bin_bp), min(e, (b + 1) * bin_bp)
+            if hi > lo:
+                acc[(chrom, b * bin_bp)] = acc.get((chrom, b * bin_bp), 0.0) + per_bp * (hi - lo)
+    return {k: v / bin_bp for k, v in acc.items()}
 
 
 def normalise(depths):
@@ -100,12 +135,15 @@ def main():
         args = args[1:]
 
     meta, index = load_panel(panel_path)
+    bin_bp = meta.get('window_bp')
+    if bin_bp == 1000000:
+        bin_bp = None          # 1Mb windows already share a fixed grid
     print(f"panel: {meta.get('n_samples','?')} samples, "
           f"{meta.get('n_windows','?')} windows "
           f"({meta.get('n_female','?')}F/{meta.get('n_male','?')}M)")
 
     if not cohort:
-        ratios, sex = normalise(read_coverage(args[0]))
+        ratios, sex = normalise(read_coverage(args[0], bin_bp))
         if ratios is None:
             sys.exit("ERROR: zero autosomal coverage")
         scored, uncallable = score(ratios, sex, index)
@@ -122,7 +160,7 @@ def main():
     thresholds = [3, 4, 5, 6, 8, 10]
     per_dog = []
     for path in args:
-        ratios, sex = normalise(read_coverage(path))
+        ratios, sex = normalise(read_coverage(path, bin_bp))
         if ratios is None:
             continue
         scored, uncallable = score(ratios, sex, index)
