@@ -61,8 +61,15 @@ def read_bedcov(path):
 
 
 def rebin(rows, bin_bp):
-    """Redistribute summed depth onto a fixed grid, weighting by overlap."""
+    """Per-bp depth on a fixed grid, weighting each source window by overlap.
+
+    Divides by the length ACTUALLY covered, not by bin_bp. A chromosome's final
+    bin is partial, and dividing it by the full bin width would make it look
+    proportionally depleted — which is exactly the bug that made every
+    chromosome end flag in 96/96 dogs.
+    """
     acc = defaultdict(float)
+    span = defaultdict(float)
     for chrom, s, e, total in rows:
         width = e - s
         if width <= 0:
@@ -74,7 +81,8 @@ def rebin(rows, bin_bp):
             hi = min(e, (b + 1) * bin_bp)
             if hi > lo:
                 acc[(chrom, b * bin_bp)] += depth_per_bp * (hi - lo)
-    return acc
+                span[(chrom, b * bin_bp)] += (hi - lo)
+    return {k: v / span[k] for k, v in acc.items() if span[k] > 0}
 
 
 def to_ratio(depths):
@@ -150,7 +158,10 @@ def main():
         f2 = os.path.join(d, 'coverage_cnv.tsv')
         if os.path.exists(f1):
             rows = read_bedcov(f1)
-            acc = {(c, s): t for c, s, e, t in rows}
+            # per-bp depth, not summed: the last window of each chromosome is
+            # truncated, and summed depth would make it look depleted in the
+            # panel while the scorer (which divides by width) sees it as normal.
+            acc = {(c, s): t / (e - s) for c, s, e, t in rows if e > s}
             r, sx = to_ratio(acc)
             if r:
                 mb[name], mb_sex[name] = r, sx

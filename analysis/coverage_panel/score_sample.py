@@ -75,14 +75,17 @@ def read_coverage(path, bin_bp=None):
             f"ERROR: {path} has native windows up to {widest}bp, wider than the "
             f"panel's {bin_bp}bp grid. Re-binning upward would invent resolution "
             f"that was never measured.")
-    acc = {}
+    acc, span = {}, {}
     for chrom, s, e, total in rows:
         per_bp = total / (e - s)
         for b in range(s // bin_bp, (e - 1) // bin_bp + 1):
             lo, hi = max(s, b * bin_bp), min(e, (b + 1) * bin_bp)
             if hi > lo:
-                acc[(chrom, b * bin_bp)] = acc.get((chrom, b * bin_bp), 0.0) + per_bp * (hi - lo)
-    return {k: v / bin_bp for k, v in acc.items()}
+                k = (chrom, b * bin_bp)
+                acc[k] = acc.get(k, 0.0) + per_bp * (hi - lo)
+                span[k] = span.get(k, 0.0) + (hi - lo)
+    # divide by the length actually covered, matching build_panels.rebin
+    return {k: v / span[k] for k, v in acc.items() if span[k] > 0}
 
 
 def normalise(depths):
