@@ -636,11 +636,36 @@ for chrom in sorted(result):
                            'direction': 'gain' if run[2] > 0 else 'loss'})
             run = None
 events.sort(key=lambda e: -abs(e['peak_z']))
-print(f"coverage events at |z| >= {Z_CUT}: {len(events)}")
+
+# Per-dog confidence. A dog with 242 events should not produce 242 findings —
+# it should say the coverage is not clean enough to call structural variation.
+#
+# Thresholds read off the 93-dog cohort, which separates cleanly: 93 dogs at
+# 0-9 events, three at 55-270. A six-fold gap, so 20 is comfortably inside it.
+# Depth is NOT the criterion — the lowest-coverage dog in the cohort (1.00x)
+# produced 9 events, while a 2.40x dog produced 89 of which 85 were gains. That
+# asymmetry is the second signal: real copy-number variation is not
+# one-directional, so a gain-dominated profile is a mapping artifact even when
+# the count alone would pass.
+_gains = sum(1 for e in events if e['direction'] == 'gain')
+_losses = len(events) - _gains
+_reasons = []
+if len(events) > 20:
+    _reasons.append(f'{len(events)} events (typical dog has 0-9)')
+if len(events) >= 10 and _gains >= 5 * max(1, _losses):
+    _reasons.append(f'gain-dominated ({_gains} gains vs {_losses} losses)')
+cov_confidence = 'low' if _reasons else 'ok'
+if _reasons:
+    print(f"coverage confidence LOW: {'; '.join(_reasons)}")
+print(f"coverage events at |z| >= {Z_CUT}: {len(events)} "
+      f"({_gains} gain / {_losses} loss), confidence={cov_confidence}")
 
 result['_meta'] = {'predicted_sex': predicted_sex,
                    'chrx_auto_ratio': round(x_auto_ratio, 3),
                    'panel_n': panel_n, 'z_threshold': Z_CUT,
+                   'coverage_confidence': cov_confidence,
+                   'confidence_reasons': _reasons,
+                   'n_gain': _gains, 'n_loss': _losses,
                    'events': events}
 with open(f'{pub}/coverage_1mb.json', 'w') as f:
     json.dump(result, f)
