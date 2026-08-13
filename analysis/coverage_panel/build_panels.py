@@ -144,9 +144,22 @@ def main():
     args = sys.argv[3:]
     cnv_bin = int(args[args.index('--cnv-bin') + 1]) if '--cnv-bin' in args else 50000
     min_n = int(args[args.index('--min-n') + 1]) if '--min-n' in args else 20
+    # A panel of normals should not contain dogs whose coverage is not normal.
+    # Median/MAD limits their influence but does not remove it, and a sample
+    # that cannot be scored reliably has no business defining what "reliable"
+    # means. Identify candidates by event count and gain/loss balance, not by
+    # depth alone — DOGS-Gen-29 is the lowest-coverage dog in the cohort at
+    # 1.00x and produced only 10 events, while DOGS-Gen-54 at 2.40x produced 86,
+    # of which 85 were gains. That asymmetry is a mapping artifact signature;
+    # real copy-number variation is not one-directional.
+    exclude = set()
+    if '--exclude' in args:
+        exclude = {x.strip() for x in args[args.index('--exclude') + 1].split(',') if x.strip()}
 
     dirs = sorted(glob.glob(pattern))
-    print(f"{len(dirs)} sample directories\n")
+    print(f"{len(dirs)} sample directories"
+          + (f", excluding {len(exclude)}: {', '.join(sorted(exclude))}" if exclude else "")
+          + "\n")
 
     mb, mb_sex = {}, {}
     cnv, cnv_sex = {}, {}
@@ -154,6 +167,9 @@ def main():
     skipped = []
     for d in dirs:
         name = os.path.basename(os.path.dirname(d.rstrip('/')))
+        if name in exclude:
+            skipped.append((name, 'excluded by --exclude'))
+            continue
         f1 = os.path.join(d, 'coverage_1mb.tsv')
         f2 = os.path.join(d, 'coverage_cnv.tsv')
         if os.path.exists(f1):
