@@ -169,7 +169,9 @@ fi
 mkdir -p "$OUT" "$PUB"
 LOG=$OUT/pipeline.log
 
-log() { echo "[$(date '+%H:%M:%S')] $*" | tee -a "$LOG"; }
+# A logging failure must never decide the pipeline's exit status — see the
+# EXIT-trap bug above.
+log() { echo "[$(date '+%H:%M:%S')] $*" | tee -a "$LOG" || true; }
 die() { log "ERROR: $*"; exit 1; }
 
 log "Site profile: $DOGS_SITE  (D=$D, NPROC=$NPROC, GLIMPSE_PARALLEL=$GLIMPSE_PARALLEL, publish=$PUBLISH_RESULTS)"
@@ -331,6 +333,13 @@ _keep_from_scratch() {
     echo "[$(date '+%H:%M:%S')] Kept artifacts in $FINAL_OUT; removing scratch $OUT" \
       | tee -a "$FINAL_OUT/pipeline.log" 2>/dev/null || true
     rm -rf "$OUT" 2>/dev/null || true
+    # $LOG lived inside the directory just removed, and _finish still has its
+    # summary to print. Without this the tee fails, and because we are inside
+    # the EXIT trap under set -e that failure becomes the script's exit status:
+    # every task in job 14306032 reported "pipeline exited 1" after completing
+    # successfully. Repointing also means the runtime and peak-memory summary
+    # lands in the log we keep, instead of being written to a deleted file.
+    LOG="$FINAL_OUT/pipeline.log"
     # $OUT is <scratch>/<dog>/analysis — take the <dog> wrapper too, or scratch
     # accumulates one empty directory per sample (96 here, 1045 for the
     # microbiome reference rebuild). rmdir only ever removes an empty directory,
