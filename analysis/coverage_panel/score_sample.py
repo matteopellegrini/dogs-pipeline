@@ -44,7 +44,22 @@ import sys
 # 0.044), so the panel is measuring the genome rather than batch effects.
 MIN_SD = 0.004
 MAX_SD = 0.30        # above this the window is uninformative (mappability etc.)
-REPORT_Z = 5.0       # default per-window reporting threshold
+# Calibrated against the 96-dog panel, and the two scales differ because the
+# multiple-testing burden does (2,248 windows vs 44,591).
+#
+#   1Mb      |z| >= 5   median dog ~2 windows.  Kiki and her replicate each
+#                       flagged exactly one window and it was the same one
+#                       (chr26:0Mb, z +6.6 / +5.2).
+#   CNV 50kb |z| >= 6   median dog ~30 bins (~13 merged events). Replicate
+#                       agreement peaks here — Jaccard 0.79, and both runs
+#                       independently gave 25 bins / 11 events. At |z|>=5 the
+#                       extra calls do not replicate (Jaccard 0.69).
+#
+# Reproducibility across independent library prep and sequencing is the test
+# that matters: it separates real events from per-run noise in a way no
+# threshold argument can.
+REPORT_Z = 5.0       # 1Mb default; pass --z 6 for the CNV panel
+REPORT_Z_BY_WINDOW = {1000000: 5.0, 50000: 6.0}
 
 
 def read_coverage(path, bin_bp=None):
@@ -139,6 +154,9 @@ def main():
 
     meta, index = load_panel(panel_path)
     bin_bp = meta.get('window_bp')
+    z_cut = REPORT_Z_BY_WINDOW.get(bin_bp, REPORT_Z)
+    if '--z' in args:
+        z_cut = float(args[args.index('--z') + 1])
     if bin_bp == 1000000:
         bin_bp = None          # 1Mb windows already share a fixed grid
     print(f"panel: {meta.get('n_samples','?')} samples, "
@@ -150,10 +168,10 @@ def main():
         if ratios is None:
             sys.exit("ERROR: zero autosomal coverage")
         scored, uncallable = score(ratios, sex, index)
-        flagged = sorted((w for w in scored if abs(w[3]) >= REPORT_Z),
+        flagged = sorted((w for w in scored if abs(w[3]) >= z_cut),
                          key=lambda w: -abs(w[3]))
         print(f"sex: {sex}   scored: {len(scored)}   uncallable: {uncallable}")
-        print(f"flagged at |z| >= {REPORT_Z}: {len(flagged)}")
+        print(f"flagged at |z| >= {z_cut}: {len(flagged)}")
         for chrom, start, ratio, z in flagged[:40]:
             kind = 'GAIN' if z > 0 else 'LOSS'
             print(f"  {kind} {chrom}:{start//1000000}Mb  ratio={ratio:.3f}  z={z:+.1f}")
