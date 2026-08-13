@@ -159,12 +159,16 @@ def main():
     # ── cohort calibration ───────────────────────────────────────
     thresholds = [3, 4, 5, 6, 8, 10]
     per_dog = []
+    recurrence = {}
     for path in args:
         ratios, sex = normalise(read_coverage(path, bin_bp))
         if ratios is None:
             continue
         scored, uncallable = score(ratios, sex, index)
         counts = [sum(1 for w in scored if abs(w[3]) >= t) for t in thresholds]
+        for c, st, _, z in scored:
+            if abs(z) >= 5:
+                recurrence[(c, st)] = recurrence.get((c, st), 0) + 1
         per_dog.append((path, sex, counts, uncallable))
 
     print(f"\ncalibration across {len(per_dog)} dogs — flagged windows per dog")
@@ -175,6 +179,20 @@ def main():
 
     print("\nPick the lowest threshold whose MEDIAN dog is ~0: most dogs should")
     print("carry no large CNVs, so a nonzero median is the false-positive rate.")
+
+    # Windows flagged in most dogs are not per-dog events — they are windows the
+    # panel cannot score. Recurrence separates them from real CNVs cleanly: a
+    # true copy-number variant appears in a minority of dogs, an unscoreable
+    # window appears in nearly all of them.
+    print("\n--- recurrent windows (flagged in many dogs at |z| >= 5) ---")
+    rec = sorted(((n, w) for w, n in recurrence.items() if n >= 0.5 * len(per_dog)),
+                 reverse=True)
+    print(f"  {len(rec)} windows flagged in >=50% of dogs; they account for "
+          f"{sum(n for n, _ in rec)} of {sum(d[2][2] for d in per_dog)} total flags")
+    for n, (c, st) in rec[:15]:
+        pm = index.get((c, st, 'all'))
+        extra = f"panel median {pm['median']:.3f} sd {pm['mad_sd']:.4f}" if pm else ''
+        print(f"     {c}:{st//10**6}Mb  flagged in {n}/{len(per_dog)} dogs   {extra}")
 
     noisy = sorted(per_dog, key=lambda d: -d[2][2])[:5]
     print(f"\nmost-flagged dogs at |z| >= {thresholds[2]} (check these for QC problems):")
