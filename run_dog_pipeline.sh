@@ -51,6 +51,11 @@ if [[ "${1:-}" == *.tsv ]]; then
     PUB=$(_row 6)
     FROM_STAGE="${FROM_STAGE_ARG:-$(_row 7)}"
     FROM_STAGE="${FROM_STAGE:-1}"
+# Optional stop point. Re-running one stage matters now that intermediates are
+# not all kept: a coverage re-analysis must start at stage 6 (the BAM stage 5
+# needs is discarded by local-scratch runs) and must not continue into stage 7,
+# which needs that same BAM. Default 99 = run everything.
+TO_STAGE="${TO_STAGE:-99}"
 
     [[ -n "$DOG_NAME" ]]  || { echo "ERROR: empty sample_id in row $SHEET_ROW of $SHEET"; exit 1; }
     [[ -n "$FASTQ_DIR" ]] || { echo "ERROR: empty fastq_dir in row $SHEET_ROW of $SHEET"; exit 1; }
@@ -82,6 +87,13 @@ OMIA_DB=$REF_JSON/omia_variants.json           # OMIA variant catalogue (479 var
 # Merged Parker + Dog10K breed panel (see analysis/breed_accuracy/README.md).
 # Built by make_merged_plink.py with harmonised labels, village dogs grouped by
 # region, wolves pooled, min-n 6 -> 230 breeds over 131,353 SNPs.
+# Coverage panels-of-normals built from 96 dogs by
+# analysis/coverage_panel/build_panels.py. Thresholds are calibrated per scale
+# against replicate agreement — see that directory's README.
+COV_PANEL_1MB=$D/reference_panel/coverage_1mb_panel.json
+COV_PANEL_CNV=$D/reference_panel/coverage_cnv_panel.json
+COV_Z_1MB=5.0
+COV_Z_CNV=6.0
 BREED_PANEL=$D/breed_panel
 BREED_SITES=$BREED_PANEL/sites.tsv     # chrom, pos, a1, a2 in Phat row order
 BREED_PHAT=$BREED_PANEL/phat.npy       # (131353 x 230) float32 allele frequencies
@@ -381,7 +393,7 @@ log "========================================"
 # Pre-derive path variables so they're available when skipping early stages
 IMPUTED_BCF="$OUT/glimpse2/${DOG_LOWER}_imputed_dog10k.bcf"
 
-if (( FROM_STAGE <= 1 )); then
+if (( FROM_STAGE <= 1 && TO_STAGE >= 1 )); then
 
 # ── Stage 1: Merge FASTQ ─────────────────────────────────────
 log "=== Stage 1: Merge FASTQ lanes ==="
@@ -395,7 +407,7 @@ cat $R2_FILES > "$OUT/merged_R2.fastq.gz"
 log "Merged: R1=$(ls -lh $OUT/merged_R1.fastq.gz | awk '{print $5}'), R2=$(ls -lh $OUT/merged_R2.fastq.gz | awk '{print $5}')"
 fi # end stage 1
 
-if (( FROM_STAGE <= 2 )); then
+if (( FROM_STAGE <= 2 && TO_STAGE >= 2 )); then
 # ── Stage 2: Adapter trimming ─────────────────────────────────
 log "=== Stage 2: Adapter trimming (fastp) ==="
 $MM fastp \
@@ -415,7 +427,7 @@ rm -f "$OUT/merged_R1.fastq.gz" "$OUT/merged_R2.fastq.gz"
 log "Trimming done"
 fi # end stage 2
 
-if (( FROM_STAGE <= 4 )); then
+if (( FROM_STAGE <= 4 && TO_STAGE >= 4 )); then
 # ── Stages 3+4: Alignment → sort → fixmate → markdup (single pipe) ──
 # Piping avoids writing the intermediate SAM (~30-50 GB) and namesorted/
 # fixmate BAMs to disk — cuts disk I/O by ~3-4x and wall time by ~40%.
@@ -437,7 +449,7 @@ $MM samtools flagstat "$OUT/markdup.bam" | tee -a "$LOG"
 log "BAM ready: $OUT/markdup.bam"
 fi # end stages 3+4
 
-if (( FROM_STAGE <= 5 )); then
+if (( FROM_STAGE <= 5 && TO_STAGE >= 5 )); then
 # ── Stage 5: Coverage windows (1Mb for karyotype; adaptive for CNV) ─
 log "=== Stage 5: Coverage windows ==="
 
@@ -474,9 +486,21 @@ $MM samtools bedcov "$OUT/windows_cnv.bed" "$OUT/markdup.bam" > "$OUT/coverage_c
 log "CNV coverage: $(wc -l < $OUT/coverage_cnv.tsv) windows"
 fi # end stage 5
 
-if (( FROM_STAGE <= 6 )); then
+if (( FROM_STAGE <= 6 && TO_STAGE >= 6 )); then
 # ── Stage 6: Coverage + QC + CNV JSON ────────────────────────
 log "=== Stage 6: Coverage / QC / CNV JSON ==="
+
+# CNV_WINDOW is computed in stage 5, so resuming at stage 6 left it unset and
+# set -u killed the run. That mattered: stage 5 needs markdup.bam, which
+# local-scratch runs discard, whereas coverage_cnv.tsv is kept — so stage 6 is
+# exactly where a coverage re-analysis has to restart. Recover the window width
+# from the data instead of depending on an earlier stage's variable.
+if [[ -z "${CNV_WINDOW:-}" ]]; then
+  [[ -s "$OUT/coverage_cnv.tsv" ]] \
+    || die "stage 6 needs $OUT/coverage_cnv.tsv (run from stage 5 to regenerate it)"
+  CNV_WINDOW=$(awk 'NR==1 {print $3-$2; exit}' "$OUT/coverage_cnv.tsv")
+  log "Recovered CNV window from coverage_cnv.tsv: ${CNV_WINDOW} bp"
+fi
 "$DATA_PYTHON" - << PYEOF
 import json, collections, statistics, subprocess, re, os
 
@@ -524,6 +548,22 @@ predicted_sex = 'male' if x_auto_ratio < 0.75 else 'female'
 chrx_norm = 0.5 if predicted_sex == 'male' else 1.0
 print(f"Sex determination: chrX/auto ratio = {x_auto_ratio:.3f} → {predicted_sex} (chrX norm divisor: {chrx_norm})")
 
+# 96-dog panel-of-normals: per-window median and robust SD, so a window can be
+# reported as "N SD from 96 dogs" rather than just "looks low".
+cov_panel_path = "$COV_PANEL_1MB"
+Z_CUT = float("$COV_Z_1MB")
+try:
+    with open(cov_panel_path) as _f:
+        _pd = _json.load(_f)
+    panel_idx = {(c, e['start'], k): e[k]
+                 for c, es in _pd['panel'].items() for e in es
+                 for k in ('all', 'F', 'M') if k in e}
+    panel_n = _pd.get('meta', {}).get('n_samples')
+except Exception as _e:
+    panel_idx, panel_n = {}, None
+    print(f"WARNING: no coverage panel at {cov_panel_path} ({_e}) — "
+          "windows will carry no significance")
+
 # Load COSMO reference (cosmo/panel reference tracks for tooltip)
 cosmo_ref_path = "$REF_JSON/coverage_1mb.json"
 try:
@@ -555,12 +595,53 @@ for chrom, arr in raw.items():
                 ratio_arr.append(round(d / (kiki_median * 0.5), 4)) # non-PAR: hemizygous norm
     else:
         ratio_arr = [round(d / kiki_median, 4) if d > 0 else 0.0 for d in arr]
+    # Robust z against the panel. Computed from the UNADJUSTED ratio
+    # (depth / autosomal median), because that is the space the panel medians
+    # live in — ratio_arr rescales male chrX so hemizygous reads as 1.0, which
+    # would not line up with a male chrX panel median of ~0.5.
+    pkey = 'all' if chrom != 'chrX' else ('F' if predicted_sex == 'female' else 'M')
+    z_arr = []
+    for i, d in enumerate(arr):
+        st = panel_idx.get((chrom, i * 1000000, pkey))
+        if not st or d <= 0 or not (0.004 <= st['mad_sd'] <= 0.30):
+            z_arr.append(None)
+            continue
+        z_arr.append(round(((d / kiki_median) - st['median']) / st['mad_sd'], 2))
     result[chrom] = {
         'cosmo': [round(v, 4) for v in cosmo_arr],
         'panel': [round(v, 4) for v in panel_arr],
         'ratio': ratio_arr,
+        'z': z_arr,
     }
-result['_meta'] = {'predicted_sex': predicted_sex, 'chrx_auto_ratio': round(x_auto_ratio, 3)}
+
+# Merge runs of adjacent flagged windows into events. "3 regions of unusual
+# coverage" is a statement a dog owner can act on; "7 flagged windows" is not.
+events = []
+for chrom in sorted(result):
+    zs = result[chrom].get('z') or []
+    run = None
+    for i, z in enumerate(zs + [None]):
+        hit = z is not None and abs(z) >= Z_CUT
+        if hit and run is None:
+            run = [i, i, z]
+        elif hit:
+            run[1] = i
+            if abs(z) > abs(run[2]):
+                run[2] = z
+        elif run is not None:
+            events.append({'chrom': chrom, 'start': run[0] * 1000000,
+                           'end': (run[1] + 1) * 1000000,
+                           'windows': run[1] - run[0] + 1,
+                           'peak_z': run[2],
+                           'direction': 'gain' if run[2] > 0 else 'loss'})
+            run = None
+events.sort(key=lambda e: -abs(e['peak_z']))
+print(f"coverage events at |z| >= {Z_CUT}: {len(events)}")
+
+result['_meta'] = {'predicted_sex': predicted_sex,
+                   'chrx_auto_ratio': round(x_auto_ratio, 3),
+                   'panel_n': panel_n, 'z_threshold': Z_CUT,
+                   'events': events}
 with open(f'{pub}/coverage_1mb.json', 'w') as f:
     json.dump(result, f)
 print(f"coverage_1mb.json: {len(result)-1} chromosomes, median depth {kiki_median:.2f}×, sex={predicted_sex}")
@@ -744,7 +825,7 @@ print(f"cnv_homdel.json: {len(regions)} regions, {len(disrupted_all)} disrupted 
 PYEOF
 fi # end stage 6
 
-if (( FROM_STAGE <= 7 )); then
+if (( FROM_STAGE <= 7 && TO_STAGE >= 7 )); then
 # ── Stage 7: Genotype estimation via GLIMPSE2 ───────────────
 #
 # The Dog10K panel ($DOG10K_PANEL) is a pre-phased reference panel —
@@ -865,7 +946,7 @@ TOTAL=$($MM_GLIMPSE bcftools stats "$IMPUTED_BCF" 2>/dev/null | grep "^SN.*numbe
 log "Imputed BCF: $TOTAL variants → $IMPUTED_BCF"
 fi # end stage 7
 
-if (( FROM_STAGE <= 8 )); then
+if (( FROM_STAGE <= 8 && TO_STAGE >= 8 )); then
 # ── Stage 8: OMIA genotyping from Dog10K imputed panel ───────
 log "=== Stage 8: OMIA genotyping (Dog10K imputed + BAM fallback) ==="
 "$DATA_PYTHON" - << PYEOF
@@ -1035,7 +1116,7 @@ print(f"  affected SNVs: {affected_snv} ({high_conf} high confidence)")
 PYEOF
 fi # end stage 8
 
-if (( FROM_STAGE <= 9 )); then
+if (( FROM_STAGE <= 9 && TO_STAGE >= 9 )); then
 # ── Stage 9: Breed prediction (GLIMPSE2 genotypes → supervised SCOPE) ──
 #
 # Step 1 — Infer genotypes at all ~143k Parker panel sites
@@ -1420,7 +1501,7 @@ PYEOF
 
 fi # end stage 9
 
-if (( FROM_STAGE <= 10 )); then
+if (( FROM_STAGE <= 10 && TO_STAGE >= 10 )); then
 # ── Stage 10: Functional annotation (SnpEff) ────────────────
 log "=== Stage 10: SnpEff annotation ==="
 ANN_DIR="$OUT/snpeff"
@@ -1721,7 +1802,7 @@ print(f"functional_variants.json: {len(HIGH)} HIGH, {mod_total} MODERATE variant
 PYEOF
 fi # end stage 10
 
-if (( FROM_STAGE <= 11 )); then
+if (( FROM_STAGE <= 11 && TO_STAGE >= 11 )); then
 # ── Stage 11: PRS from imputed dosages ──────────────────────
 log "=== Stage 11: PRS (imputed Parker dosages) ==="
 "$DATA_PYTHON" - << PYEOF
@@ -2160,7 +2241,7 @@ print(f"prs_result.json written ({len(traits_out)} traits)")
 PYEOF
 fi # end stage 11
 
-if (( FROM_STAGE <= 12 )); then
+if (( FROM_STAGE <= 12 && TO_STAGE >= 12 )); then
 # ── Stage 12: Inbreeding (Dog10K ROH + F distribution) ──────
 log "=== Stage 12: Inbreeding (Dog10K) ==="
 "$DATA_PYTHON" - << PYEOF
@@ -2312,7 +2393,7 @@ else:
 PYEOF
 fi # end stage 12
 
-if (( FROM_STAGE <= 13 )); then
+if (( FROM_STAGE <= 13 && TO_STAGE >= 13 )); then
 # ── Stage 13: Coat color (GLIMPSE2 imputed genotypes at causal loci) ─────
 log "=== Stage 13: Coat color ==="
 export IMPUTED_BCF MARKDUP_BAM="$OUT/markdup.bam" PUB DOG_LOWER
@@ -2887,6 +2968,9 @@ PYEOF
 
 fi # end stage 13
 
+# Stages 15-17 had no FROM_STAGE guard at all, so they ran on every resume
+# regardless of what was asked. TO_STAGE could not stop them either.
+if (( FROM_STAGE <= 15 && TO_STAGE >= 15 )); then
 # ── Stage 15: Oral microbiome (MetaPhlAn4) ───────────────────
 log "=== Stage 15: Oral microbiome (MetaPhlAn4) ==="
 BAM_FOR_MICRO="$OUT/markdup.bam"
@@ -3218,6 +3302,8 @@ PYEOF
 
     log "  Microbiome stage complete."
 
+fi # end stage 15
+if (( FROM_STAGE <= 16 && TO_STAGE >= 16 )); then
 # ── Stage 16: Copy reference JSONs ───────────────────────────
 log "=== Stage 16: Copy reference JSONs ==="
 # NB: cnv_genes.json is NOT copied here — Stage 10 rebuilds it genome-wide for
@@ -3228,6 +3314,8 @@ for f in centromeres.json genes_1mb.json karyotype_zoom.json; do
     log "  Copied $f"
 done
 
+fi # end stage 16
+if (( FROM_STAGE <= 17 && TO_STAGE >= 17 )); then
 # ── Stage 17: Publish results ───────────────────────────────
 log "=== Stage 17: Publish results ==="
 
@@ -3248,4 +3336,5 @@ fi
 
 log " Pipeline complete: $DOG_NAME"
 log " Dashboard: kit $(echo "$DOG_NAME" | tr '[:lower:]' '[:upper:]')"
+fi # end stage 17
 echo "DONE" > "$OUT/pipeline.done"
