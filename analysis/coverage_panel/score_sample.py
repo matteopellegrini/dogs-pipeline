@@ -163,8 +163,16 @@ def main():
     thresholds = [3, 4, 5, 6, 8, 10]
     per_dog = []
     recurrence = {}
+    unscoreable = []
     for path in args:
-        ratios, sex = normalise(read_coverage(path, bin_bp))
+        # Refusing to re-bin upward is correct for a single sample, but in a
+        # cohort one such sample must not abort the other 94 — skip and report.
+        try:
+            cov = read_coverage(path, bin_bp)
+        except SystemExit as e:
+            unscoreable.append((path, str(e).split(' has ')[-1].strip()))
+            continue
+        ratios, sex = normalise(cov)
         if ratios is None:
             continue
         scored, uncallable = score(ratios, sex, index)
@@ -174,6 +182,8 @@ def main():
                 recurrence[(c, st)] = recurrence.get((c, st), 0) + 1
         per_dog.append((path, sex, counts, uncallable))
 
+    for p_, why in unscoreable:
+        print(f"  SKIPPED {p_}: {why}")
     print(f"\ncalibration across {len(per_dog)} dogs — flagged windows per dog")
     print("      " + "".join(f"|z|>={t:<7}" for t in thresholds))
     for label, agg in (('median', statistics.median), ('max', max)):
