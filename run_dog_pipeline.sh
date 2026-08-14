@@ -525,6 +525,38 @@ def load_tsv(path):
             rows.append((chrom, start, end, bases / size))
     return rows
 
+COMMON_PCT = 5.0    # cohort share at or above which a region is "common"
+
+def annotate_freq(events, idx, bin_bp, sex):
+    """Tag each event with how often the reference cohort is flagged there.
+
+    Recurrence analysis over 93 dogs found chr19:21.3-21.5Mb flagged as a gain
+    in 42 of them and chr5:85.9Mb in 41, while NO bin was flagged in more than
+    half. That pattern is the point: a reference artifact would hit nearly every
+    dog, since all dogs map to the same reference, whereas hitting a fraction is
+    what a real copy-number polymorphism looks like. The events are genuine and
+    still not findings -- a region carried by 45% of dogs is common, and
+    presenting it as a discovery about one dog is a category error.
+
+    Takes the MAXIMUM frequency across the event's bins, not the peak bin's.
+    Conservative on purpose: if any part of an event coincides with a region
+    dogs commonly vary at, it is most likely that polymorphism, and the cost of
+    wrongly calling something rare (alarming an owner) exceeds the cost of
+    wrongly calling it common (a quieter listing).
+    """
+    for ev in events:
+        key = 'all' if ev['chrom'] != 'chrX' else ('F' if sex == 'female' else 'M')
+        fr = []
+        for b in range(ev['start'], ev['end'], bin_bp):
+            st = idx.get((ev['chrom'], b, key))
+            if st and st.get('n'):
+                c = st.get('ng', 0) if ev['direction'] == 'gain' else st.get('nl', 0)
+                fr.append(c / st['n'])
+        ev['cohort_freq'] = round(max(fr) * 100, 1) if fr else None
+        ev['novelty'] = ('unknown' if ev['cohort_freq'] is None
+                         else 'common' if ev['cohort_freq'] >= COMMON_PCT else 'rare')
+    return events
+
 # --- coverage_1mb.json (karyotype) ---
 import statistics as _stats, json as _json
 windows_1mb = load_tsv(tsv_1mb)
@@ -691,6 +723,8 @@ for a in aneuploidy:
           f"(expected {a['expected_copies']}), median ratio {a['median_ratio']}, "
           f"{a['windows_flagged']}/{a['windows_scoreable']} windows flagged")
 
+annotate_freq(events, panel_idx, 1000000, predicted_sex)
+
 # Per-dog confidence. A dog with 242 events should not produce 242 findings —
 # it should say the coverage is not clean enough to call structural variation.
 #
@@ -725,6 +759,8 @@ result['_meta'] = {'predicted_sex': predicted_sex,
                    'coverage_confidence': cov_confidence,
                    'confidence_reasons': _reasons,
                    'n_gain': _gains, 'n_loss': _losses,
+                   'n_rare': sum(1 for e in events if e.get('novelty') == 'rare'),
+                   'common_pct': COMMON_PCT,
                    'events': events,
                    'aneuploidy': aneuploidy}
 with open(f'{pub}/coverage_1mb.json', 'w') as f:
@@ -919,10 +955,12 @@ if cnv_panel_idx:
                 print(f"CNV: suppressed {len(_sup)} event(s) on aneuploid "
                       f"{', '.join(sorted(aneuploid_chroms))} — reported as aneuploidy instead")
             cnv_events.sort(key=lambda e: -abs(e['peak_z']))
+            annotate_freq(cnv_events, cnv_panel_idx, cnv_bin, predicted_sex)
             _cg = sum(1 for e in cnv_events if e['direction'] == 'gain')
+            _cr = sum(1 for e in cnv_events if e.get('novelty') == 'rare')
             print(f"CNV events at |z| >= {Z_CUT_CNV}: {len(cnv_events)} "
-                  f"({_cg} gain / {len(cnv_events)-_cg} loss) "
-                  f"over {len(cnv_z)} scoreable bins")
+                  f"({_cg} gain / {len(cnv_events)-_cg} loss), {_cr} rare "
+                  f"(<{COMMON_PCT}% of cohort), over {len(cnv_z)} scoreable bins")
 
 # All genes across all chroms
 all_genes = [g for gs in gene_map.values() for g in gs]
@@ -1008,6 +1046,8 @@ cnv_out = {
         'n_events': len(cnv_events),
         'n_event_gain': sum(1 for e in cnv_events if e['direction'] == 'gain'),
         'n_event_loss': sum(1 for e in cnv_events if e['direction'] == 'loss'),
+        'n_event_rare': sum(1 for e in cnv_events if e.get('novelty') == 'rare'),
+        'common_pct': COMMON_PCT,
         'event_z_threshold': Z_CUT_CNV,
         'panel_n': cnv_panel_n, 'panel_bin_bp': cnv_bin,
         'method': (f'Adaptive CNV window ({win_kb}kb), depth normalised to genome-wide mean. '
@@ -1015,8 +1055,12 @@ cnv_out = {
                    f'Ref depth from {_ref_src}; '
                    f'regions with ref_depth_pct<80% classified as mappability artefacts.'),
         'event_note': (f'{len(cnv_events)} region(s) at |z| >= {Z_CUT_CNV} against the '
-                       f'{cnv_panel_n}-dog panel. Unlike the deletion list, this detects '
-                       f'gains as well as losses.' if cnv_panel_idx else
+                       f'{cnv_panel_n}-dog panel, of which '
+                       f'{sum(1 for e in cnv_events if e.get("novelty") == "rare")} are rare '
+                       f'(flagged in <{COMMON_PCT}% of the reference cohort). Unlike the '
+                       f'deletion list, this detects gains as well as losses. Regions common '
+                       f'in the cohort are copy-number polymorphisms that many healthy dogs '
+                       f'carry, not findings specific to this dog.' if cnv_panel_idx else
                        'No CNV panel available; gains were not screened for.'),
         'min_detectable_kb': round(win_kb*2), 'calling_resolution_kb': win_kb,
         'panel_note': (f'{len(real_regions)} putative deletion region(s) after artefact filtering '

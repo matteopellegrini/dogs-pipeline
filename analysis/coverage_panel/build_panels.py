@@ -45,8 +45,15 @@ import statistics
 import sys
 from collections import defaultdict
 
+# Frequency counting must use exactly the same scoreability rules and thresholds
+# the scorer applies, or the stored frequencies describe a different test than
+# the one that produces events. Import rather than restate them.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from score_sample import MIN_SD, MAX_SD, REPORT_Z, REPORT_Z_BY_WINDOW
+
 MAD_TO_SD = 1.4826
 SEX_THRESHOLD = 0.75          # chrX:autosome ratio; ~1.0 female, ~0.5 male
+COMMON_PCT = 5.0              # >= this share of the cohort = common polymorphism
 
 
 def read_bedcov(path):
@@ -138,6 +145,57 @@ def summarise(samples, sexes, min_n, label):
     return dict(panel)
 
 
+def add_frequencies(panel, samples, sexes, z_cut):
+    """Count, per bin, how many cohort dogs are flagged there, by direction.
+
+    Why this belongs in the panel
+    -----------------------------
+    Recurrence over the 93 clean dogs found chr19:21.3-21.5Mb flagged as a gain
+    in 42 of them, chr5:85.9Mb in 41, and a chr6:45.6-47.0Mb cluster in 19. No
+    bin was flagged in more than half, which is the important part: a reference
+    artifact would hit nearly EVERY dog, because every dog is mapped against the
+    same reference. Hitting a fraction is what a genuine copy-number
+    polymorphism looks like.
+
+    So these events are real, and still not findings. A variant carried by 45%
+    of the population is common, and reporting it as a discovery about one dog
+    is a category error. Storing the frequency lets the report rank by rarity,
+    exactly as allele frequency is used for small variants.
+
+    Frequencies are computed against the panel's own cohort, so a bin's count
+    includes every dog that contributed to its median. That is the intended
+    denominator: we are asking "how often is this region flagged among normal
+    dogs", not estimating a population rate from an independent sample.
+    """
+    idx = {}
+    for chrom, entries in panel.items():
+        for e in entries:
+            for k in ('all', 'F', 'M'):
+                if k in e:
+                    idx[(chrom, e['start'], k)] = e[k]
+    for name, ratios in samples.items():
+        for (chrom, start), v in ratios.items():
+            key = 'all' if chrom != 'chrX' else sexes[name]
+            st = idx.get((chrom, start, key))
+            if st is None or v <= 0:
+                continue
+            sd = st['mad_sd']
+            if not (MIN_SD <= sd <= MAX_SD):
+                continue
+            z = (v - st['median']) / sd
+            if z >= z_cut:
+                st['ng'] = st.get('ng', 0) + 1
+            elif z <= -z_cut:
+                st['nl'] = st.get('nl', 0) + 1
+    flagged = [(e[k].get('ng', 0) + e[k].get('nl', 0)) / e[k]['n']
+               for c in panel for e in panel[c]
+               for k in ('all', 'F', 'M') if k in e and e[k].get('n')]
+    common = sum(1 for f in flagged if f >= COMMON_PCT / 100)
+    print(f"     frequencies at |z| >= {z_cut}: {common} of {len(flagged)} bins "
+          f"flagged in >= {COMMON_PCT:.0f}% of the cohort")
+    return panel
+
+
 def main():
     out_dir = sys.argv[1]
     pattern = sys.argv[2]
@@ -207,7 +265,11 @@ def main():
             print(f"  {name}: only {len(samples)} samples, need >= {min_n} — skipped")
             continue
         panel = summarise(samples, sexes, min_n, name)
+        z_cut = REPORT_Z_BY_WINDOW.get(binbp, REPORT_Z)
+        panel = add_frequencies(panel, samples, sexes, z_cut)
         doc = {'meta': {'n_samples': len(samples),
+                        'freq_z_cut': z_cut,
+                        'common_pct': COMMON_PCT,
                         'n_female': sum(1 for s in sexes.values() if s == 'F'),
                         'n_male': sum(1 for s in sexes.values() if s == 'M'),
                         'window_bp': binbp,
