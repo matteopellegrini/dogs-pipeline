@@ -637,6 +637,60 @@ for chrom in sorted(result):
             run = None
 events.sort(key=lambda e: -abs(e['peak_z']))
 
+# Whole-chromosome events are aneuploidy, not copy-number variation, and must
+# not be reported as "a gain on chrX". DOGS-Gen-111 is the case that forced
+# this: 124 of her 125 chrX windows were elevated (X:autosome 1.461, i.e. three
+# copies), which the event merger split into two large gains purely because one
+# unscoreable window interrupted the run. Her breed-matched, same-batch control
+# DOGS-Gen-110 measured 1.001, so the signal is hers and not the assay's.
+#
+# Detect per chromosome rather than by widening the merge gap: a chromosome
+# qualifies when most of its SCOREABLE windows are flagged the same way. Using a
+# fraction rather than a count makes it work on chr38 as well as chr1.
+ANEUPLOIDY_FRAC = 0.80
+aneuploidy = []
+aneuploid_chroms = set()
+for chrom in sorted(result):
+    zs = result[chrom].get('z') or []
+    scoreable = [i for i, z in enumerate(zs) if z is not None]
+    if len(scoreable) < 10:
+        continue                      # too little to judge a whole chromosome
+    up   = [i for i in scoreable if zs[i] >=  Z_CUT]
+    down = [i for i in scoreable if zs[i] <= -Z_CUT]
+    hit, direction = (up, 'gain') if len(up) >= len(down) else (down, 'loss')
+    frac = len(hit) / len(scoreable)
+    if frac < ANEUPLOIDY_FRAC:
+        continue
+    # Copy number straight from the unadjusted ratio: 2 copies is the diploid
+    # baseline, so a male's single X (~0.5) and a trisomy (~1.5) both fall out
+    # of the same arithmetic without special-casing.
+    rr = [raw[chrom][i] / kiki_median for i in scoreable if raw[chrom][i] > 0]
+    med_ratio = _stats.median(rr) if rr else 0.0
+    copies = round(med_ratio * 2)
+    expected = 1 if (chrom == 'chrX' and predicted_sex == 'male') else 2
+    if copies == expected:
+        continue                      # flagged but not a copy-number change
+    aneuploidy.append({
+        'chrom': chrom, 'direction': direction,
+        'call': {0: 'nullisomy', 1: 'monosomy',
+                 3: 'trisomy', 4: 'tetrasomy'}.get(copies, f'{copies}-copy'),
+        'copies_est': copies, 'expected_copies': expected,
+        'median_ratio': round(med_ratio, 3),
+        'fraction_flagged': round(frac, 3),
+        'windows_flagged': len(hit), 'windows_scoreable': len(scoreable),
+        'peak_z': max((zs[i] for i in hit), key=abs)})
+    aneuploid_chroms.add(chrom)
+
+# An aneuploid chromosome is fully described by its aneuploidy entry, so its
+# windows must not ALSO appear in the event list — otherwise a trisomy reads as
+# two large gains, which is both wrong in kind and needlessly alarming.
+if aneuploid_chroms:
+    events = [e for e in events if e['chrom'] not in aneuploid_chroms]
+for a in aneuploidy:
+    print(f"ANEUPLOIDY: {a['chrom']} {a['call']} — {a['copies_est']} copies "
+          f"(expected {a['expected_copies']}), median ratio {a['median_ratio']}, "
+          f"{a['windows_flagged']}/{a['windows_scoreable']} windows flagged")
+
 # Per-dog confidence. A dog with 242 events should not produce 242 findings —
 # it should say the coverage is not clean enough to call structural variation.
 #
@@ -655,6 +709,11 @@ if len(events) > 20:
 if len(events) >= 10 and _gains >= 5 * max(1, _losses):
     _reasons.append(f'gain-dominated ({_gains} gains vs {_losses} losses)')
 cov_confidence = 'low' if _reasons else 'ok'
+# Carry the verdict onto each aneuploidy entry. "Your dog has three copies of
+# the X chromosome" is a strong claim to render, and whoever renders it should
+# not have to remember to cross-check a sibling field before doing so.
+for a in aneuploidy:
+    a['confidence'] = cov_confidence
 if _reasons:
     print(f"coverage confidence LOW: {'; '.join(_reasons)}")
 print(f"coverage events at |z| >= {Z_CUT}: {len(events)} "
@@ -666,7 +725,8 @@ result['_meta'] = {'predicted_sex': predicted_sex,
                    'coverage_confidence': cov_confidence,
                    'confidence_reasons': _reasons,
                    'n_gain': _gains, 'n_loss': _losses,
-                   'events': events}
+                   'events': events,
+                   'aneuploidy': aneuploidy}
 with open(f'{pub}/coverage_1mb.json', 'w') as f:
     json.dump(result, f)
 print(f"coverage_1mb.json: {len(result)-1} chromosomes, median depth {kiki_median:.2f}×, sex={predicted_sex}")
@@ -769,6 +829,101 @@ except Exception as e:
     print(f"WARNING: could not load reference panel from {ref_panel_path}: {e}")
     print("ref_depth_pct will be None for all regions")
 
+# ── CNV-scale panel of normals ──────────────────────────────────────────────
+# The legacy reference above is 6 dogs pooled at 1Mb, used to judge regions as
+# small as 50kb — 20x coarser than the calls it was vetting. This panel is 92
+# dogs on a fixed 50kb grid with a per-bin median and robust SD, so a 50kb call
+# is finally compared against many dogs at its own scale.
+#
+# Stage 5 sizes this dog's windows as 50000/mean_depth, so they never line up
+# with the panel's grid. Re-bin by overlap, identically to build_panels.py —
+# valid only downward, which is why a native window wider than the bin is
+# refused rather than stretched.
+cnv_panel_path = "$COV_PANEL_CNV"
+Z_CUT_CNV = float("$COV_Z_CNV")
+cnv_panel_idx, cnv_panel_n, cnv_bin = {}, None, None
+try:
+    with open(cnv_panel_path) as _f:
+        _cp = _json.load(_f)
+    cnv_bin = _cp['meta']['window_bp']
+    cnv_panel_n = _cp['meta'].get('n_samples')
+    cnv_panel_idx = {(c, e['start'], k): e[k]
+                     for c, es in _cp['panel'].items() for e in es
+                     for k in ('all', 'F', 'M') if k in e}
+    print(f"CNV panel: {cnv_panel_n} dogs at {cnv_bin}bp, {len(cnv_panel_idx)} bins")
+except Exception as _e:
+    print(f"WARNING: no CNV panel at {cnv_panel_path} ({_e}) — "
+          "ref_depth_pct falls back to the legacy 1Mb reference, no CNV z-scores")
+
+def rebin_cnv(rows, bin_bp):
+    acc, span = {}, {}
+    for c, s, e, dpb in rows:
+        for b in range(s // bin_bp, (e - 1) // bin_bp + 1):
+            lo, hi = max(s, b * bin_bp), min(e, (b + 1) * bin_bp)
+            if hi > lo:
+                k = (c, b * bin_bp)
+                acc[k] = acc.get(k, 0.0) + dpb * (hi - lo)
+                span[k] = span.get(k, 0.0) + (hi - lo)
+    # divide by length ACTUALLY covered, not bin_bp: a chromosome's final bin is
+    # partial, and using the full width would make every chromosome end look
+    # depleted — the bug that once flagged 39 windows in 96 of 96 dogs.
+    return {k: v / span[k] for k, v in acc.items() if span[k] > 0}
+
+cnv_z, cnv_events = {}, []
+if cnv_panel_idx:
+    _widest = max(e - s for _, s, e, _ in windows_cnv)
+    if _widest > cnv_bin:
+        print(f"WARNING: native CNV window {_widest}bp exceeds panel bin {cnv_bin}bp — "
+              "skipping CNV z-scores (re-binning upward would invent resolution)")
+    else:
+        _binned = rebin_cnv(windows_cnv, cnv_bin)
+        _auto = [v for (c, _), v in _binned.items() if c != 'chrX' and v > 0]
+        _base = statistics.median(_auto) if _auto else 0.0
+        if _base <= 0:
+            print("WARNING: zero autosomal CNV coverage — skipping CNV z-scores")
+        else:
+            for (c, s), v in _binned.items():
+                key = 'all' if c != 'chrX' else ('F' if predicted_sex == 'female' else 'M')
+                st = cnv_panel_idx.get((c, s, key))
+                if not st or v <= 0 or not (0.004 <= st['mad_sd'] <= 0.30):
+                    continue
+                cnv_z[(c, s)] = ((v / _base) - st['median']) / st['mad_sd']
+            # Merge contiguous flagged bins into events. Unlike the homozygous
+            # deletion path below, this sees GAINS too — the old detector could
+            # only ever find losses, because its only test was norm < 0.15.
+            for c, s in sorted(cnv_z):
+                z = cnv_z[(c, s)]
+                if abs(z) < Z_CUT_CNV:
+                    continue
+                if cnv_events and cnv_events[-1]['chrom'] == c and s == cnv_events[-1]['end']:
+                    ev = cnv_events[-1]
+                    ev['end'] = s + cnv_bin
+                    ev['bins'] += 1
+                    if abs(z) > abs(ev['peak_z']):
+                        ev['peak_z'] = z
+                else:
+                    cnv_events.append({'chrom': c, 'start': s, 'end': s + cnv_bin,
+                                       'bins': 1, 'peak_z': z})
+            for ev in cnv_events:
+                ev['peak_z'] = round(ev['peak_z'], 2)
+                ev['direction'] = 'gain' if ev['peak_z'] > 0 else 'loss'
+                ev['size_kb'] = round((ev['end'] - ev['start']) / 1000, 1)
+            # A trisomic chromosome is elevated in every bin, so this detector
+            # sees it as dozens of independent gains — 37 of them on a synthetic
+            # trisomy X. The 1Mb path already suppresses those; without the same
+            # filter here the aneuploidy gets reported twice, the second time in
+            # entirely the wrong vocabulary.
+            _sup = [e for e in cnv_events if e['chrom'] in aneuploid_chroms]
+            if _sup:
+                cnv_events = [e for e in cnv_events if e['chrom'] not in aneuploid_chroms]
+                print(f"CNV: suppressed {len(_sup)} event(s) on aneuploid "
+                      f"{', '.join(sorted(aneuploid_chroms))} — reported as aneuploidy instead")
+            cnv_events.sort(key=lambda e: -abs(e['peak_z']))
+            _cg = sum(1 for e in cnv_events if e['direction'] == 'gain')
+            print(f"CNV events at |z| >= {Z_CUT_CNV}: {len(cnv_events)} "
+                  f"({_cg} gain / {len(cnv_events)-_cg} loss) "
+                  f"over {len(cnv_z)} scoreable bins")
+
 # All genes across all chroms
 all_genes = [g for gs in gene_map.values() for g in gs]
 
@@ -785,12 +940,25 @@ regions = []; disrupted_all = {}
 for r in merged:
     size_bp = r['end'] - r['start']
     avg_norm = sum(r['norms']) / len(r['norms'])
-    # Reference depth from pooled reference panel at overlapping 1Mb bins
-    smb, emb = r['start']//1_000_000, r['end']//1_000_000
-    ref_chrom_d = ref_panel.get(r['chrom'], {})
-    ratio_arr = ref_chrom_d.get('ratio', []) if isinstance(ref_chrom_d, dict) else []
-    rvals = [ratio_arr[i] for i in range(smb, min(emb+1, len(ratio_arr))) if ratio_arr[i] > 0]
-    ref_depth_pct = round(sum(rvals)/len(rvals)*100) if rvals else None
+    # Reference depth: prefer the 92-dog panel at the region's own 50kb scale.
+    # Same quantity as before (normalised coverage in normal dogs, as a percent)
+    # so the <80% artefact rule and the dashboard field are unchanged — only the
+    # evidence behind it improves, from 6 pooled dogs at 1Mb to 92 at 50kb.
+    ref_depth_pct = None
+    if cnv_panel_idx and cnv_bin:
+        _k = 'all' if r['chrom'] != 'chrX' else ('F' if predicted_sex == 'female' else 'M')
+        _meds = [cnv_panel_idx[(r['chrom'], b, _k)]['median']
+                 for b in range(r['start'] - r['start'] % cnv_bin, r['end'], cnv_bin)
+                 if (r['chrom'], b, _k) in cnv_panel_idx]
+        if _meds:
+            ref_depth_pct = round(statistics.median(_meds) * 100)
+    if ref_depth_pct is None:
+        # Legacy fallback: 6-dog pooled reference at 1Mb.
+        smb, emb = r['start']//1_000_000, r['end']//1_000_000
+        ref_chrom_d = ref_panel.get(r['chrom'], {})
+        ratio_arr = ref_chrom_d.get('ratio', []) if isinstance(ref_chrom_d, dict) else []
+        rvals = [ratio_arr[i] for i in range(smb, min(emb+1, len(ratio_arr))) if ratio_arr[i] > 0]
+        ref_depth_pct = round(sum(rvals)/len(rvals)*100) if rvals else None
     # Disrupted genes
     chrom_num = r['chrom'].replace('chr','')
     disrupted = []; disrupted_details = []
@@ -827,15 +995,29 @@ real_disrupted = {k: v for k, v in disrupted_all.items() if k in real_gene_names
 win_kb = round(cnv_win/1000, 1)
 ref_meta = ref_panel.get('_meta', {})
 n_ref_dogs = ref_meta.get('n_dogs', '?')
+# Say which reference actually produced ref_depth_pct, rather than naming one
+# unconditionally — the fallback is silent otherwise.
+_ref_src = (f'{cnv_panel_n}-dog panel at {round((cnv_bin or 0)/1000)}kb'
+            if cnv_panel_idx else f'legacy {n_ref_dogs}-dog pooled reference at 1Mb')
 cnv_out = {
     'regions': real_regions, 'disrupted_genes': list(real_disrupted.values()),
     'artefact_regions': artefact_regions,
+    'events': cnv_events,
     'summary': {
         'total_regions': len(real_regions), 'unique_genes': len(real_disrupted),
+        'n_events': len(cnv_events),
+        'n_event_gain': sum(1 for e in cnv_events if e['direction'] == 'gain'),
+        'n_event_loss': sum(1 for e in cnv_events if e['direction'] == 'loss'),
+        'event_z_threshold': Z_CUT_CNV,
+        'panel_n': cnv_panel_n, 'panel_bin_bp': cnv_bin,
         'method': (f'Adaptive CNV window ({win_kb}kb), depth normalised to genome-wide mean. '
                    f'Ratio<0.15 threshold for homozygous deletion. '
-                   f'Ref depth from pooled reference panel ({n_ref_dogs} dogs); '
+                   f'Ref depth from {_ref_src}; '
                    f'regions with ref_depth_pct<80% classified as mappability artefacts.'),
+        'event_note': (f'{len(cnv_events)} region(s) at |z| >= {Z_CUT_CNV} against the '
+                       f'{cnv_panel_n}-dog panel. Unlike the deletion list, this detects '
+                       f'gains as well as losses.' if cnv_panel_idx else
+                       'No CNV panel available; gains were not screened for.'),
         'min_detectable_kb': round(win_kb*2), 'calling_resolution_kb': win_kb,
         'panel_note': (f'{len(real_regions)} putative deletion region(s) after artefact filtering '
                        f'({len(artefact_regions)} artefact region(s) excluded). '
