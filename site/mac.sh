@@ -10,6 +10,12 @@ D="${D:-$HOME/Downloads/dogs}"
 ENV_GENOMICS="${ENV_GENOMICS:-$HOME/micromamba/envs/genomics}"
 ENV_GLIMPSE="${ENV_GLIMPSE:-$HOME/micromamba/envs/glimpse_x86}"
 METAPHLAN_BIN="${METAPHLAN_BIN:-$HOME/Library/Python/3.9/bin/metaphlan}"
+# The database lives here too, and must be named explicitly for the same reason
+# it is on Hoffman: without --db_dir MetaPhlAn silently downloads ~40GB of a
+# possibly different version instead of using the 34GB already on disk. Its
+# absence here is why all four UCLA samples died at Stage 15 on 2026-08-14.
+METAPHLAN_DB="${METAPHLAN_DB:-$D/metaphlan_db}"
+METAPHLAN_INDEX="${METAPHLAN_INDEX:-mpa_vJan25_CHOCOPhlAnSGB_202503}"
 
 # Interpreter holding pandas/numpy/scipy/sklearn. The genomics env's python
 # does NOT have them, and Stage 10 prepends that env to PATH — so this must be

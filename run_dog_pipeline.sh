@@ -3257,7 +3257,7 @@ MICRO_BT2="$OUT/${DOG_LOWER}_metaphlan.mapout.bz2"
     if [[ -f "$MICRO_BT2" ]]; then
         if bzip2 -t "$MICRO_BT2" 2>/dev/null; then
             log "  Reusing existing mapout: $MICRO_BT2"
-            "$METAPHLAN_BIN" "$MICRO_BT2" "${MPA_DB_ARG[@]}" \
+            "$METAPHLAN_BIN" "$MICRO_BT2" ${MPA_DB_ARG[@]+"${MPA_DB_ARG[@]}"} \
                 --input_type mapout \
                 --nproc 4 \
                 -o "$MICRO_OUT" 2>"$METAPHLAN_LOG" \
@@ -3265,7 +3265,7 @@ MICRO_BT2="$OUT/${DOG_LOWER}_metaphlan.mapout.bz2"
         else
             log "  Mapout truncated — removing and re-running from FASTQ"
             rm -f "$MICRO_BT2"
-            "$METAPHLAN_BIN" "$UNMAPPED_FQ" "${MPA_DB_ARG[@]}" \
+            "$METAPHLAN_BIN" "$UNMAPPED_FQ" ${MPA_DB_ARG[@]+"${MPA_DB_ARG[@]}"} \
                 --input_type fastq \
                 --mapout "$MICRO_BT2" \
                 --nproc 4 \
@@ -3273,7 +3273,7 @@ MICRO_BT2="$OUT/${DOG_LOWER}_metaphlan.mapout.bz2"
             || { log "  MetaPhlAn4 error:"; cat "$METAPHLAN_LOG" | head -20 | while read -r l; do log "    $l"; done; die "MetaPhlAn4 failed"; }
         fi
     else
-        "$METAPHLAN_BIN" "$UNMAPPED_FQ" "${MPA_DB_ARG[@]}" \
+        "$METAPHLAN_BIN" "$UNMAPPED_FQ" ${MPA_DB_ARG[@]+"${MPA_DB_ARG[@]}"} \
             --input_type fastq \
             --mapout "$MICRO_BT2" \
             --nproc 4 \
