@@ -272,7 +272,7 @@ def main():
         if len(samples) < min_n:
             print(f"  {name}: only {len(samples)} samples, need >= {min_n} — skipped")
             continue
-        panel = summarise(samples, sexes, min_n, name, store_values=(binbp == 1000000))
+        panel = summarise(samples, sexes, min_n, name, store_values=True)
         z_cut = REPORT_Z_BY_WINDOW.get(binbp, REPORT_Z)
         panel = add_frequencies(panel, samples, sexes, z_cut)
         doc = {'meta': {'n_samples': len(samples),

@@ -945,9 +945,6 @@ print(f"qc_result.json: {qc_status}, mean={mean_d:.1f}x, cnv_window={cnv_win}bp"
 windows_cnv = load_tsv(tsv_cnv)
 mean_d2 = statistics.mean(d for _,_,_,d in windows_cnv)
 hom_del_thresh = mean_d2 * 0.15
-raw_dels = [{'chrom': c, 'start': s, 'end': e, 'depth': round(d,2),
-             'norm': round(d/mean_d2,3), 'window_bp': cnv_win}
-            for c,s,e,d in windows_cnv if d < hom_del_thresh]
 
 # Load gene annotations — read from cosmo reference dir (always present),
 # not from the sample pub dir which may not have it yet at Stage 6.
@@ -1074,38 +1071,76 @@ if cnv_panel_idx:
 # All genes across all chroms
 all_genes = [g for gs in gene_map.values() for g in gs]
 
+# Deletions are called on the PANEL's own 50kb grid, not on this dog's adaptive
+# window. Stage 5 sizes that window as max(15000, 50000/depth), so a 7x dog is
+# called at 15kb — but the reference it is judged against is binned at 50kb, and
+# a 15kb call checked against a bin averaging 3.3x more sequence is checked
+# against diluted evidence. The 15kb floor was never statistically motivated
+# either: at 7x a 15kb window holds ~1,050 reads, putting the <15% threshold 28
+# standard deviations below the mean, so resolution was never the limit.
+#
+# Calling at the panel's resolution means every call can be answered with the
+# question that actually matters — how many reference dogs are this low here —
+# instead of the one we were guessing at, which was whether low coverage in the
+# panel meant bad mappability or a deletion other dogs also carry. Those two are
+# indistinguishable in a median, and we were labelling both "mappability
+# artefact".
+raw_dels = []
+if cnv_panel_idx and cnv_bin and windows_cnv:
+    _widest_d = max(e - s for _, s, e, _ in windows_cnv)
+    if _widest_d <= cnv_bin:
+        _b = rebin_cnv(windows_cnv, cnv_bin)
+        _auto_d = [v for (c, _), v in _b.items() if c != 'chrX' and v > 0]
+        _base_d = statistics.median(_auto_d) if _auto_d else 0.0
+        if _base_d > 0:
+            for (c, st_bp), v in sorted(_b.items()):
+                ratio_d = v / _base_d
+                if ratio_d >= 0.15:
+                    continue
+                key = 'all' if c != 'chrX' else ('F' if predicted_sex == 'female' else 'M')
+                pstat = cnv_panel_idx.get((c, st_bp, key))
+                vals = pstat.get('vals') if pstat else None
+                pct = (round(100 * sum(1 for x in vals if x <= ratio_d) / len(vals), 1)
+                       if vals else None)
+                raw_dels.append({'chrom': c, 'start': st_bp, 'end': st_bp + cnv_bin,
+                                 'depth': round(v, 2), 'norm': round(ratio_d, 3),
+                                 'window_bp': cnv_bin, 'pct_dogs': pct})
+    else:
+        print(f"WARNING: native CNV window {_widest_d}bp exceeds panel bin {cnv_bin}bp — "
+              "no deletion calls")
+else:
+    print("WARNING: no CNV panel — no deletion calls")
+
 # Merge adjacent windows (gap ≤ 1 window) into contiguous regions
 raw_dels.sort(key=lambda w: (w['chrom'], w['start']))
 merged = []
 for w in raw_dels:
     if merged and merged[-1]['chrom'] == w['chrom'] and w['start'] <= merged[-1]['end'] + w['window_bp']:
-        r = merged[-1]; r['end'] = max(r['end'], w['end']); r['norms'].append(w['norm'])
+        r = merged[-1]; r['end'] = max(r['end'], w['end'])
+        r['norms'].append(w['norm']); r['pcts'].append(w['pct_dogs'])
     else:
-        merged.append({'chrom': w['chrom'], 'start': w['start'], 'end': w['end'], 'norms': [w['norm']]})
+        merged.append({'chrom': w['chrom'], 'start': w['start'], 'end': w['end'],
+                       'norms': [w['norm']], 'pcts': [w['pct_dogs']]})
 
 regions = []; disrupted_all = {}; _nongenic = 0
 for r in merged:
     size_bp = r['end'] - r['start']
     avg_norm = sum(r['norms']) / len(r['norms'])
-    # Reference depth: prefer the 92-dog panel at the region's own 50kb scale.
-    # Same quantity as before (normalised coverage in normal dogs, as a percent)
-    # so the <80% artefact rule and the dashboard field are unchanged — only the
-    # evidence behind it improves, from 6 pooled dogs at 1Mb to 92 at 50kb.
-    ref_depth_pct = None
-    if cnv_panel_idx and cnv_bin:
-        _k = 'all' if r['chrom'] != 'chrX' else ('F' if predicted_sex == 'female' else 'M')
-        _meds = [cnv_panel_idx[(r['chrom'], b, _k)]['median']
-                 for b in range(r['start'] - r['start'] % cnv_bin, r['end'], cnv_bin)
-                 if (r['chrom'], b, _k) in cnv_panel_idx]
-        if _meds:
-            ref_depth_pct = round(statistics.median(_meds) * 100)
-    if ref_depth_pct is None:
-        # Legacy fallback: 6-dog pooled reference at 1Mb.
-        smb, emb = r['start']//1_000_000, r['end']//1_000_000
-        ref_chrom_d = ref_panel.get(r['chrom'], {})
-        ratio_arr = ref_chrom_d.get('ratio', []) if isinstance(ref_chrom_d, dict) else []
-        rvals = [ratio_arr[i] for i in range(smb, min(emb+1, len(ratio_arr))) if ratio_arr[i] > 0]
-        ref_depth_pct = round(sum(rvals)/len(rvals)*100) if rvals else None
+    # How many reference dogs are at least this low here. Same statistic as the
+    # karyotype, and it replaces both ref_depth_pct and the artefact verdict.
+    #
+    # That verdict could not be supported: it called a region a mappability
+    # artefact whenever the reference dogs were also low, which is equally what
+    # a deletion many dogs carry looks like. On Luna Genotek seven of eight so
+    # labelled had a tight panel spread (consistent with mappability) but
+    # chr27:20.400Mb had a robust SD of 0.281 against a median of 0.356 — the
+    # dogs disagree with each other there, which is a polymorphism, not a
+    # mapping failure. Reporting the frequency states what we observe and
+    # asserts no mechanism: a uniformly unmappable region comes out near 100%
+    # and is self-evidently uninteresting.
+    seg_p = [x for x in r['pcts'] if x is not None]
+    pct_dogs = max(seg_p) if seg_p else None
+    pct_min  = min(seg_p) if seg_p else None
     # Disrupted genes
     chrom_num = r['chrom'].replace('chr','')
     disrupted = []; disrupted_details = []
@@ -1131,18 +1166,19 @@ for r in merged:
         continue
     size_str = (f"{size_bp/1e6:.2f}Mb" if size_bp >= 1_000_000
                 else f"{size_bp//1000}kb" if size_bp >= 1000 else f"{size_bp}bp")
-    # Classify: ref_depth_pct < 80 → mappability artefact in reference panel too
-    is_artefact = ref_depth_pct is not None and ref_depth_pct < 80
-    verdict = 'mappability_artefact' if is_artefact else 'putative_deletion'
     regions.append({'chrom': r['chrom'], 'start': r['start'], 'end': r['end'], 'size': size_str,
-                    'sample_pct_mean': round(avg_norm*100), 'ref_depth_pct': ref_depth_pct,
+                    'sample_pct_mean': round(avg_norm*100),
+                    'pct_dogs': pct_dogs, 'pct_min': pct_min,
                     'disrupted_genes': disrupted, 'disrupted_gene_details': disrupted_details,
                     'n_named_genes': sum(1 for _g in disrupted
                                          if not re.match(r'^ENSCAFG\d+$', _g)),
-                    'verdict': verdict})
+                    })
 
-real_regions = [r for r in regions if r['verdict'] != 'mappability_artefact']
-artefact_regions = [r for r in regions if r['verdict'] == 'mappability_artefact']
+# No artefact split any more: rarity is reported, not a mechanism we cannot
+# observe. A region every reference dog is also missing comes out near 100% and
+# speaks for itself.
+real_regions = regions
+artefact_regions = []
 # Only include disrupted genes from real (non-artefact) regions
 real_gene_names = {g for r in real_regions for g in r['disrupted_genes']}
 real_disrupted = {k: v for k, v in disrupted_all.items() if k in real_gene_names}
@@ -1168,10 +1204,10 @@ cnv_out = {
         'common_pct': COMMON_PCT,
         'event_z_threshold': Z_CUT_CNV,
         'panel_n': cnv_panel_n, 'panel_bin_bp': cnv_bin,
-        'method': (f'Adaptive CNV window ({win_kb}kb), depth normalised to genome-wide mean. '
-                   f'Ratio<0.15 threshold for homozygous deletion. '
-                   f'Ref depth from {_ref_src}; '
-                   f'regions with ref_depth_pct<80% classified as mappability artefacts.'),
+        'method': (f'Deletions called on the reference panel grid ({round((cnv_bin or 0)/1000)}kb), '
+                   f'depth normalised to genome-wide mean, ratio<0.15 for homozygous loss. '
+                   f'Each region reports the share of the {cnv_panel_n}-dog panel that is at '
+                   f'least as low there. Only regions disrupting a gene are listed.'),
         'event_note': (f'{len(cnv_events)} region(s) at |z| >= {Z_CUT_CNV} against the '
                        f'{cnv_panel_n}-dog panel, of which '
                        f'{sum(1 for e in cnv_events if e.get("novelty") == "rare")} are rare '
@@ -1181,11 +1217,10 @@ cnv_out = {
                        f'carry, not findings specific to this dog.' if cnv_panel_idx else
                        'No CNV panel available; gains were not screened for.'),
         'min_detectable_kb': round(win_kb*2), 'calling_resolution_kb': win_kb,
-        'panel_note': (f'{len(real_regions)} putative deletion region(s) after artefact filtering '
-                       f'({len(artefact_regions)} artefact region(s) excluded). '
-                       f'Ref depth = normalised coverage in the {_ref_src}.'),
-        'artefact_note': (f'{len(artefact_regions)} region(s) with ref_depth_pct<80% are canFam4 '
-                          f'mappability artefacts (low coverage in the reference panel too).'),
+        'panel_note': (f'{len(real_regions)} gene-disrupting deletion region(s). Frequencies are '
+                       f'the share of {cnv_panel_n} reference dogs at least as low at that point; '
+                       f'a region most dogs also lack is common variation or unmappable sequence, '
+                       f'not a finding about this dog.'),
     }
 }
 with open(f'{pub}/cnv_homdel.json', 'w') as f:
