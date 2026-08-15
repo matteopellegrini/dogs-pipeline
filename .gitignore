@@ -51,3 +51,13 @@ varcall.log
 # Merged breed panel: 115MB of derived data, rebuilt by
 # analysis/breed_accuracy/make_merged_plink.py + harmonize.py
 breed_panel/
+
+# Reference panels are build artifacts: regenerated from the 96-dog cohort by
+# analysis/coverage_panel/build_panels.py whenever the builder changes. Tracking
+# them meant every rebuild on Hoffman collided with the committed copy - it
+# blocked three git pulls - and the CNV panel is 29MB, which would land in
+# history again on every rebuild. Hoffman is the source of truth; sync by scp.
+# Which panel produced a given report is recorded in that report's _meta
+# (panel_n and panel_sha), not in git.
+reference_panel/coverage_1mb_panel.json
+reference_panel/coverage_cnv_panel.json

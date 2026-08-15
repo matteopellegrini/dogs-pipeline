@@ -591,6 +591,13 @@ try:
                  for c, es in _pd['panel'].items() for e in es
                  for k in ('all', 'F', 'M') if k in e}
     panel_n = _pd.get('meta', {}).get('n_samples')
+    # Which panel produced this report. The panels are no longer tracked in git
+    # (they are regenerated build artifacts, and the CNV one is 29MB), so the
+    # identifying information lives here instead — enough to tell whether two
+    # reports were scored against the same reference.
+    import hashlib as _hl
+    with open(cov_panel_path, 'rb') as _pf:
+        panel_sha = _hl.sha256(_pf.read()).hexdigest()[:12]
 except Exception as _e:
     panel_idx, panel_n = {}, None
     print(f"WARNING: no coverage panel at {cov_panel_path} ({_e}) — "
@@ -840,6 +847,7 @@ print(f"coverage events at |z| >= {Z_CUT}: {len(events)} "
       f"({_gains} gain / {_losses} loss), confidence={cov_confidence}")
 
 result['_meta'] = {'predicted_sex': predicted_sex,
+                   'panel_sha': panel_sha,
                    'chrx_auto_ratio': round(x_auto_ratio, 3),
                    'panel_n': panel_n, 'z_threshold': Z_CUT,
                    'coverage_confidence': cov_confidence,
