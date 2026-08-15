@@ -1738,7 +1738,7 @@ breed_result = {
     'snps_used': int(valid.sum()),
     'k': P.shape[1],
     'pct_parker_covered': round(pct_covered, 1),
-    'reference_panel': (f'Parker 2017 (Science) — {P.shape[0]:,} SNPs, {P.shape[1]} populations '
+    'reference_panel': (f'Parker 2017 (Cell Reports) — {P.shape[0]:,} SNPs, {P.shape[1]} populations '
                         'from 177 (regional Salukis pooled into one; the seven '
                         'geographic wolf populations pooled into one)'),
     'method': ('Supervised SCOPE NNLS projection onto Parker 2017 allele frequency matrix. '
@@ -2453,7 +2453,7 @@ if ct_best:
         'percentile': round(float(ct_best_pct), 1),
         'n_ref_samples': int(len(prune_idx)),
         'description': 'Predicted coat texture/type.',
-        'heritability': {'h2': 0.32, 'ci': '0.18–0.46', 'source': 'Parker 2017 (Science)'},
+        'heritability': {'h2': 0.32, 'ci': '0.18–0.46', 'source': 'Parker 2017 (Cell Reports)'},
     }
     print(f"  Coat type: {ct_best} (z={ct_best_z:.3f})")
 
@@ -2471,7 +2471,7 @@ if not np.isnan(z_cl):
         'percentile': round(float(pct_cl), 1),
         'n_ref_samples': int(len(prune_idx)),
         'description': 'Predicted coat length.',
-        'heritability': {'h2': 0.63, 'ci': '0.52–0.74', 'source': 'Parker 2017 (Science)'},
+        'heritability': {'h2': 0.63, 'ci': '0.52–0.74', 'source': 'Parker 2017 (Cell Reports)'},
     }
     print(f"  Coat length: {pred_cl} (ord={pred_ord:.2f}, z={z_cl:.3f})")
 
