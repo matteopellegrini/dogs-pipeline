@@ -656,16 +656,26 @@ for chrom, arr in raw.items():
     # sits at ~0.5, and a band in raw panel units would sit at half height and
     # look alarming on every male.
     BAND_SD = 2.0
-    z_arr, fg_arr, fl_arr, lo_arr, hi_arr = [], [], [], [], []
+    z_arr, pct_arr, lo_arr, hi_arr = [], [], [], []
     for i, d in enumerate(arr):
         st = panel_idx.get((chrom, i * 1000000, pkey))
         sc = scale_arr[i] if i < len(scale_arr) else 1.0
-        if st and st.get('n'):
-            fg_arr.append(round(100 * st.get('ng', 0) / st['n']))
-            fl_arr.append(round(100 * st.get('nl', 0) / st['n']))
+        # THE question a reader has: of the reference dogs, how many show this
+        # much coverage here, or more? Counted from the panel's actual values at
+        # this window, in the direction this dog deviates. A threshold-crossing
+        # frequency cannot answer it — that asks how many dogs cross a fixed
+        # line, not how many are as extreme as this one — and median/spread
+        # cannot either, because the answer lives in the tail.
+        vals = st.get('vals') if st else None
+        if vals and d > 0:
+            obs = d / kiki_median
+            if obs >= st['median']:
+                cnt = sum(1 for v in vals if v >= obs)
+            else:
+                cnt = sum(1 for v in vals if v <= obs)
+            pct_arr.append(round(100 * cnt / len(vals), 1))
         else:
-            fg_arr.append(None)
-            fl_arr.append(None)
+            pct_arr.append(None)
         if st and 0.004 <= st['mad_sd'] <= 0.30:
             lo_arr.append(round(max(0.0, st['median'] - BAND_SD * st['mad_sd']) * sc, 4))
             hi_arr.append(round((st['median'] + BAND_SD * st['mad_sd']) * sc, 4))
@@ -681,8 +691,7 @@ for chrom, arr in raw.items():
         'panel': [round(v, 4) for v in panel_arr],
         'ratio': ratio_arr,
         'z': z_arr,
-        'freq_gain': fg_arr,
-        'freq_loss': fl_arr,
+        'pct_dogs': pct_arr,
         'band_lo': lo_arr,
         'band_hi': hi_arr,
         'band_sd': BAND_SD,
@@ -693,20 +702,28 @@ for chrom, arr in raw.items():
 events = []
 for chrom in sorted(result):
     zs = result[chrom].get('z') or []
+    pcts = result[chrom].get('pct_dogs') or []
     run = None
     for i, z in enumerate(zs + [None]):
         hit = z is not None and abs(z) >= Z_CUT
         if hit and run is None:
-            run = [i, i, z]
+            run = [i, i, z, i]
         elif hit:
             run[1] = i
             if abs(z) > abs(run[2]):
                 run[2] = z
+                run[3] = i          # window carrying the peak
         elif run is not None:
+            # How common this region's deviation is, taken at its peak window —
+            # the point where the dog is furthest from normal, and so the
+            # fairest single number for "how many dogs look like this here".
+            pk = run[3]
             events.append({'chrom': chrom, 'start': run[0] * 1000000,
                            'end': (run[1] + 1) * 1000000,
                            'windows': run[1] - run[0] + 1,
                            'peak_z': run[2],
+                           'peak_mb': pk,
+                           'pct_dogs': pcts[pk] if pk < len(pcts) else None,
                            'direction': 'gain' if run[2] > 0 else 'loss'})
             run = None
 events.sort(key=lambda e: -abs(e['peak_z']))

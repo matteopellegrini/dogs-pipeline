@@ -107,7 +107,7 @@ def to_ratio(depths):
     return ratios, sex
 
 
-def summarise(samples, sexes, min_n, label):
+def summarise(samples, sexes, min_n, label, store_values=False):
     windows = set()
     for r in samples.values():
         windows.update(r)
@@ -131,6 +131,14 @@ def summarise(samples, sexes, min_n, label):
             entry[key] = {'median': round(med, 4),
                           'mad_sd': round(mad * MAD_TO_SD, 4),
                           'n': len(vals)}
+            if store_values:
+                # The sorted per-dog values at this window, so a scorer can ask
+                # the question a reader actually has: "how many reference dogs
+                # are as far from normal here as mine?" Median and spread cannot
+                # answer that — they describe the centre, and the answer lives in
+                # the tail. Stored only for the 1Mb panel; at 50kb this would be
+                # 47k windows x 92 dogs and the file would be unusable.
+                entry[key]['vals'] = [round(v, 3) for v in sorted(vals)]
         if len(entry) > 1:
             panel[chrom].append(entry)
     total = sum(len(v) for v in panel.values())
@@ -264,7 +272,7 @@ def main():
         if len(samples) < min_n:
             print(f"  {name}: only {len(samples)} samples, need >= {min_n} — skipped")
             continue
-        panel = summarise(samples, sexes, min_n, name)
+        panel = summarise(samples, sexes, min_n, name, store_values=(binbp == 1000000))
         z_cut = REPORT_Z_BY_WINDOW.get(binbp, REPORT_Z)
         panel = add_frequencies(panel, samples, sexes, z_cut)
         doc = {'meta': {'n_samples': len(samples),
