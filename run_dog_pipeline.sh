@@ -1083,7 +1083,7 @@ for w in raw_dels:
     else:
         merged.append({'chrom': w['chrom'], 'start': w['start'], 'end': w['end'], 'norms': [w['norm']]})
 
-regions = []; disrupted_all = {}
+regions = []; disrupted_all = {}; _nongenic = 0
 for r in merged:
     size_bp = r['end'] - r['start']
     avg_norm = sum(r['norms']) / len(r['norms'])
@@ -1121,8 +1121,14 @@ for r in merged:
         disrupted_details.append(detail)
         if g['name'] not in disrupted_all:
             disrupted_all[g['name']] = detail
-    # Only keep ≥50kb regions or gene-disrupting ones
-    if size_bp < 50_000 and not disrupted: continue
+    # Report only CNVs that disrupt a gene. The size bar let through losses in
+    # gene deserts — Luna Genotek's sole reported CNV was 120kb at the tip of
+    # chr8 hitting nothing at all. True, and not actionable: an owner cannot do
+    # anything with it and a clinician would not either. What makes a copy
+    # number change worth a customer's attention is the gene it removes.
+    if not disrupted:
+        _nongenic += 1
+        continue
     size_str = (f"{size_bp/1e6:.2f}Mb" if size_bp >= 1_000_000
                 else f"{size_bp//1000}kb" if size_bp >= 1000 else f"{size_bp}bp")
     # Classify: ref_depth_pct < 80 → mappability artefact in reference panel too
@@ -1131,6 +1137,8 @@ for r in merged:
     regions.append({'chrom': r['chrom'], 'start': r['start'], 'end': r['end'], 'size': size_str,
                     'sample_pct_mean': round(avg_norm*100), 'ref_depth_pct': ref_depth_pct,
                     'disrupted_genes': disrupted, 'disrupted_gene_details': disrupted_details,
+                    'n_named_genes': sum(1 for _g in disrupted
+                                         if not re.match(r'^ENSCAFG\d+$', _g)),
                     'verdict': verdict})
 
 real_regions = [r for r in regions if r['verdict'] != 'mappability_artefact']
@@ -1152,6 +1160,7 @@ cnv_out = {
     'events': cnv_events,
     'summary': {
         'total_regions': len(real_regions), 'unique_genes': len(real_disrupted),
+        'n_nongenic_skipped': _nongenic,
         'n_events': len(cnv_events),
         'n_event_gain': sum(1 for e in cnv_events if e['direction'] == 'gain'),
         'n_event_loss': sum(1 for e in cnv_events if e['direction'] == 'loss'),
@@ -1174,7 +1183,7 @@ cnv_out = {
         'min_detectable_kb': round(win_kb*2), 'calling_resolution_kb': win_kb,
         'panel_note': (f'{len(real_regions)} putative deletion region(s) after artefact filtering '
                        f'({len(artefact_regions)} artefact region(s) excluded). '
-                       f'Ref depth = normalised coverage in {n_ref_dogs}-dog reference panel.'),
+                       f'Ref depth = normalised coverage in the {_ref_src}.'),
         'artefact_note': (f'{len(artefact_regions)} region(s) with ref_depth_pct<80% are canFam4 '
                           f'mappability artefacts (low coverage in the reference panel too).'),
     }
