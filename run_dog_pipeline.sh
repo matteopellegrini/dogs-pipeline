@@ -699,34 +699,51 @@ for chrom, arr in raw.items():
 
 # Merge runs of adjacent flagged windows into events. "3 regions of unusual
 # coverage" is a statement a dog owner can act on; "7 flagged windows" is not.
+# Regions are the runs of windows the CHART draws in red or orange — i.e. the
+# ones a reader can actually see — not runs defined by a z statistic.
+#
+# z was the wrong instrument here. It assumes the reference dogs are roughly
+# normally distributed at a window, and at the scale of a real deletion they are
+# not: at chr8's end the 93 panel dogs span 0.43-1.47, so a dog near the bottom
+# scores z -1.1 and is "not flagged" while being in the lowest few percent of
+# the population. That produced a chart shouting DELETION in red at windows the
+# table said nothing about, and a tooltip quoting 2-4% beside a table row
+# claiming "not seen".
+#
+# The honest statistic is the empirical one, and it is exactly a minor allele
+# frequency: of the reference dogs, what share carry this much loss or gain
+# here. No distributional assumption, and it means the same thing whether the
+# deletion is 1Mb or 40.
+DEL_T, DUP_T = 0.65, 1.35
 events = []
 for chrom in sorted(result):
-    zs = result[chrom].get('z') or []
-    pcts = result[chrom].get('pct_dogs') or []
+    ratios = result[chrom].get('ratio') or []
+    pcts   = result[chrom].get('pct_dogs') or []
     run = None
-    for i, z in enumerate(zs + [None]):
-        hit = z is not None and abs(z) >= Z_CUT
-        if hit and run is None:
-            run = [i, i, z, i]
-        elif hit:
+    for i, r in enumerate(list(ratios) + [None]):
+        # ratio 0 means no coverage measured, not a deletion
+        d = None
+        if r is not None and r > 0:
+            if r < DEL_T: d = 'loss'
+            elif r > DUP_T: d = 'gain'
+        if d and run is None:
+            run = [i, i, d]
+        elif d and run and run[2] == d:
             run[1] = i
-            if abs(z) > abs(run[2]):
-                run[2] = z
-                run[3] = i          # window carrying the peak
         elif run is not None:
-            # How common this region's deviation is, taken at its peak window —
-            # the point where the dog is furthest from normal, and so the
-            # fairest single number for "how many dogs look like this here".
-            pk = run[3]
-            events.append({'chrom': chrom, 'start': run[0] * 1000000,
-                           'end': (run[1] + 1) * 1000000,
-                           'windows': run[1] - run[0] + 1,
-                           'peak_z': run[2],
-                           'peak_mb': pk,
-                           'pct_dogs': pcts[pk] if pk < len(pcts) else None,
-                           'direction': 'gain' if run[2] > 0 else 'loss'})
-            run = None
-events.sort(key=lambda e: -abs(e['peak_z']))
+            lo, hi, direction = run
+            seg = [pcts[j] for j in range(lo, hi + 1) if j < len(pcts) and pcts[j] is not None]
+            events.append({'chrom': chrom, 'start': lo * 1000000,
+                           'end': (hi + 1) * 1000000,
+                           'windows': hi - lo + 1,
+                           'direction': direction,
+                           # range across the region, because that is what a
+                           # reader sees when they hover along it
+                           'pct_min': min(seg) if seg else None,
+                           'pct_max': max(seg) if seg else None,
+                           'pct_dogs': min(seg) if seg else None})
+            run = [i, i, d] if d else None
+events.sort(key=lambda e: (e['pct_dogs'] if e['pct_dogs'] is not None else 999, -e['windows']))
 
 # Whole-chromosome events are aneuploidy, not copy-number variation, and must
 # not be reported as "a gain on chrX". DOGS-Gen-111 is the case that forced
@@ -797,10 +814,20 @@ annotate_freq(events, panel_idx, 1000000, predicted_sex)
 _gains = sum(1 for e in events if e['direction'] == 'gain')
 _losses = len(events) - _gains
 _reasons = []
-if len(events) > 20:
-    _reasons.append(f'{len(events)} events (typical dog has 0-9)')
-if len(events) >= 10 and _gains >= 5 * max(1, _losses):
-    _reasons.append(f'gain-dominated ({_gains} gains vs {_losses} losses)')
+# The old thresholds were calibrated against z-defined events and do not carry
+# over. In particular the gain-dominated rule now misfires on clean samples:
+# with regions defined by the ratio bands, gains above 1.35 are common at
+# chromosome ends while losses below 0.65 are rare, so gain-dominance is the
+# NORMAL pattern — Kiki2, platform-matched and clean, comes out 11 gains to 1
+# loss. That rule is dropped rather than retuned; it was an artifact signature
+# for a statistic no longer in use.
+#
+# What remains is a volume check. A clean dog sits around a dozen regions
+# (Kiki2 12, Luna Genotek 13), so this only catches samples an order of
+# magnitude worse. PROVISIONAL: wants recalibrating across the 96-dog cohort
+# on this new basis before it is trusted as a QC gate.
+if len(events) > 40:
+    _reasons.append(f'{len(events)} flagged regions (a clean sample has roughly a dozen)')
 cov_confidence = 'low' if _reasons else 'ok'
 # Carry the verdict onto each aneuploidy entry. "Your dog has three copies of
 # the X chromosome" is a strong claim to render, and whoever renders it should
