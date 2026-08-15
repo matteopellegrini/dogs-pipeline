@@ -617,24 +617,61 @@ for chrom, arr in raw.items():
         # Use per-window normalization: above 0.75× autosomal → PAR1 → divide by kiki_median;
         # below 0.75× autosomal → non-PAR → divide by kiki_median × 0.5, so both map to ratio 1.0.
         par_thresh = kiki_median * 0.75
-        ratio_arr = []
+        ratio_arr, scale_arr = [], []
         for d in arr:
             if d == 0:
-                ratio_arr.append(0.0)
+                ratio_arr.append(0.0); scale_arr.append(1.0)
             elif d >= par_thresh:
                 ratio_arr.append(round(d / kiki_median, 4))        # PAR1: diploid norm
+                scale_arr.append(1.0)
             else:
                 ratio_arr.append(round(d / (kiki_median * 0.5), 4)) # non-PAR: hemizygous norm
+                scale_arr.append(2.0)
     else:
         ratio_arr = [round(d / kiki_median, 4) if d > 0 else 0.0 for d in arr]
+        scale_arr = [1.0] * len(arr)
     # Robust z against the panel. Computed from the UNADJUSTED ratio
     # (depth / autosomal median), because that is the space the panel medians
     # live in — ratio_arr rescales male chrX so hemizygous reads as 1.0, which
     # would not line up with a male chrX panel median of ~0.5.
     pkey = 'all' if chrom != 'chrX' else ('F' if predicted_sex == 'female' else 'M')
-    z_arr = []
+    # Alongside this dog's z, carry how often the REFERENCE COHORT itself varies
+    # at each window. A reader looking at a dip or a bump cannot tell whether it
+    # matters; "34 of 93 healthy dogs are also low here" answers that directly,
+    # and answers it for every window rather than only the flagged ones.
+    #
+    # Deliberately computed even where this dog's own window is unscoreable:
+    # the frequency describes the cohort, not the sample, so "do other dogs vary
+    # here?" has an answer either way.
+    # The band is the more useful of the two for reading the chart. At 1Mb the
+    # flag frequency is 0 almost everywhere (megabase averaging washes out focal
+    # CNVs — only 8 of 2,498 windows are flagged in >=5% of the cohort), so on
+    # its own it cannot tell a reader whether the bump they are looking at is
+    # ordinary. The spread of the reference dogs at that window can: drawn
+    # behind the bars, a bar inside the band is normal variation and a bar
+    # outside it is not, with no numbers to interpret.
+    #
+    # Emitted in the SAME units as ratio_arr, hence scale_arr: on a male chrX
+    # the ratio is rescaled so hemizygous reads as 1.0, while the panel median
+    # sits at ~0.5, and a band in raw panel units would sit at half height and
+    # look alarming on every male.
+    BAND_SD = 2.0
+    z_arr, fg_arr, fl_arr, lo_arr, hi_arr = [], [], [], [], []
     for i, d in enumerate(arr):
         st = panel_idx.get((chrom, i * 1000000, pkey))
+        sc = scale_arr[i] if i < len(scale_arr) else 1.0
+        if st and st.get('n'):
+            fg_arr.append(round(100 * st.get('ng', 0) / st['n']))
+            fl_arr.append(round(100 * st.get('nl', 0) / st['n']))
+        else:
+            fg_arr.append(None)
+            fl_arr.append(None)
+        if st and 0.004 <= st['mad_sd'] <= 0.30:
+            lo_arr.append(round(max(0.0, st['median'] - BAND_SD * st['mad_sd']) * sc, 4))
+            hi_arr.append(round((st['median'] + BAND_SD * st['mad_sd']) * sc, 4))
+        else:
+            lo_arr.append(None)
+            hi_arr.append(None)
         if not st or d <= 0 or not (0.004 <= st['mad_sd'] <= 0.30):
             z_arr.append(None)
             continue
@@ -644,6 +681,11 @@ for chrom, arr in raw.items():
         'panel': [round(v, 4) for v in panel_arr],
         'ratio': ratio_arr,
         'z': z_arr,
+        'freq_gain': fg_arr,
+        'freq_loss': fl_arr,
+        'band_lo': lo_arr,
+        'band_hi': hi_arr,
+        'band_sd': BAND_SD,
     }
 
 # Merge runs of adjacent flagged windows into events. "3 regions of unusual
