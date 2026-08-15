@@ -1149,6 +1149,17 @@ for r in merged:
     seg_p = [x for x in r['pcts'] if x is not None]
     pct_dogs = max(seg_p) if seg_p else None
     pct_min  = min(seg_p) if seg_p else None
+    # Average coverage the reference dogs have here, as a percent of normal.
+    # Distinct from the frequency and worth showing beside it: the frequency
+    # says how many dogs are as low as this one, while this says what the
+    # region looks like in a typical dog. A region where the panel sits at 30%
+    # is hard to map for everyone, and a rare call there deserves more scepticism
+    # than the same call where the panel sits at 100%.
+    _k = 'all' if r['chrom'] != 'chrX' else ('F' if predicted_sex == 'female' else 'M')
+    _meds = [cnv_panel_idx[(r['chrom'], b, _k)]['median']
+             for b in range(r['start'], r['end'], cnv_bin)
+             if (r['chrom'], b, _k) in cnv_panel_idx]
+    ref_depth_pct = round(statistics.median(_meds) * 100) if _meds else None
     # Disrupted genes
     chrom_num = r['chrom'].replace('chr','')
     disrupted = []; disrupted_details = []
@@ -1177,6 +1188,7 @@ for r in merged:
     regions.append({'chrom': r['chrom'], 'start': r['start'], 'end': r['end'], 'size': size_str,
                     'sample_pct_mean': round(avg_norm*100),
                     'pct_dogs': pct_dogs, 'pct_min': pct_min,
+                    'ref_depth_pct': ref_depth_pct,
                     'disrupted_genes': disrupted, 'disrupted_gene_details': disrupted_details,
                     'n_named_genes': sum(1 for _g in disrupted
                                          if not re.match(r'^ENSCAFG\d+$', _g)),
