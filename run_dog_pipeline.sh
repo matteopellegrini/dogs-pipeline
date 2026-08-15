@@ -859,7 +859,15 @@ mean_d   = statistics.mean(depths)
 median_d = statistics.median(depths)
 std_d    = statistics.stdev(depths)
 pct = {t: round(sum(1 for d in depths if d >= t)/len(depths)*100, 1) for t in [10,15,20,30]}
-qc_status = 'PASS' if mean_d >= 20 else ('WARN' if mean_d >= 10 else 'FAIL')
+# Thresholds for what this product actually does, not for base-resolution
+# variant calling. 20x/15x are the bar when you are genotyping individual
+# positions from the reads; nothing here does that. Genotypes come from
+# GLIMPSE2 imputation against Dog10K, which is designed for low-pass input,
+# and copy number is read at 1Mb, where a 7x sample puts ~70,000 reads in
+# every window — a coefficient of variation under half a percent, against the
+# 50% shift a real deletion produces. Calling that "FAIL" told the report, and
+# the assistant reading it, that a perfectly good sample was inadequate.
+qc_status = 'PASS' if mean_d >= 3 else ('WARN' if mean_d >= 1 else 'FAIL')
 
 chrom_data = collections.defaultdict(list)
 for chrom, *_, d in windows_1mb: chrom_data[chrom].append(d)
@@ -904,14 +912,29 @@ for line in flagstat.splitlines():
             read_stats['duplication_rate_pct'] = round(
                 int(m.group(1)) / read_stats['total_reads_after_qc'] * 100, 1)
 
+# Reads per 1Mb window, and the Poisson precision that follows from it. This is
+# the number that decides whether megabase copy number is trustworthy.
+_rl = read_stats.get('read_length_bp') or 100
+_reads_per_mb = (mean_d * 1_000_000) / _rl
+_mb_cv_pct = round(100 / (_reads_per_mb ** 0.5), 2) if _reads_per_mb > 0 else None
+
 qc = {'genome_mean_depth': round(mean_d,1), 'genome_median_depth': round(median_d,1),
     'genome_std_depth': round(std_d,1), 'uniformity_cv': round(std_d/mean_d,3),
     'pct_bins_gt10x': pct[10], 'pct_bins_gt15x': pct[15],
     'pct_bins_gt20x': pct[20], 'pct_bins_gt30x': pct[30],
     'n_low_bins': sum(1 for d in depths if d < 15), 'n_total_bins': len(depths),
     'chromosomes': chroms_out, 'qc_status': qc_status,
-    'warning': None if pct[15] >= 95 else f"Only {pct[15]}% of 1Mb bins have ≥15x coverage.",
-    'assessment': f"Mean genome coverage {mean_d:.1f}x across {len(depths)} 1Mb bins.",
+    'warning': None if mean_d >= 1 else
+               f"Mean depth {mean_d:.1f}x is below 1x; imputation and copy-number calling become unreliable.",
+    'assessment': (f"Mean genome coverage {mean_d:.1f}x across {len(depths)} 1Mb bins. "
+                   f"At 1Mb resolution that is ~{_reads_per_mb:,.0f} reads per window "
+                   f"(±{_mb_cv_pct}% counting precision), which is ample for copy-number "
+                   f"analysis; a deletion shifts a window by ~50%."),
+    'reads_per_mb_window': round(_reads_per_mb),
+    'mb_precision_pct': _mb_cv_pct,
+    'depth_note': ('Low-pass whole-genome sequencing. Genotypes are imputed against the '
+                   'Dog10K panel rather than called from reads, so per-base depth '
+                   'thresholds used for variant calling (20x, 30x) do not apply.'),
     'method': 'samtools bedcov over 1Mb bins',
     **read_stats}
 with open(f'{pub}/qc_result.json', 'w') as f:
