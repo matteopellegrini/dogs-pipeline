@@ -109,7 +109,7 @@ SNPEFF_DB="ROS_Cfam_1.115"   # SnpEff database for canFam4 / ROS_Cfam_1.0
 
 # Microbiome
 METAPHLAN_BIN="${METAPHLAN_BIN:-$HOME/Library/Python/3.9/bin/metaphlan}"
-MICROBIOME_REF="$D/metagenome/merged_microbiome_age_weight_3.18_final.csv"
+MICROBIOME_REF="$D/reference_panel/microbiome_panel.json"
 
 # Strip PATH entries with spaces (e.g. Claude plugin paths) that break $MM word-splitting
 PATH=$(echo "$PATH" | tr ':' '\n' | grep -v ' ' | tr '\n' ':' | sed 's/:$//')
@@ -3497,7 +3497,6 @@ MICRO_BT2="$OUT/${DOG_LOWER}_metaphlan.mapout.bz2"
     "$DATA_PYTHON" - << PYEOF 2>&1 | while IFS= read -r l; do log "  [py] $l"; done; [ "${PIPESTATUS[0]}" -eq 0 ] || die "Microbiome Python block failed"
 import json, re, math, datetime
 import numpy as np
-import pandas as pd
 from scipy.stats import percentileofscore, entropy
 from sklearn.linear_model import RidgeCV
 
@@ -3505,7 +3504,7 @@ PUB      = "$PUB"
 OUT      = "$OUT"
 DOG      = "$DOG_NAME"
 MICRO_OUT = "$MICRO_OUT"
-REF_CSV   = "$MICROBIOME_REF"
+REF_PANEL = "$MICROBIOME_REF"
 ACTUAL_AGE = "$DOG_ACTUAL_AGE"
 
 # ── 1. Parse MetaPhlAn4 output ─────────────────────────────
@@ -3568,109 +3567,78 @@ with open(f'{PUB}/microbiome_result.json', 'w') as fh:
     json.dump(micro_result, fh, indent=2)
 print(f"microbiome_result.json: {n_species} species, {total_classified:.2f}% classified")
 
-# ── 2. Load reference dataset ──────────────────────────────
-df = pd.read_csv(REF_CSV)
-sp_cols   = [c for c in df.columns if '|s__' in c and '|t__' not in c]
-prev      = (df[sp_cols] > 0).mean()
-sp_filtered = prev[prev > 0.10].index.tolist()
-print(f"Reference species features (>10% prevalence): {len(sp_filtered)}")
+# ── 2. Reference panel: the 96 cohort dogs, processed by THIS pipeline ─────
+# Replaces the 1,045-sample MetaPhlAn 3.18 CSV. That reference was larger but
+# taxonomically incompatible: the version gap meant the age model matched only
+# ~16 of its 62 features for a typical sample, and diversity percentiles were
+# meaningless. Here every feature matches by construction — same MetaPhlAn,
+# same database, same read handling.
+with open(REF_PANEL) as fh:
+    _panel = json.load(fh)
+panel_dogs = _panel['dogs']
+sp_filtered = sorted({c for d in panel_dogs for c in d['species']})
+print(f"Panel: {len(panel_dogs)} dogs, {len(sp_filtered)} species features "
+      f"(db {_panel['meta'].get('db_version','?')})")
 
-# ── 3. Kiki / dog species dict (% of classified bacteria) ──
+# ── 3. This dog's species dict (% of classified bacteria) ──
 kiki_species = {}
 for sp in taxa['species']:
     kiki_species[sp['clade']] = round(sp['relative_abundance'] / scale, 6)
-
 matched_features = [f for f in sp_filtered if f in kiki_species]
 print(f"Matched features: {len(matched_features)}")
 
-# ── 4. Age prediction (RidgeCV) ────────────────────────────
-age_col = next((c for c in df.columns if c.lower() == 'age'), None)
-if age_col is None:
-    raise RuntimeError(f"No 'age' column found in {REF_CSV}. Columns: {df.columns.tolist()[:10]}")
+# ── 4. Age prediction (RidgeCV on the cohort) ──────────────
+aged = [d for d in panel_dogs if d.get('age') is not None]
+# Too few aged dogs and the model is fiction; skip the prediction rather than
+# train on nothing. The UI shows no age card when the file is absent.
+MIN_AGED = 20
+if len(aged) < MIN_AGED:
+    print(f"WARNING: only {len(aged)} panel dogs have ages (<{MIN_AGED}) — age prediction skipped")
+else:
+    X_ref = np.log10(np.array([[d['species'].get(f, 0.0) for f in sp_filtered]
+                               for d in aged]) + 1e-5)
+    y_ref = np.array([d['age'] for d in aged])
 
-X_ref = np.log10(df[sp_filtered].values + 1e-5)
-y_ref = df[age_col].values
+    model = RidgeCV(alphas=[0.01,0.1,1,10,100], cv=5)
+    model.fit(X_ref, y_ref)
 
-model = RidgeCV(alphas=[0.01,0.1,1,10,100], cv=5)
-model.fit(X_ref, y_ref)
+    from sklearn.model_selection import cross_val_score
+    cv_r2  = cross_val_score(model, X_ref, y_ref, cv=5, scoring='r2').mean()
+    cv_mae = -cross_val_score(model, X_ref, y_ref, cv=5, scoring='neg_mean_absolute_error').mean()
 
-# Cross-val metrics
-from sklearn.model_selection import cross_val_score
-cv_r2  = cross_val_score(model, X_ref, y_ref, cv=5, scoring='r2').mean()
-cv_mae = -cross_val_score(model, X_ref, y_ref, cv=5, scoring='neg_mean_absolute_error').mean()
+    kiki_vec = np.array([kiki_species.get(f, 0.0) for f in sp_filtered])
+    kiki_vec_log = np.log10(kiki_vec + 1e-5).reshape(1,-1)
+    pred_age = float(model.predict(kiki_vec_log)[0])
 
-# Predict for dog
-kiki_vec = np.array([kiki_species.get(f, 0.0) for f in sp_filtered])
-kiki_vec_log = np.log10(kiki_vec + 1e-5).reshape(1,-1)
-pred_age = float(model.predict(kiki_vec_log)[0])
+    coef_pairs = sorted(zip(sp_filtered, model.coef_), key=lambda x: -abs(x[1]))[:10]
+    top_species = [{'name': re.sub(r'.*\|s__', '', f).replace('_', ' '), 'coefficient': round(c, 5)}
+                   for f, c in coef_pairs]
 
-# Top species (by coefficient magnitude)
-coef_pairs = sorted(zip(sp_filtered, model.coef_), key=lambda x: -abs(x[1]))[:10]
-top_species = [{'name': re.sub(r'.*\|s__', '', f).replace('_', ' '), 'coefficient': round(c, 5)}
-               for f, c in coef_pairs]
+    age_result = {
+        'predicted_age_years': round(pred_age, 2),
+        'cv_r2':               round(cv_r2,  3),
+        'cv_mae_years':        round(cv_mae, 3),
+        'n_training_samples':  len(aged),
+        'n_species_features':  len(sp_filtered),
+        'n_features_matched': len(matched_features),
+        'model':               'RidgeCV (log10, prevalence>10%, cohort panel)',
+        'reference':           f"{len(aged)} cohort dogs, same pipeline and database",
+        'top_species':         top_species,
+    }
+    if ACTUAL_AGE:
+        try:
+            age_result['actual_age_years'] = float(ACTUAL_AGE)
+        except ValueError:
+            pass
 
-age_result = {
-    'predicted_age_years': round(pred_age, 2),
-    'cv_r2':               round(cv_r2,  3),
-    'cv_mae_years':        round(cv_mae, 3),
-    'n_training_samples':  len(df),
-    'n_species_features':  len(sp_filtered),
-    'n_features_matched': len(matched_features),
-    'model':               'RidgeCV (log10-transformed, prevalence>10%)',
-    'top_species':         top_species,
-}
-if ACTUAL_AGE:
-    try:
-        age_result['actual_age_years'] = float(ACTUAL_AGE)
-    except ValueError:
-        pass
+    with open(f'{PUB}/microbiome_age_result.json', 'w') as fh:
+        json.dump(age_result, fh, indent=2)
+    print(f"microbiome_age_result.json: predicted={pred_age:.1f} yrs "
+          f"(cv_r2={cv_r2:.2f}, mae={cv_mae:.2f} on {len(aged)} dogs)")
 
-with open(f'{PUB}/microbiome_age_result.json', 'w') as fh:
-    json.dump(age_result, fh, indent=2)
-print(f"microbiome_age_result.json: predicted={pred_age:.1f} yrs, matched={len(matched_features)} features")
-
-# ── 5. Diversity & pathobiont health metrics ───────────────
-# Diversity comparison uses genus-level aggregation because the reference was
-# profiled with MetaPhlAn 3.18 (old NCBI taxonomy) while the sample uses
-# MetaPhlAn4/Jan25 (GTDB taxonomy). Phylum/class/order names differ between
-# versions, so full-clade species matching yields very few hits. Genus names
-# are stable across versions and give representative percentiles.
-
-# Build sample genus dict: sum species abundances per genus leaf name
-sample_genus_abund = {}
-for sp in taxa['species']:
-    if '|g__' in sp['clade']:
-        g_leaf = sp['clade'].split('|g__')[-1].split('|')[0]
-        sample_genus_abund[g_leaf] = sample_genus_abund.get(g_leaf, 0.0) + sp['relative_abundance'] / scale
-
-# Reference genus columns (leaf name → column); prevalence-filter at >10%
-g_cols_all = [c for c in df.columns if '|g__' in c and '|s__' not in c and '|t__' not in c]
-g_prev = (df[g_cols_all] > 0).mean()
-g_filtered = g_prev[g_prev > 0.10].index.tolist()
-g_leaf_map = {c: c.split('|g__')[-1] for c in g_filtered}   # col → leaf
-
-matched_genera = [c for c in g_filtered if g_leaf_map[c] in sample_genus_abund]
-print(f"Matched genera (>10% prevalence): {len(matched_genera)}")
-
-kiki_abund = np.array([sample_genus_abund.get(g_leaf_map[c], 0.0) for c in matched_genera])
-kiki_richness = int((kiki_abund > 0).sum())
-nz = kiki_abund[kiki_abund > 0]
-kiki_shannon = float(entropy(nz / nz.sum())) if len(nz) > 0 else 0.0
-
-ref_richness_vec = (df[matched_genera] > 0).sum(axis=1).values
-ref_shannon_vec  = np.array([
-    entropy(row[row > 0] / row[row > 0].sum()) if (row > 0).any() else 0.0
-    for row in df[matched_genera].values
-])
-
-richness_pct = round(percentileofscore(ref_richness_vec, kiki_richness, kind='rank'), 1)
-shannon_pct  = round(percentileofscore(ref_shannon_vec,  kiki_shannon,  kind='rank'), 1)
-r_p25, r_p50, r_p75 = [int(x) for x in np.percentile(ref_richness_vec, [25,50,75])]
-s_p25, s_p50, s_p75 = [round(x,4) for x in np.percentile(ref_shannon_vec,  [25,50,75])]
-
-# Pathobionts (key canine periodontal pathogens)
+# ── 5. Pathobionts and diversity vs the cohort ─────────────
 PATHOBIONTS = {
-    's__Porphyromonas_gulae':         ('red',    'canine periodontal disease'),
+    's__Porphyromonas_gulae':          ('red',    'canine periodontal disease'),
     's__Tannerella_forsythia':         ('red',    'periodontal disease'),
     's__Porphyromonas_cangingivalis':  ('red',    'canine periodontitis'),
     's__Porphyromonas_canoris':        ('orange', 'canine oral disease'),
@@ -3681,7 +3649,7 @@ PATHOBIONTS = {
 }
 
 sp_pct_dict = {sp['clade']: sp['relative_abundance'] / scale
-               for sp in taxa['species']}   # % of classified bacteria
+               for sp in taxa['species']}
 
 pathobiont_hits = []
 for clade_suffix, (color, assoc) in PATHOBIONTS.items():
@@ -3697,47 +3665,33 @@ for clade_suffix, (color, assoc) in PATHOBIONTS.items():
 pathobiont_hits.sort(key=lambda x: -x['pct'])
 pathobiont_total = sum(h['pct'] for h in pathobiont_hits)
 commensal_pct   = max(0.0, 100.0 - pathobiont_total)
-dysbiosis_index = round(pathobiont_total / (commensal_pct + 1e-6), 3)
 
-# Reference pathobiont distribution
-path_cols = []
-for clade_suffix in PATHOBIONTS:
-    for c in df.columns:
-        if clade_suffix in c and '|t__' not in c and '|s__' in c:
-            path_cols.append(c)
-            break
-if path_cols:
-    # Reference CSV is in fractions (0-1); convert to % to match pathobiont_total units
-    ref_path_vec = df[path_cols].sum(axis=1).values * 100.0
-else:
-    ref_path_vec = np.zeros(len(df))
+ref_path_vec = np.array([d['pathobiont_pct'] for d in panel_dogs])
 path_pct = round(percentileofscore(ref_path_vec, pathobiont_total, kind='rank'), 1)
 r_pm, r_pmed, r_p75p, r_p90p = (round(float(x),2) for x in
     [ref_path_vec.mean(), np.median(ref_path_vec),
      np.percentile(ref_path_vec,75), np.percentile(ref_path_vec,90)])
 
+# Diversity vs the cohort. Directly comparable now — same database — so the
+# genus-level cross-version matching machinery is gone. The dashboard no longer
+# displays these, but they are kept in the JSON for the record.
+sample_richness = len(taxa['species'])
+_ab = np.array([s['relative_abundance'] for s in taxa['species']])
+sample_shannon = round(float(entropy(_ab / _ab.sum())), 4) if len(_ab) else 0.0
+ref_rich = np.array([d['richness'] for d in panel_dogs])
+ref_shan = np.array([d['shannon'] for d in panel_dogs])
+
 health_result = {
-    'sample_richness':         len(taxa['species']),
-    'sample_shannon':          round(float(entropy(
-        np.array([s['relative_abundance'] for s in taxa['species']]) /
-        sum(s['relative_abundance'] for s in taxa['species'])
-    )), 4) if taxa['species'] else 0.0,
-    'sample_richness_matched': kiki_richness,
-    'sample_shannon_matched':  round(kiki_shannon, 4),
-    'richness_percentile':    richness_pct,
-    'shannon_percentile':     shannon_pct,
-    'ref_richness_p25':       r_p25,
-    'ref_richness_p50':       r_p50,
-    'ref_richness_p75':       r_p75,
-    'ref_shannon_p25':        s_p25,
-    'ref_shannon_p50':        s_p50,
-    'ref_shannon_p75':        s_p75,
-    'n_matched_genera':       len(matched_genera),
-    'diversity_note':         'Genus-level comparison (ref: MetaPhlAn 3.18; sample: MetaPhlAn4 Jan25)',
+    'sample_richness':        sample_richness,
+    'sample_shannon':         sample_shannon,
+    'richness_percentile':    round(percentileofscore(ref_rich, sample_richness, kind='rank'), 1),
+    'shannon_percentile':     round(percentileofscore(ref_shan, sample_shannon, kind='rank'), 1),
+    'ref_richness_p50':       int(np.median(ref_rich)),
+    'ref_shannon_p50':        round(float(np.median(ref_shan)), 4),
+    'reference':              f"{len(panel_dogs)} cohort dogs, same pipeline and database",
     'pathobiont_burden_pct':  round(pathobiont_total, 3),
     'pathobiont_percentile':  path_pct,
     'commensal_pct':          round(commensal_pct, 3),
-    'dysbiosis_index':        dysbiosis_index,
     'ref_pathobiont_mean':    r_pm,
     'ref_pathobiont_median':  r_pmed,
     'ref_pathobiont_p75':     r_p75p,
@@ -3746,8 +3700,8 @@ health_result = {
 }
 with open(f'{PUB}/microbiome_health_result.json', 'w') as fh:
     json.dump(health_result, fh, indent=2)
-print(f"microbiome_health_result.json: genus_richness={kiki_richness}/{len(matched_genera)} ({richness_pct}th pct), "
-      f"shannon={kiki_shannon:.3f} ({shannon_pct}th pct), pathobionts={pathobiont_total:.1f}%")
+print(f"microbiome_health_result.json: pathobionts={pathobiont_total:.1f}% "
+      f"({path_pct}th pct of cohort), richness={sample_richness}")
 PYEOF
 
     log "  Microbiome stage complete."

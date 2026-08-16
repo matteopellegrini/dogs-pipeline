@@ -61,3 +61,7 @@ breed_panel/
 # (panel_n and panel_sha), not in git.
 reference_panel/coverage_1mb_panel.json
 reference_panel/coverage_cnv_panel.json
+
+# Same lifecycle as the coverage panels: built on Hoffman from the cohort,
+# synced by scp. See the note above.
+reference_panel/microbiome_panel.json
