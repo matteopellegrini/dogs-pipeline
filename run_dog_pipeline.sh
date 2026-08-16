@@ -1383,12 +1383,16 @@ QC_JSON   = "$PUB/qc_result.json"
 PUB       = "$PUB"
 DOG       = "$DOG_LOWER"
 GP_HIGH   = 0.90   # minimum max(GP) to report a GLIMPSE2 call
-MIN_READS_BAM = 10  # minimum depth for direct BAM calling (≥10x threshold)
-
 with open(QC_JSON) as f:
     mean_depth = json.load(f)['genome_mean_depth']
-use_bam_fallback = mean_depth >= MIN_READS_BAM
-print(f"Mean depth: {mean_depth:.1f}x → BAM fallback {'ENABLED' if use_bam_fallback else 'DISABLED (< 10x)'}")
+# The BAM fallback used to be gated on WHOLE-GENOME depth >= 10x, which turned
+# it off for every dog in this low-pass product — the known-variants tab showed
+# 430 of 479 variants as untestable on a 7x sample. The gate was redundant:
+# gt_from_bam already refuses any SITE with fewer than 5 informative reads and
+# grades each call high/medium/low by the reads actually present, which is the
+# right granularity. At 7x mean, ~70% of sites clear 5 reads; the ones that do
+# not are individually skipped rather than the whole assay being switched off.
+print(f"Mean depth: {mean_depth:.1f}x — BAM fallback per-site (>=5 reads at the position)")
 
 with open(OMIA) as f:
     omia_ref = json.load(f)
@@ -1419,7 +1423,27 @@ def query_glimpse2(chrom, pos, ref, alt):
         return gt, af, gp, True   # in_panel = True
     return None, None, None, False  # not in Dog10K panel
 
+_fasta = pysam.FastaFile("$FASTA")
 def gt_from_bam(chrom, pos, ref, alt, min_bq=20, min_mq=20):
+    # Refuse to call unless the assembly base at this position IS the variant's
+    # stated reference allele. The OMIA catalogue mixes strands and assembly
+    # versions, and where its "alt" is actually the canFam4 reference base,
+    # every read in every dog supports "alt" — counting bases then reports a
+    # healthy animal as homozygous for haemophilia. Of the first 13 affected
+    # calls this fallback produced, 12 were exactly that (0 ref reads, alt ==
+    # assembly base); the 13th, MC1R e/e with the ref matching, was real.
+    # The imputed path is immune because the BCF's ref/alt must match the
+    # assembly; this check gives the direct path the same protection.
+    try:
+        base = _fasta.fetch(chrom, pos - 1, pos).upper()
+    except Exception:
+        return None
+    if base != ref.upper():
+        return {'zygosity': 'not_callable', 'affected': False,
+                'call_confidence': 'none', 'source': 'assembly_mismatch',
+                'note': (f'OMIA ref {ref} does not match canFam4 base {base} at this '
+                         f'position (strand or assembly-version discrepancy); '
+                         f'cannot be genotyped from reads')}
     counts = {}
     try:
         bam_fh = pysam.AlignmentFile(BAM, 'rb')
@@ -1488,23 +1512,23 @@ for v in omia_ref.get('variants', []):
                         'note': f'max GP {max_gp:.2f} below {GP_HIGH} threshold'}
             new_v[DOG] = call
 
-        elif use_bam_fallback:
-            # Not in panel, but depth ≥ 10x: direct BAM call
+        else:
+            # Not in the imputation panel: read the genotype directly from the
+            # aligned reads at that position. gt_from_bam grades its own
+            # confidence from the site depth and returns None below 5 reads.
             bam_call = gt_from_bam(chrom, int(pos), ref, alt)
-            if bam_call:
+            if bam_call and bam_call.get('source') == 'assembly_mismatch':
+                new_v[DOG] = bam_call
+                n_not_callable += 1
+            elif bam_call:
                 new_v[DOG] = bam_call
                 n_bam += 1
             else:
                 new_v[DOG] = {'zygosity': 'no_call', 'affected': False,
                               'call_confidence': 'none',
-                              'source': 'not_in_panel_insufficient_reads'}
+                              'source': 'not_in_panel_insufficient_reads',
+                              'note': 'Fewer than 5 usable reads at this position'}
                 n_not_callable += 1
-        else:
-            # Not in panel, depth < 10x: cannot call reliably
-            new_v[DOG] = {'zygosity': 'not_in_panel', 'affected': False,
-                          'call_confidence': 'none', 'source': 'not_in_panel_low_coverage',
-                          'note': f'Not in Dog10K panel; depth {mean_depth:.1f}x < 10x threshold'}
-            n_not_callable += 1
 
     variants.append(new_v)
 
@@ -1525,11 +1549,13 @@ result = {
         'called_from_bam': n_bam,
         'not_callable': n_not_callable,
         'mean_depth': mean_depth,
-        'bam_fallback_used': use_bam_fallback,
+        'bam_fallback_used': True,
     },
     'method': (
         f'Primary: GLIMPSE2 Dog10K imputed panel (30.4M SNPs); high-confidence calls require max GP ≥ {GP_HIGH}. '
-        f'{"BAM direct call used for SNVs not in Dog10K panel (depth " + str(mean_depth) + "x ≥ 10x)." if use_bam_fallback else "BAM fallback disabled (depth < 10x)."}'
+        f'SNVs not in the panel are read directly from the aligned reads at that position '
+        f'(minimum 5 reads; confidence graded per site by depth — these calls may be lower '
+        f'confidence than imputed ones).'
     ),
     'variants': variants,
 }
