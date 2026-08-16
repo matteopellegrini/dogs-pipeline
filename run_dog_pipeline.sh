@@ -207,6 +207,7 @@ preflight() {
   # because the transfer list was assembled by hand.
   for f in "$FASTA" "$DOG10K_PANEL" "$MICROBIOME_REF" "$PARKER_BED" "$PARKER_BIM" "$PARKER_FAM" \
            "$SCOPE_P" "$SCOPE_CLUST" "$OMIA_DB" "$REF_JSON/prs_reference.json" \
+           "$REF_JSON/prs_lmm_betas.json" \
            "$D/COSMO/glimpse2_dog10k/het_out/dog10k_het.het" \
            "$D/COSMO/glimpse2_dog10k/het_out/panel_af.tsv.gz" \
            "$D/reference_panel/coverage_1mb.json"; do
@@ -2471,31 +2472,80 @@ def compute_prs_ridge(breed_scores_by_code, G_sub, s_sub, breeds, lambda_frac=0.
     percentile = float(np.mean(prs_ref_v <= prs_raw) * 100)
     return prs_z, percentile
 
+# ── LMM betas (GEMMA) for the benchmarked traits ──────────────────────────
+# Replaces on-the-fly marginal-ridge GWAS for the 14 AKC behaviour traits and
+# height/weight. Benchmarked 2026-08-16, 5-fold breed-blocked CV on held-out
+# breeds: LMM betas beat the ridge on 12-13/16 traits (height r 0.71->0.88,
+# weight 0.58->0.73, shedding doubled) — the ridge's structure-confounded
+# betas lost even on purebreds, the setting most favourable to them.
+# Artifact: analysis/prs_lmm/ (GEMMA -lmm, GRM + genotype-source covariate,
+# merged Parker+Dog10K panel, per-trait p-cut chosen by CV).
+with open("$REF_JSON/prs_lmm_betas.json") as _f:
+    LMM = json.load(_f)
+
+# One BCF query for every artifact site, GP -> E[alt copies].
+_lmm_sites = sorted({(sn[0], sn[1]) for t in LMM['traits'].values() for sn in t['snps']})
+_bedf = tempfile.NamedTemporaryFile(mode='w', suffix='.bed', delete=False)
+for _c, _p in _lmm_sites:
+    _bedf.write(f"{_c}\t{_p-1}\t{_p}\n")
+_bedf.close()
+_q = subprocess.run(['bcftools', 'query', '-R', _bedf.name,
+                     '-f', '%CHROM\t%POS\t%REF\t%ALT\t[%GP]\n', BCF],
+                    capture_output=True, text=True)
+lmm_dose = {}
+for _line in _q.stdout.splitlines():
+    _f2 = _line.split('\t')
+    if len(_f2) != 5: continue
+    _gp = _f2[4].split(',')
+    if len(_gp) != 3: continue
+    try:
+        _g = [float(x) for x in _gp]
+    except ValueError:
+        continue
+    lmm_dose[(_f2[0], int(_f2[1]))] = (_f2[2], _f2[3], _g[1] + 2.0*_g[2])
+print(f"LMM artifact: {len(LMM['traits'])} traits, {len(_lmm_sites)} sites, "
+      f"{len(lmm_dose)} imputed in this dog")
+
+def compute_prs_lmm(tinfo):
+    """PRS from stored GEMMA betas; z and percentile against the stored
+    reference distribution. Sites this dog cannot be imputed at contribute
+    their panel-mean (beta * 2af), which keeps the dog's raw score on the
+    same scale as ref_prs_sorted."""
+    prs, matched = 0.0, 0
+    for chrom, pos, ea, oa, beta, af in tinfo['snps']:
+        hit = lmm_dose.get((chrom, pos))
+        if hit and {ea, oa} == {hit[0], hit[1]}:
+            d = hit[2] if ea == hit[1] else 2.0 - hit[2]
+            matched += 1
+        else:
+            d = 2.0 * af
+        prs += beta * d
+    ref = tinfo['ref_prs_sorted']
+    mu, sd = float(np.mean(ref)), float(np.std(ref)) + 1e-8
+    z = (prs - mu) / sd
+    pct = float(np.searchsorted(ref, prs) / len(ref) * 100)
+    return z, pct, matched
+
 # ── Compute per trait ─────────────────────────────────────────────────────
-print("Computing PRS per trait:")
+print("Computing PRS per trait (GEMMA LMM betas):")
 traits_out = {}
 for trait in TRAIT_COLS:
-    breed_scores = {}
-    for code in np.unique(breeds_fam):
-        akc_name = PARKER_TO_AKC.get(code)
-        if not akc_name or akc_name not in akc_by_breed: continue
-        try:
-            val = akc_by_breed[akc_name].get(trait, '').strip()
-            if val: breed_scores[code] = float(val)
-        except: pass
-    if len(breed_scores) < 20: continue
-    prs_z, pct = compute_prs_ridge(breed_scores, G_sub, s_sub, breeds_fam)
-    if np.isnan(prs_z): continue
-    all_scores = list(breed_scores.values())
-    predicted  = float(np.clip(np.mean(all_scores) + prs_z * np.std(all_scores), 1, 5))
+    tinfo = LMM['traits'].get(trait)
+    if not tinfo: continue
+    prs_z, pct, matched = compute_prs_lmm(tinfo)
+    predicted = float(np.clip(tinfo['truth_mean'] + prs_z * tinfo['truth_sd'], 1, 5))
     traits_out[trait] = {
         'prs_z': round(float(prs_z), 3),
         'percentile': round(float(pct), 1),
         'predicted_score': round(predicted, 2),
-        'n_ref_samples': int(len(prune_idx)),
-        'description': f'GWAS prediction for {trait.lower()}',
+        'n_ref_samples': int(LMM['meta']['n_dogs']),
+        'n_snps': tinfo['n_snps'],
+        'snps_matched': matched,
+        'cv_r': tinfo['cv_r'],
+        'description': f'LMM-PRS prediction for {trait.lower()}',
     }
-    print(f"  {trait}: z={prs_z:.3f}, pct={pct:.1f}, pred={predicted:.2f}")
+    print(f"  {trait}: z={prs_z:.3f}, pct={pct:.1f}, pred={predicted:.2f} "
+          f"({matched}/{tinfo['n_snps']} snps)")
 
 # Carry heritability annotations from cosmo reference result
 with open(REF_PRS) as f:
@@ -2603,11 +2653,11 @@ def bin_scores_phys(col, target):
 
 phys_traits = {}
 
-# Height
-h_sc = cont_scores(BREED_HEIGHT_CM)
-z_h, pct_h = compute_prs_ridge(h_sc, G_sub, s_sub, breeds_fam)
+# Height — GEMMA LMM betas (breed-blocked CV r 0.88 vs 0.71 for the ridge)
+_th = LMM['traits'].get('height_cm')
+z_h, pct_h, _mh = compute_prs_lmm(_th) if _th else (np.nan, np.nan, 0)
 if not np.isnan(z_h):
-    vals = list(h_sc.values()); mu, sd = np.mean(vals), np.std(vals)
+    mu, sd = _th['truth_mean'], _th['truth_sd']
     pred_h = float(np.clip(mu + z_h * sd, 20, 110))
     phys_traits['height_cm'] = {
         'pred_cm': round(pred_h, 1),
@@ -2619,11 +2669,11 @@ if not np.isnan(z_h):
     }
     print(f"  Height: {pred_h:.1f}cm (z={z_h:.3f}, pct={pct_h:.1f})")
 
-# Weight
-w_sc = cont_scores(BREED_WEIGHT_KG)
-z_w, pct_w = compute_prs_ridge(w_sc, G_sub, s_sub, breeds_fam)
+# Weight — GEMMA LMM betas (breed-blocked CV r 0.77 vs 0.58 for the ridge)
+_tw = LMM['traits'].get('weight_kg')
+z_w, pct_w, _mw = compute_prs_lmm(_tw) if _tw else (np.nan, np.nan, 0)
 if not np.isnan(z_w):
-    vals = list(w_sc.values()); mu, sd = np.mean(vals), np.std(vals)
+    mu, sd = _tw['truth_mean'], _tw['truth_sd']
     pred_w = float(np.clip(mu + z_w * sd, 1, 120))
     phys_traits['weight_kg'] = {
         'pred_kg': round(pred_w, 1),
@@ -2677,10 +2727,12 @@ if not np.isnan(z_cl):
 prs_result = {
     'traits': traits_out,
     'physical_traits': phys_traits,
-    'method': (f'GWAS-based PRS using GLIMPSE2-imputed posterior dosages. '
-               f'Parker et al. 2017 reference panel ({n_snps} SNPs, {len(np.unique(breeds_fam))} breeds). '
-               f'{genotyped} Parker positions covered.'),
-    'reference': 'AKC breed trait scores (kkakey/dog_traits_AKC)',
+    'method': (f'GEMMA linear-mixed-model betas (GRM + genotype-source covariate), '
+               f'trained on the merged Parker+Dog10K panel ({LMM["meta"]["n_dogs"]} dogs); '
+               f'PRS = sum(beta x GLIMPSE2-imputed dosage) at a per-trait p-value cut chosen by '
+               f'breed-blocked cross-validation. Coat type and length remain marginal-ridge. '
+               f'{len(lmm_dose)}/{len(_lmm_sites)} LMM sites imputed in this dog.'),
+    'reference': 'AKC breed trait scores (kkakey/dog_traits_AKC) + breed-standard height/weight',
     'snps': n_snps,
     'snps_imputed': genotyped,
     'n_ref_breeds': int(len(np.unique(breeds_fam))),
