@@ -207,7 +207,7 @@ preflight() {
   # because the transfer list was assembled by hand.
   for f in "$FASTA" "$DOG10K_PANEL" "$MICROBIOME_REF" "$PARKER_BED" "$PARKER_BIM" "$PARKER_FAM" \
            "$SCOPE_P" "$SCOPE_CLUST" "$OMIA_DB" "$REF_JSON/prs_reference.json" \
-           "$REF_JSON/prs_lmm_betas.json" \
+           "$REF_JSON/prs_lmm_betas.json.gz" \
            "$D/COSMO/glimpse2_dog10k/het_out/dog10k_het.het" \
            "$D/COSMO/glimpse2_dog10k/het_out/panel_af.tsv.gz" \
            "$D/reference_panel/coverage_1mb.json"; do
@@ -2257,7 +2257,7 @@ if (( FROM_STAGE <= 11 && TO_STAGE >= 11 )); then
 # ── Stage 11: PRS from imputed dosages ──────────────────────
 log "=== Stage 11: PRS (imputed Parker dosages) ==="
 "$DATA_PYTHON" - << PYEOF
-import subprocess, numpy as np, json, csv, io, tempfile, os
+import subprocess, numpy as np, json, csv, io, tempfile, os, gzip
 
 BCF      = "$IMPUTED_BCF"
 BIM      = "$PARKER_BIM"
@@ -2475,19 +2475,22 @@ def compute_prs_ridge(breed_scores_by_code, G_sub, s_sub, breeds, lambda_frac=0.
 # ── LMM betas (GEMMA) for the benchmarked traits ──────────────────────────
 # Replaces on-the-fly marginal-ridge GWAS for the 14 AKC behaviour traits and
 # height/weight. Benchmarked 2026-08-16, 5-fold breed-blocked CV on held-out
-# breeds: LMM betas beat the ridge on 12-13/16 traits (height r 0.71->0.88,
-# weight 0.58->0.73, shedding doubled) — the ridge's structure-confounded
-# betas lost even on purebreds, the setting most favourable to them.
+# breeds: LMM betas beat the ridge on 12-13/16 traits — the ridge's
+# structure-confounded betas lost even on purebreds.
+# DENSE (all ~131k SNPs, no p-cut): sparse CV-chosen cuts optimised
+# breed-level ranking but were brittle for individual mixed-breed dogs
+# (58-SNP weight score predicted a 13.6 kg dog at 44.6 kg; dense: 17.0 kg).
+# Dense loses almost nothing at breed level (mean r 0.437 vs 0.444).
 # Artifact: analysis/prs_lmm/ (GEMMA -lmm, GRM + genotype-source covariate,
-# merged Parker+Dog10K panel, per-trait p-cut chosen by CV).
-with open("$REF_JSON/prs_lmm_betas.json") as _f:
+# merged Parker+Dog10K panel; shared site table + per-trait beta vectors).
+with gzip.open("$REF_JSON/prs_lmm_betas.json.gz", 'rt') as _f:
     LMM = json.load(_f)
+LMM_SITES = LMM['sites']   # [chrom, pos, effect_allele, other_allele, panel_af]
 
 # One BCF query for every artifact site, GP -> E[alt copies].
-_lmm_sites = sorted({(sn[0], sn[1]) for t in LMM['traits'].values() for sn in t['snps']})
 _bedf = tempfile.NamedTemporaryFile(mode='w', suffix='.bed', delete=False)
-for _c, _p in _lmm_sites:
-    _bedf.write(f"{_c}\t{_p-1}\t{_p}\n")
+for _sn in LMM_SITES:
+    _bedf.write(f"{_sn[0]}\t{_sn[1]-1}\t{_sn[1]}\n")
 _bedf.close()
 _q = subprocess.run(['bcftools', 'query', '-R', _bedf.name,
                      '-f', '%CHROM\t%POS\t%REF\t%ALT\t[%GP]\n', BCF],
@@ -2503,22 +2506,33 @@ for _line in _q.stdout.splitlines():
     except ValueError:
         continue
     lmm_dose[(_f2[0], int(_f2[1]))] = (_f2[2], _f2[3], _g[1] + 2.0*_g[2])
-print(f"LMM artifact: {len(LMM['traits'])} traits, {len(_lmm_sites)} sites, "
+print(f"LMM artifact: {len(LMM['traits'])} traits, {len(LMM_SITES)} sites, "
       f"{len(lmm_dose)} imputed in this dog")
 
+# Precompute each site's dosage of its EFFECT allele once (shared site table,
+# so this is trait-independent); None where the dog has no imputed genotype
+# or the imputed alleles don't match the panel's.
+_lmm_ea_dose = []
+for _sn in LMM_SITES:
+    _hit = lmm_dose.get((_sn[0], _sn[1]))
+    if _hit and {_sn[2], _sn[3]} == {_hit[0], _hit[1]}:
+        _lmm_ea_dose.append(_hit[2] if _sn[2] == _hit[1] else 2.0 - _hit[2])
+    else:
+        _lmm_ea_dose.append(None)
+
 def compute_prs_lmm(tinfo):
-    """PRS from stored GEMMA betas; z and percentile against the stored
+    """Dense PRS from stored GEMMA betas; z and percentile against the stored
     reference distribution. Sites this dog cannot be imputed at contribute
     their panel-mean (beta * 2af), which keeps the dog's raw score on the
     same scale as ref_prs_sorted."""
     prs, matched = 0.0, 0
-    for chrom, pos, ea, oa, beta, af in tinfo['snps']:
-        hit = lmm_dose.get((chrom, pos))
-        if hit and {ea, oa} == {hit[0], hit[1]}:
-            d = hit[2] if ea == hit[1] else 2.0 - hit[2]
-            matched += 1
+    for _sn, d, beta in zip(LMM_SITES, _lmm_ea_dose, tinfo['beta']):
+        if beta == 0.0:
+            continue
+        if d is None:
+            d = 2.0 * _sn[4]
         else:
-            d = 2.0 * af
+            matched += 1
         prs += beta * d
     ref = tinfo['ref_prs_sorted']
     mu, sd = float(np.mean(ref)), float(np.std(ref)) + 1e-8
@@ -2653,7 +2667,7 @@ def bin_scores_phys(col, target):
 
 phys_traits = {}
 
-# Height — GEMMA LMM betas (breed-blocked CV r 0.88 vs 0.71 for the ridge)
+# Height — dense GEMMA LMM betas (breed-blocked CV r 0.82 vs 0.71 for the ridge)
 _th = LMM['traits'].get('height_cm')
 z_h, pct_h, _mh = compute_prs_lmm(_th) if _th else (np.nan, np.nan, 0)
 if not np.isnan(z_h):
@@ -2669,7 +2683,9 @@ if not np.isnan(z_h):
     }
     print(f"  Height: {pred_h:.1f}cm (z={z_h:.3f}, pct={pct_h:.1f})")
 
-# Weight — GEMMA LMM betas (breed-blocked CV r 0.77 vs 0.58 for the ridge)
+# Weight — dense GEMMA LMM betas (breed-blocked CV r 0.67 vs 0.58 for the
+# ridge at breed level; dense chosen over sparse cuts for individual-dog
+# robustness — see the artifact header above)
 _tw = LMM['traits'].get('weight_kg')
 z_w, pct_w, _mw = compute_prs_lmm(_tw) if _tw else (np.nan, np.nan, 0)
 if not np.isnan(z_w):
@@ -2729,9 +2745,11 @@ prs_result = {
     'physical_traits': phys_traits,
     'method': (f'GEMMA linear-mixed-model betas (GRM + genotype-source covariate), '
                f'trained on the merged Parker+Dog10K panel ({LMM["meta"]["n_dogs"]} dogs); '
-               f'PRS = sum(beta x GLIMPSE2-imputed dosage) at a per-trait p-value cut chosen by '
-               f'breed-blocked cross-validation. Coat type and length remain marginal-ridge. '
-               f'{len(lmm_dose)}/{len(_lmm_sites)} LMM sites imputed in this dog.'),
+               f'dense PRS = sum(beta x GLIMPSE2-imputed dosage) over all '
+               f'{len(LMM_SITES)} panel SNPs (no p-value thresholding — sparse scores '
+               f'are brittle for individual mixed-breed dogs). '
+               f'Coat type and length remain marginal-ridge. '
+               f'{len(lmm_dose)}/{len(LMM_SITES)} LMM sites imputed in this dog.'),
     'reference': 'AKC breed trait scores (kkakey/dog_traits_AKC) + breed-standard height/weight',
     'snps': n_snps,
     'snps_imputed': genotyped,
