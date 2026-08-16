@@ -86,7 +86,7 @@ def main():
         vals = list(species.values())
         tot = sum(vals)
         shannon = -sum((v / tot) * math.log(v / tot) for v in vals) if tot > 0 else 0.0
-        dogs.append({'sample': sample, 'age': ages.get(sample),
+        dogs.append({'sample': sample, 'age': ages.get(str(sample).lower()),
                      'richness': len(species), 'shannon': round(shannon, 4),
                      'pathobiont_pct': round(patho, 4), 'species': species})
 
