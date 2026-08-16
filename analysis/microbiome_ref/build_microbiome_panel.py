@@ -66,8 +66,23 @@ def main():
 
     dogs = []
     db_versions = set()
+    read_lengths = set()
     for p in sorted(glob.glob(pattern)):
         d = json.load(open(p))
+        # The platform fingerprint. An age model trained on this panel must not
+        # be applied to samples from another platform: the four MGI (100bp)
+        # samples validated against the Illumina (151bp) panel all came out
+        # ~+5 years over baseline with near-identical feature contributions
+        # for a 2.5-year-old and a 9-year-old — batch shift read as age. No
+        # cheap per-sample statistic detects it (range and distance checks
+        # both fail); read length at least catches cross-platform use.
+        try:
+            import os as _os
+            q = json.load(open(_os.path.join(_os.path.dirname(p), 'qc_result.json')))
+            if q.get('read_length_bp'):
+                read_lengths.add(int(q['read_length_bp']))
+        except Exception:
+            pass
         sample = d.get('sample', p)
         db_versions.add(d.get('db_version', '?'))
         # species abundances as % of classified bacteria — the same units
@@ -111,6 +126,7 @@ def main():
                     'min_prevalence': MIN_PREVALENCE,
                     'n_species_kept': len(keep),
                     'ages_source': sheet.split('/')[-1],
+                    'read_lengths_bp': sorted(read_lengths),
                     'pathobionts': PATHOBIONTS},
            'dogs': dogs}
     with open(out_path, 'w') as fh:

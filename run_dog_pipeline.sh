@@ -3589,11 +3589,36 @@ print(f"Matched features: {len(matched_features)}")
 
 # ── 4. Age prediction (RidgeCV on the cohort) ──────────────
 aged = [d for d in panel_dogs if d.get('age') is not None]
-# Too few aged dogs and the model is fiction; skip the prediction rather than
-# train on nothing. The UI shows no age card when the file is absent.
+# Two conditions under which the prediction must not be made.
+#
+# Too few aged dogs: the model is fiction.
+#
+# Platform mismatch: validated directly on this cohort. Four MGI (100bp)
+# samples scored against the Illumina (151bp) panel all predicted ~+5 years
+# over baseline, with near-identical per-feature contributions for a
+# 2.5-year-old and a 9-year-old — the model reads the batch shift as age, and
+# no per-sample statistic we tried (range, centroid or nearest-neighbour
+# distance) can detect the shift. Read length is the fingerprint we have.
+# The UI shows no age card when the file carries null.
 MIN_AGED = 20
+_panel_rl = set(_panel['meta'].get('read_lengths_bp') or [])
+_sample_rl = None
+try:
+    with open(f'{PUB}/qc_result.json') as _qf:
+        _sample_rl = json.load(_qf).get('read_length_bp')
+except Exception:
+    pass
+_platform_ok = not _panel_rl or _sample_rl is None or int(_sample_rl) in _panel_rl
+skip_reason = None
 if len(aged) < MIN_AGED:
-    print(f"WARNING: only {len(aged)} panel dogs have ages (<{MIN_AGED}) — age prediction skipped")
+    skip_reason = f"only {len(aged)} panel dogs have ages (<{MIN_AGED})"
+elif not _platform_ok:
+    skip_reason = (f"read length {_sample_rl}bp vs panel {sorted(_panel_rl)} — "
+                   f"cross-platform age prediction reads batch shift as age")
+if skip_reason:
+    print(f"WARNING: age prediction skipped — {skip_reason}")
+    with open(f'{PUB}/microbiome_age_result.json', 'w') as fh:
+        fh.write('null')
 else:
     X_ref = np.log10(np.array([[d['species'].get(f, 0.0) for f in sp_filtered]
                                for d in aged]) + 1e-5)
