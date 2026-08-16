@@ -162,9 +162,12 @@ def main():
     with open(os.path.join(workdir, 'columns.tsv'), 'w') as fh:
         for i, (t, fold) in enumerate(header, 1):
             fh.write(f'{t}\t{fold}\t{i}\n')
+    # A single-source subset makes the source column constant, hence collinear
+    # with the intercept; GEMMA rejects singular covariates.
     with open(os.path.join(workdir, 'covar.txt'), 'w') as fh:
-        for s in source:
-            fh.write(f'1\t{s}\n')
+        two_sources = len(set(source)) > 1
+        for sv in source:
+            fh.write(f'1\t{sv}\n' if two_sources else '1\n')
 
     n_traits = len({t for t, _ in header})
     print(f'{len(fam)} dogs, {len(scored)} scored breeds, '

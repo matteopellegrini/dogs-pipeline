@@ -58,6 +58,12 @@ def ridge_betas(G, y, lambda_frac=0.1):
 
 def main():
     work, bfile = sys.argv[1], sys.argv[2]
+    # Optional third arg: breed list to restrict EVALUATION to, so different
+    # panels can be compared on identical held-out breeds. Training is
+    # untouched — only which test breeds are scored.
+    only = None
+    if len(sys.argv) > 3:
+        only = {l.split()[0] for l in open(sys.argv[3])}
     fam, snps, dose = read_bed(bfile)   # dose: m x n
     breeds = np.array([f[0] for f in fam])
     snp_idx = {s: i for i, s in enumerate(snps)}
@@ -122,6 +128,8 @@ def main():
 
             bt = breeds[te]
             for b in sorted(set(bt)):
+                if only is not None and b not in only:
+                    continue
                 mask = bt == b
                 preds_r.append(pr[mask].mean())
                 preds_l.append(pl[mask].mean())
