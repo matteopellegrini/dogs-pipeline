@@ -78,7 +78,8 @@ def main():
 
     cache = os.path.join(os.path.dirname(pipeline_sh), 'breed_traits.csv')
     if not os.path.exists(cache):
-        r = subprocess.run(['curl', '-sL', AKC_URL], capture_output=True, text=True, check=True)
+        r = subprocess.run(['curl', '-sL', AKC_URL], stdout=subprocess.PIPE,
+                           universal_newlines=True, check=True)
         open(cache, 'w', encoding='utf-8').write(r.stdout)
     akc = {row['Breed'].strip().replace('\xa0', ' '): row
            for row in csv.DictReader(open(cache, encoding='utf-8'))}
