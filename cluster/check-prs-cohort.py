@@ -65,7 +65,7 @@ def main():
     root = sys.argv[1]
     pipeline_sh = sys.argv[2] if len(sys.argv) > 2 else \
         os.path.join(os.path.dirname(__file__), '..', 'run_dog_pipeline.sh')
-    src = open(pipeline_sh).read()
+    src = open(pipeline_sh, encoding='utf-8').read()
     height_cm = extract_dict(src, 'BREED_HEIGHT_CM')
     weight_kg = extract_dict(src, 'BREED_WEIGHT_KG')
     parker_to_akc = extract_dict(src, 'PARKER_TO_AKC')
@@ -79,17 +79,17 @@ def main():
     cache = os.path.join(os.path.dirname(pipeline_sh), 'breed_traits.csv')
     if not os.path.exists(cache):
         r = subprocess.run(['curl', '-sL', AKC_URL], capture_output=True, text=True, check=True)
-        open(cache, 'w').write(r.stdout)
+        open(cache, 'w', encoding='utf-8').write(r.stdout)
     akc = {row['Breed'].strip().replace('\xa0', ' '): row
-           for row in csv.DictReader(open(cache))}
+           for row in csv.DictReader(open(cache, encoding='utf-8'))}
     akc_by_tokens = {tokens(n): n for n in akc}
 
     rows = []
     for d in sorted(os.listdir(root)):
         pd = os.path.join(root, d)
         try:
-            prs = json.load(open(os.path.join(pd, 'prs_result.json')))
-            br = json.load(open(os.path.join(pd, 'breed_result.json')))
+            prs = json.load(open(os.path.join(pd, 'prs_result.json'), encoding='utf-8'))
+            br = json.load(open(os.path.join(pd, 'breed_result.json'), encoding='utf-8'))
         except Exception:
             continue
         comp = br.get('breed_composition') or []
