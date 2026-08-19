@@ -209,6 +209,7 @@ preflight() {
            "$SCOPE_P" "$SCOPE_CLUST" "$OMIA_DB" "$REF_JSON/prs_reference.json" \
            "$REF_JSON/prs_lmm_betas.json.gz" \
            "$REF_JSON/darwins_ark_size_prs.tsv.gz" "$REF_JSON/darwins_ark_blend.json" \
+           "$REF_JSON/darwins_ark/manifest.json.gz" "$REF_JSON/darwins_ark/wts_biddability.tsv.gz" \
            "$D/COSMO/glimpse2_dog10k/het_out/dog10k_het.het" \
            "$D/COSMO/glimpse2_dog10k/het_out/panel_af.tsv.gz" \
            "$D/reference_panel/coverage_1mb.json"; do
@@ -2764,6 +2765,113 @@ if 'weight_kg' in phys_traits:
     print(f"  Weight blended: {_blend_kg:.1f}kg (dense {_dense_kg:.1f}kg, "
           f"DA prs {_da_prs:.1f}, {_da_matched}/{len(_da_rows)} sites)")
 
+# ── Darwin's Ark individual-level traits (behaviour factors + physical) ────
+# Trained on 2,155 dogs with INDIVIDUAL owner-reported phenotypes (Morrill
+# 2022), so unlike the AKC breed-level scores these see within-breed
+# variation. Weights are p<=0.1, platform-filtered to Dog10K-imputable sites
+# (every site scores; no fallback dilution). Honest z uses the manifest's
+# z_scale — in-sample references overstate spread ~25-40% (held-out CV;
+# independently confirmed by 96 external dogs, sd ratio 0.795 vs 0.796).
+# Behaviour factors additionally blend with the dog's breed-composition
+# expectation (per-breed means from 14k survey-only purebreds) — held-out CV
+# showed ancestry ~ PRS in signal with blend best on 8/9 traits.
+import math as _math
+with gzip.open("$REF_JSON/darwins_ark/manifest.json.gz", 'rt') as _f:
+    _DAM = json.load(_f)
+_da_all = {}      # trait -> list of (chr, pos, ea, oa, beta, af)
+_da_union = {}    # (chr,pos) -> None (union of sites for ONE bcftools query)
+for _t in _DAM['traits']:
+    _rows = []
+    with gzip.open(f"$REF_JSON/darwins_ark/wts_{_t}.tsv.gz", 'rt') as _f:
+        for _line in _f:
+            _p = _line.split()
+            _rows.append((_p[0], _p[1], _p[2], _p[3], float(_p[4]), float(_p[5])))
+            _da_union[(_p[0], _p[1])] = None
+    _da_all[_t] = _rows
+_bedf3 = tempfile.NamedTemporaryFile(mode='w', suffix='.bed', delete=False)
+for _c, _p in sorted(_da_union, key=lambda cp: (cp[0], int(cp[1]))):
+    _bedf3.write(f"{_c}\t{int(_p)-1}\t{_p}\n")
+_bedf3.close()
+_q3 = subprocess.run(['bcftools', 'query', '-R', _bedf3.name,
+                      '-f', '%CHROM\t%POS\t%REF\t%ALT\t[%GP]\n', BCF],
+                     capture_output=True, text=True)
+os.unlink(_bedf3.name)
+_dam_dose = {}
+for _line in _q3.stdout.splitlines():
+    _f2 = _line.split('\t')
+    if len(_f2) != 5: continue
+    _gp = _f2[4].split(',')
+    if len(_gp) != 3: continue
+    try:
+        _g = [float(x) for x in _gp]
+    except ValueError:
+        continue
+    _dam_dose[(_f2[0], _f2[1])] = (_f2[2], _f2[3], _g[1] + 2.0*_g[2])
+print(f"Darwin's Ark traits: {len(_DAM['traits'])} traits, "
+      f"{len(_da_union)} union sites, {len(_dam_dose)} imputed")
+
+# breed-composition expectation per trait (ancestry blend input)
+_da_means = _DAM.get('breed_trait_means', {})
+_da_comp = []
+try:
+    with open(f'{PUB}/breed_result.json') as _f:
+        _brj = json.load(_f)
+    _da_comp = [(_r['breed'], float(_r['proportion']))
+                for _r in (_brj.get('breed_composition_raw') or _brj.get('breed_composition') or [])]
+except Exception:
+    pass
+def _da_ancestry_expectation(trait):
+    _tot, _s = 0.0, 0.0
+    for _b, _pr in _da_comp:
+        _v = _da_means.get(_b, {}).get(trait)
+        if _v is not None:
+            _tot += _pr; _s += _pr * _v
+    return (_s / _tot) if _tot >= 0.5 else None
+
+da_traits = {'factors': {}, 'physical': {}}
+for _t, _info in _DAM['traits'].items():
+    _prs, _matched = 0.0, 0
+    for _c, _p, _ea, _oa, _beta, _af in _da_all[_t]:
+        _hit = _dam_dose.get((_c, _p))
+        if _hit and {_ea, _oa} == {_hit[0], _hit[1]}:
+            _d = _hit[2] if _ea == _hit[1] else 2.0 - _hit[2]
+            _matched += 1
+        else:
+            _d = 2.0 * _af
+        _prs += _beta * _d
+    _ref = _info['ref_prs_sorted']
+    _rmu = float(np.mean(_ref)); _rsd = float(np.std(_ref)) + 1e-9
+    _z = (_prs - _rmu) / (_rsd * _info['z_scale'])
+    _pct = 50.0 * (1.0 + _math.erf(_z / _math.sqrt(2.0)))
+    _entry = {'display': _info['display'],
+              'prs_z': round(_z, 3),
+              'percentile': round(_pct, 1),
+              'h2_snp': _info['h2_snp'],
+              'n_sites': _info['n_sites'],
+              'sites_matched': _matched,
+              'n_training_dogs': _info['n_pheno']}
+    if 'cv_r_heldout' in _info:
+        _entry['cv_r'] = _info['cv_r_heldout']
+    if _info['kind'] == 'physical':
+        _pred = _info['truth_mean'] + _z * _info['truth_sd']
+        _anch = min(_info['anchors'], key=lambda a: abs(a[0] - _pred))
+        _entry['predicted'] = _anch[1]
+        da_traits['physical'][_t] = _entry
+        print(f"  DA {_info['display']}: {_anch[1]} (z={_z:+.2f}, pct={_pct:.0f})")
+    elif _info['kind'] == 'factor':
+        _bl = _info.get('ancestry_blend')
+        _anc = _da_ancestry_expectation(_t)
+        if _bl and _anc is not None:
+            _bv = _bl['w0'] + _bl['w_prs_z'] * _z + _bl['w_ancestry'] * _anc
+            _zb = (_bv - _info['truth_mean']) / (_info['truth_sd'] + 1e-9)
+            _entry['blended_percentile'] = round(50.0 * (1.0 + _math.erf(_zb / _math.sqrt(2.0))), 1)
+            _entry['ancestry_expectation'] = round(_anc, 3)
+            _entry['cv_r_blend'] = _bl['cv_r_blend']
+        da_traits['factors'][_t] = _entry
+        print(f"  DA {_info['display']}: z={_z:+.2f} pct={_pct:.0f}"
+              + (f" blended_pct={_entry['blended_percentile']:.0f}" if 'blended_percentile' in _entry else ""))
+    # 'size' kind feeds the weight blend above; skip separate reporting
+
 # Coat type — per-category binary, pick highest z-score
 coat_types = ['Double','Smooth','Wavy','Curly','Silky','Wiry','Rough']
 ct_best, ct_best_z, ct_best_pct = None, -np.inf, 50.0
@@ -2804,6 +2912,13 @@ if not np.isnan(z_cl):
 
 prs_result = {
     'traits': traits_out,
+    'individual_traits': {
+        **da_traits,
+        'method': ("Individual-level PRS from Darwin's Ark (Morrill 2022, Science; 2,155 dogs "
+                   "with owner-reported phenotypes; GEMMA LMM, p<=0.1 weights on "
+                   "platform-imputable sites). Percentiles are held-out-calibrated (z_scale). "
+                   "Behaviour factors blend PRS with the dog's breed-composition expectation."),
+    },
     'physical_traits': phys_traits,
     'method': (f'GEMMA linear-mixed-model betas (GRM + genotype-source covariate), '
                f'trained on the merged Parker+Dog10K panel ({LMM["meta"]["n_dogs"]} dogs); '
