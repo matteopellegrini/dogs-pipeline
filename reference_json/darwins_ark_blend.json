@@ -1,0 +1,15 @@
+{
+ "intercept": 4.197455,
+ "coef_dense_pred_kg": 0.809278,
+ "coef_da_size_prs": 0.0048731,
+ "fit": {
+  "n_dogs": 94,
+  "r": 0.9226,
+  "mae_kg": 5.06,
+  "crossfit_r": 0.919,
+  "crossfit_mae_kg": 5.1,
+  "truth": "owner-reported weights, 96-dog reference cohort, 2026-08-18"
+ },
+ "da_weights": "darwins_ark_size_prs.tsv.gz (621,171 canFam4 sites, p<=0.1, GEMMA LMM on 2,155 Darwin\u2019s Ark dogs, Morrill 2022 Dryad CC0)",
+ "note": "pred_kg = intercept + coef_dense*dense_breed_level_pred + coef_da*raw DA size PRS; missing-site fallback beta*2af keeps the raw PRS scale platform-stable"
+}
