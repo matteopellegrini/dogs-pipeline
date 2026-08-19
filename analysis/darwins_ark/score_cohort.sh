@@ -21,6 +21,12 @@ D_DEFAULT="/u/project/pellegrini/$USER/dogs"
 [ -d "$D_DEFAULT/envs/genomics/bin" ] && export PATH="$D_DEFAULT/envs/genomics/bin:$PATH"
 command -v bcftools >/dev/null || { echo "ERROR: bcftools not on PATH" >&2; exit 1; }
 
+# The genomics env's tools link OpenBLAS, which pre-allocates per-thread
+# buffers for every core on the node — on a 36-core node under h_data=4G that
+# allocation fails outright ("Memory allocation still failed after 10
+# retries") and bcftools query returns nothing. One thread is plenty here.
+export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
+
 NROWS=$(wc -l < "$SHEET")
 echo "sheet $SHEET: $((NROWS-1)) data rows" >&2
 echo -e "sample\tprs\tmatched" > "$OUT"
