@@ -21,6 +21,12 @@ DRY=""
 APP="$D/dogs-app"
 [[ -d "$APP" ]] || { echo "ERROR: no app checkout at $APP — clone dogs-app there first (it is private)"; exit 1; }
 
+# publish-results.mjs needs global fetch (node >= 18); Hoffman's system node is
+# v16 and there is no nodejs module, so bootstrap installs one at $D/envs/node.
+[[ -x "$D/envs/node/bin/node" ]] && export PATH="$D/envs/node/bin:$PATH"
+node -e 'if (typeof fetch !== "function") process.exit(1)' \
+  || { echo "ERROR: node $(node --version 2>/dev/null) lacks fetch — need >= 18 (mamba create -p \$D/envs/node -c conda-forge nodejs=20)"; exit 1; }
+
 # Results may be staged anywhere under $D (the cluster keeps them outside the app
 # checkout, unlike the Mac), so search rather than assuming one layout.
 mapfile -t markers < <(find "$D" -maxdepth 4 -name .pending-publish -type f 2>/dev/null)
