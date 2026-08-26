@@ -211,8 +211,7 @@ preflight() {
            "$REF_JSON/darwins_ark_size_prs.tsv.gz" "$REF_JSON/darwins_ark_blend.json" \
            "$REF_JSON/darwins_ark/manifest.json.gz" "$REF_JSON/darwins_ark/wts_biddability.tsv.gz" \
            "$D/COSMO/glimpse2_dog10k/het_out/dog10k_het.het" \
-           "$D/COSMO/glimpse2_dog10k/het_out/panel_af.tsv.gz" \
-           "$D/reference_panel/coverage_1mb.json"; do
+           "$D/COSMO/glimpse2_dog10k/het_out/panel_af.tsv.gz"; do
     [[ -e "$f" ]] || { log "  MISSING REFERENCE: $f"; missing=1; }
   done
   [[ -d "$CHUNKS_DIR" ]] || { log "  MISSING REFERENCE: $CHUNKS_DIR"; missing=1; }
@@ -606,22 +605,16 @@ except Exception as _e:
     print(f"WARNING: no coverage panel at {cov_panel_path} ({_e}) — "
           "windows will carry no significance")
 
-# Load COSMO reference (cosmo/panel reference tracks for tooltip)
-cosmo_ref_path = "$REF_JSON/coverage_1mb.json"
-try:
-    with open(cosmo_ref_path) as _f:
-        cosmo_ref = _json.load(_f)
-except Exception:
-    cosmo_ref = {}
-
 result = {}
 for chrom, arr in raw.items():
-    ref   = cosmo_ref.get(chrom, {})
-    cosmo_arr = ref.get('cosmo', []) if isinstance(ref, dict) else []
-    panel_arr = ref.get('panel', []) if isinstance(ref, dict) else []
+    # Tooltip depth tracks. These used to be copied from a legacy reference
+    # file that lost its 'cosmo'/'panel' keys in a rebuild, which silently
+    # zero-padded both series in every report since. The sample's own depth
+    # is already in hand, and the panel's expected depth is derived per
+    # window from the panel stats in the loop below.
+    cosmo_arr = arr
+    panel_arr = []   # per window: panel median ratio × sample median depth, or None
     n = len(arr)
-    cosmo_arr = cosmo_arr[:n] + [0.0] * max(0, n - len(cosmo_arr))
-    panel_arr = panel_arr[:n] + [0.0] * max(0, n - len(panel_arr))
     if chrom == 'chrX' and predicted_sex == 'male':
         # PAR1 windows are diploid in males (depth ≈ autosomal); non-PAR windows are hemizygous (depth ≈ 0.5×).
         # Use per-window normalization: above 0.75× autosomal → PAR1 → divide by kiki_median;
@@ -670,6 +663,9 @@ for chrom, arr in raw.items():
     for i, d in enumerate(arr):
         st = panel_idx.get((chrom, i * 1000000, pkey))
         sc = scale_arr[i] if i < len(scale_arr) else 1.0
+        # Expected depth of a typical panel dog here, expressed at this
+        # sample's sequencing depth so Sample and Panel are comparable.
+        panel_arr.append(round(st['median'] * kiki_median, 2) if st else None)
         # THE question a reader has: of the reference dogs, how many show this
         # much coverage here, or more? Counted from the panel's actual values at
         # this window, in the direction this dog deviates. A threshold-crossing
@@ -697,8 +693,8 @@ for chrom, arr in raw.items():
             continue
         z_arr.append(round(((d / kiki_median) - st['median']) / st['mad_sd'], 2))
     result[chrom] = {
-        'cosmo': [round(v, 4) for v in cosmo_arr],
-        'panel': [round(v, 4) for v in panel_arr],
+        'cosmo': [round(v, 2) for v in cosmo_arr],
+        'panel': panel_arr,
         'ratio': ratio_arr,
         'z': z_arr,
         'pct_dogs': pct_arr,
