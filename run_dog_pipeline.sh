@@ -210,6 +210,7 @@ preflight() {
            "$REF_JSON/prs_lmm_betas.json.gz" \
            "$REF_JSON/darwins_ark_size_prs.tsv.gz" "$REF_JSON/darwins_ark_blend.json" \
            "$REF_JSON/darwins_ark/manifest.json.gz" "$REF_JSON/darwins_ark/wts_biddability.tsv.gz" \
+           "$REF_JSON/mito_haplogroups.json.gz" \
            "$D/COSMO/glimpse2_dog10k/het_out/dog10k_het.het" \
            "$D/COSMO/glimpse2_dog10k/het_out/panel_af.tsv.gz"; do
     [[ -e "$f" ]] || { log "  MISSING REFERENCE: $f"; missing=1; }
@@ -1252,6 +1253,94 @@ cnv_out = {
 with open(f'{pub}/cnv_homdel.json', 'w') as f:
     json.dump(cnv_out, f, indent=2)
 print(f"cnv_homdel.json: {len(regions)} regions, {len(disrupted_all)} disrupted genes")
+PYEOF
+
+# ── 6d: Mitochondrial lineage ───────────────────────────────
+# Variants are called from a chrM-ONLY remap of the raw FASTQs, never from the
+# whole-genome BAM's chrM slice: canFam4 carries 321 NUMTs covering the entire
+# mito sequence, so ~98% of chrM reads in the whole-genome BAM are MAPQ<20 and
+# a MAPQ-filtered caller is nearly blind there. Against a chrM-only index the
+# same reads map at MAPQ 60. NUMT reads contaminate the remap instead, but mito
+# depth (66-543x measured) dwarfs nuclear depth (1-7x), so they are a few
+# percent of the pile — invisible to haploid consensus calling.
+log "=== Stage 6d: Mitochondrial lineage (chrM remap) ==="
+MITO_DIR=$OUT/mito
+mkdir -p "$MITO_DIR"
+$MM samtools faidx "$FASTA" chrM > "$MITO_DIR/chrM.fa"
+$MM samtools faidx "$MITO_DIR/chrM.fa"
+$MM bwa-mem2 index "$MITO_DIR/chrM.fa" >/dev/null 2>&1
+MITO_R1=$(ls "$FASTQ_DIR"/*_R1_*.fastq.gz 2>/dev/null | sort -V)
+MITO_R2=$(ls "$FASTQ_DIR"/*_R2_*.fastq.gz 2>/dev/null | sort -V)
+[[ -n "$MITO_R1" && -n "$MITO_R2" ]] || die "Stage 6d: no _R1_/_R2_ FASTQs in $FASTQ_DIR"
+$MM bwa-mem2 mem -t "$NPROC" "$MITO_DIR/chrM.fa" <(zcat $MITO_R1) <(zcat $MITO_R2) 2>"$MITO_DIR/bwa.log" \
+  | $MM samtools view -b -F 4 -q 20 - \
+  | $MM samtools sort -o "$MITO_DIR/chrM.bam" -
+$MM samtools index "$MITO_DIR/chrM.bam"
+$MM bcftools mpileup -f "$MITO_DIR/chrM.fa" -d 4000 -q 20 -Q 20 -a AD,DP "$MITO_DIR/chrM.bam" 2>/dev/null \
+  | $MM bcftools call -mv --ploidy 1 -Oz -o "$MITO_DIR/chrM.vcf.gz" 2>/dev/null
+$MM bcftools query -f '%POS\t%REF\t%ALT\t%QUAL\t[%AD]\n' "$MITO_DIR/chrM.vcf.gz" > "$MITO_DIR/snps.tsv"
+MITO_DEPTH=$($MM samtools depth -a "$MITO_DIR/chrM.bam" | awk '{s+=$3; n++} END {printf "%.0f", (n?s/n:0)}')
+log "  chrM mean depth ${MITO_DEPTH}x, $(wc -l < "$MITO_DIR/snps.tsv") raw variant rows"
+
+MITO_DEPTH="$MITO_DEPTH" MITO_DIR="$MITO_DIR" PUB_DIR="$PUB" REFJ="$REF_JSON" SAMPLE="$DOG_NAME" \
+"$DATA_PYTHON" - <<'PYEOF'
+import gzip, json, os
+
+# Assignment is SNP-set based (symmetric difference vs each labeled reference's
+# substitutions relative to canFam4 chrM). Whole-sequence distance is broken
+# here: a low-pass consensus inherits the reference everywhere reads don't
+# disagree, so sequence distance is dominated by shared VNTR/reference noise.
+refs = json.load(gzip.open(os.environ['REFJ'] + '/mito_haplogroups.json.gz', 'rt'))
+mito_dir, pub = os.environ['MITO_DIR'], os.environ['PUB_DIR']
+depth = int(os.environ['MITO_DEPTH'] or 0)
+
+dog, het = set(), 0
+for line in open(mito_dir + '/snps.tsv', encoding='utf-8'):
+    f = line.rstrip('\n').split('\t')
+    if len(f) < 5 or len(f[1]) != 1 or len(f[2]) != 1:
+        continue
+    pos, ref_a, alt, qual, ad = int(f[0]), f[1], f[2], float(f[3]), f[4]
+    parts = [int(x) for x in ad.split(',') if x.isdigit()]
+    af = parts[-1] / sum(parts) if parts and sum(parts) else 1.0
+    if qual < 30:
+        continue
+    if 0.10 <= af < 0.90:
+        het += 1
+    if af >= 0.7:
+        dog.add((pos - 1, alt))
+
+hits = sorted((len(dog ^ {tuple(s) for s in r['snps']}), r['haplotype'], r['acc'])
+              for r in refs['refs'])
+d0, hap0, acc0 = hits[0]
+group = hap0[0]
+margin = next(d for d, h, a in hits if h[0] != group) - d0
+conf = 'high' if margin >= 20 else ('moderate' if margin >= 10 else 'low')
+
+out = {
+    'haplogroup': group,
+    'nearest_haplotype': hap0,
+    'nearest_acc': acc0,
+    'snp_distance': d0,
+    'margin_to_other_group': margin,
+    'confidence': conf,
+    'n_snps_vs_reference': len(dog),
+    'mean_chrm_depth': depth,
+    'candidate_heteroplasmy_sites': het,
+    'heteroplasmy_note': ('Sites at intermediate allele fraction overlap the noise floor from '
+                          'nuclear mitochondrial insertions (NUMTs) and are not individually '
+                          'reported.'),
+    'top_matches': [{'haplotype': h, 'snp_distance': d} for d, h, a in hits[:3]],
+    'group_story': refs['groups'].get(group, ''),
+    'group_frequencies': {'A': '~65-70% of dogs', 'B': '~20%', 'C': '~5-10%', 'D': 'rare'},
+    'method': ('chrM-only remap of raw reads (whole-genome alignments are MAPQ-degraded by '
+               'NUMTs), haploid consensus calling, SNP-set nearest neighbor against '
+               '{} haplotype-labeled GenBank mitogenomes.'.format(refs['meta']['n_refs'])),
+    'snps': sorted([p, b] for p, b in dog),
+}
+with open(pub + '/mito_result.json', 'w', encoding='utf-8') as f:
+    json.dump(out, f, indent=2)
+print('mito_result.json: haplogroup {} ({}), dist {}, margin {}, depth {}x'.format(
+    group, hap0, d0, margin, depth))
 PYEOF
 fi # end stage 6
 
