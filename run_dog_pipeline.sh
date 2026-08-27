@@ -874,7 +874,12 @@ pct = {t: round(sum(1 for d in depths if d >= t)/len(depths)*100, 1) for t in [1
 # every window — a coefficient of variation under half a percent, against the
 # 50% shift a real deletion produces. Calling that "FAIL" told the report, and
 # the assistant reading it, that a perfectly good sample was inadequate.
-qc_status = 'PASS' if mean_d >= 3 else ('WARN' if mean_d >= 1 else 'FAIL')
+# GLIMPSE2 is designed for exactly this input: published imputation accuracy
+# holds well down to ~1x, so anything at or above that is a normal sample for
+# this product and gets no flag at all. Below 1x accuracy starts to degrade
+# (WARN); below 0.2x there is essentially no library and nothing downstream
+# can be trusted (FAIL).
+qc_status = 'PASS' if mean_d >= 1 else ('WARN' if mean_d >= 0.2 else 'FAIL')
 
 chrom_data = collections.defaultdict(list)
 for chrom, *_, d in windows_1mb: chrom_data[chrom].append(d)
@@ -932,7 +937,9 @@ qc = {'genome_mean_depth': round(mean_d,1), 'genome_median_depth': round(median_
     'n_low_bins': sum(1 for d in depths if d < 15), 'n_total_bins': len(depths),
     'chromosomes': chroms_out, 'qc_status': qc_status,
     'warning': None if mean_d >= 1 else
-               f"Mean depth {mean_d:.1f}x is below 1x; imputation and copy-number calling become unreliable.",
+               f"Mean depth {mean_d:.1f}x is below 1x; genotype imputation accuracy degrades below this point."
+               if mean_d >= 0.2 else
+               f"Mean depth {mean_d:.1f}x — essentially no usable coverage; results cannot be trusted.",
     'assessment': (f"Mean genome coverage {mean_d:.1f}x across {len(depths)} 1Mb bins. "
                    f"At 1Mb resolution that is ~{_reads_per_mb:,.0f} reads per window "
                    f"(±{_mb_cv_pct}% counting precision), which is ample for copy-number "
