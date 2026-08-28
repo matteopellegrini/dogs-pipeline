@@ -2067,6 +2067,31 @@ REL_DS="$REL_DS" REL_REF="$D/relatives_ref" PUB_DIR="$PUB" SAMPLE="$DOG_NAME" \
 import gzip, json, os
 import numpy as np
 
+# Depth gate, calibrated by downsampling cosmo3 (2026-08-28): at 0.3x KING
+# still finds every true duplicate at phi 0.47 with zero false matches, but at
+# 0.1x self-detection is lost entirely while FOUR spurious matches appear at up
+# to phi 0.437 — imputation collapse fabricates near-identical relatives.
+# Below the gate we publish an empty, honest result rather than noise.
+MIN_DEPTH = 0.3
+try:
+    _qc = json.load(open(os.environ['PUB_DIR'] + '/qc_result.json'))
+    _depth = float(_qc.get('genome_mean_depth') or 0)
+except Exception:
+    _depth = None
+if _depth is not None and _depth < MIN_DEPTH:
+    out = {
+        'n_reference_dogs': 0, 'n_sites_used': 0, 'matches': [], 'n_matches': 0,
+        'suppressed': True,
+        'summary': ('Relative matching is not reported for this sample: sequencing depth '
+                    '({:.1f}x) is below the {}x minimum at which kinship estimates are '
+                    'reliable for imputed genotypes.').format(_depth, MIN_DEPTH),
+        'method': 'Suppressed by depth gate (calibrated on downsampled truth data).',
+    }
+    with open(os.environ['PUB_DIR'] + '/relatives_result.json', 'w', encoding='utf-8') as f:
+        json.dump(out, f, indent=2)
+    print('relatives_result.json: suppressed (depth {}x < {}x)'.format(_depth, MIN_DEPTH))
+    raise SystemExit(0)
+
 ref_dir = os.environ['REL_REF']
 R = np.load(ref_dir + '/geno.npy')                       # sites x refs, int8, -1 = missing
 meta = json.load(gzip.open(ref_dir + '/meta.json.gz', 'rt'))
@@ -2097,10 +2122,12 @@ phi = np.where(denom > 0, (Nhh - 2.0 * Nopp) / np.maximum(denom, 1), -1.0)
 
 t = meta['thresholds']
 def category(v):
+    # The 'distant' tier (0.045-0.088) is deliberately NOT reported: pilot runs
+    # showed a recurring artifact trio of high-heterozygosity reference dogs
+    # polluting that band even for 1x queries. Second degree and closer only.
     if v >= t['self']: return 'same_dog'
     if v >= t['first_degree']: return 'first_degree'
     if v >= t['second_degree']: return 'second_degree'
-    if v >= t['third_degree']: return 'distant'
     return None
 
 sample_name = os.environ.get('SAMPLE', '').lower()
