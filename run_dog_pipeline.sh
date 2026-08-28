@@ -223,7 +223,11 @@ preflight() {
   # genotypes, and the run dies 45 minutes later when bcftools concat gets no
   # input. Job 14270502 task 19 lost DOGS-Gen-28 exactly this way on n6161.
   # A heterogeneous cluster will keep handing us such nodes; catch it in 1ms.
-  if [[ -r /proc/cpuinfo ]] && ! grep -qm1 '\bavx2\b' /proc/cpuinfo; then
+  # Only enforced when this run actually reaches Stage 7 — stage-6-only or
+  # stage-9+ backfills never touch GLIMPSE2 and must not be refused a node
+  # for a binary they will not execute.
+  if (( FROM_STAGE <= 7 && TO_STAGE >= 7 )) \
+     && [[ -r /proc/cpuinfo ]] && ! grep -qm1 '\bavx2\b' /proc/cpuinfo; then
     log "  CPU LACKS avx2 on $(hostname) — GLIMPSE2 would crash with SIGILL in Stage 7"
     missing=1
   fi
