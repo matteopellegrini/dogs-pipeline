@@ -2143,12 +2143,18 @@ for j in np.argsort(phi)[::-1]:
         continue
     # Privacy: reference-dog identifiers never reach the report — only breed,
     # source and relationship tier. Panel dogs are public research data.
-    matches.append({
+    entry = {
         'kinship': round(float(phi[j]), 3),
         'category': cat,
         'breed': s['label'],
         'source': 'Dog10K research panel' if s['source'] == 'dog10k' else 'Prosper K9 reference cohort',
-    })
+    }
+    # Reference dogs processed through the full pipeline carry their own
+    # report-derived descriptors — still anonymous, but far more vivid than a
+    # bare breed label ("a 24 kg black Labrador Retriever").
+    if s.get('weight_kg'): entry['weight_kg'] = s['weight_kg']
+    if s.get('coat'): entry['coat'] = s['coat']
+    matches.append(entry)
 
 out = {
     'n_reference_dogs': len(meta['samples']),
