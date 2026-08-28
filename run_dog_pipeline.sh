@@ -1562,14 +1562,31 @@ def gt_from_bam(chrom, pos, ref, alt, min_bq=20, min_mq=20):
     n_ref = counts.get(ref.upper(), 0)
     n_alt = counts.get(alt.upper(), 0)
     n_v = n_ref + n_alt
-    if total < 5 or n_v < 5:
+    # Floor lowered from 5 informative reads to 2 so a low-pass dog reports
+    # most of the catalogue rather than listing it untested. 2-4 reads is
+    # honest as a LOW-confidence call: with per-base error ~1% after the
+    # BQ>=20 filter, two concordant reads mis-genotype at well under 1%,
+    # while het vs hom remains genuinely uncertain — the zygosity_note says
+    # so, and affected low-confidence calls tell the owner to confirm with a
+    # targeted test before acting.
+    if total < 2 or n_v < 2:
         return None
     f_alt = n_alt / n_v
     zyg = 'ref/ref' if f_alt < 0.1 else ('alt/alt' if f_alt > 0.9 else 'het')
-    conf = 'high' if total >= 20 else ('medium' if total >= 10 else 'low')
-    return {'zygosity': zyg, 'depth': total, 'ref_count': n_ref, 'alt_count': n_alt,
-            'affected': zyg in ('alt/alt', 'het'), 'call_confidence': conf,
-            'source': 'bam_direct'}
+    if n_v < 5:
+        # At 2-4 reads a het can easily sample only one allele: an all-ref or
+        # all-alt pile does not exclude het, so only the presence calls are
+        # trustworthy; zygosity is indicative.
+        conf = 'low'
+    else:
+        conf = 'high' if total >= 20 else ('medium' if total >= 10 else 'low')
+    out = {'zygosity': zyg, 'depth': total, 'ref_count': n_ref, 'alt_count': n_alt,
+           'affected': zyg in ('alt/alt', 'het'), 'call_confidence': conf,
+           'source': 'bam_direct'}
+    if n_v < 5 and out['affected']:
+        out['note'] = ('Called from only {} reads — low confidence; confirm with a '
+                       'targeted DNA test before acting on this.').format(n_v)
+    return out
 
 variants = []
 n_panel = 0; n_bam = 0; n_indel = 0; n_not_callable = 0
