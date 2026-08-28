@@ -1596,20 +1596,30 @@ for v in omia_ref.get('variants', []):
             # Site is in Dog10K panel — only report if GP is high-confidence
             n_panel += 1
             max_gp = max(gp) if gp else 0.0
-            if max_gp >= GP_HIGH:
+            # Report the genotype at every panel site, graded by posterior
+            # rather than hidden below a single cutoff: >=0.90 high,
+            # >=0.70 medium, >=0.50 low. Below 0.50 the posterior barely
+            # prefers one genotype over another and no call is honest.
+            # (Previously anything under 0.90 was suppressed entirely, which
+            # left most of the catalogue "untested" for sub-2x dogs.)
+            if max_gp >= 0.50:
                 alleles = re.split(r'[|/]', gt)
                 zyg = ('alt/alt' if set(alleles) == {'1'} else
                        'ref/ref' if set(alleles) == {'0'} else 'het')
+                conf = 'high' if max_gp >= GP_HIGH else ('medium' if max_gp >= 0.70 else 'low')
                 call = {'zygosity': zyg, 'affected': zyg in ('alt/alt', 'het'),
-                        'call_confidence': 'high', 'glimpse2_gt': gt,
+                        'call_confidence': conf, 'glimpse2_gt': gt,
                         'glimpse2_gp': gp, 'source': 'dog10k_imputed'}
+                if conf != 'high' and call['affected']:
+                    call['note'] = ('Genotype posterior {:.2f} — below the high-confidence threshold; '
+                                    'confirm with a targeted DNA test before acting on this.').format(max_gp)
                 if af is not None:
                     call['af_dog10k'] = round(af, 4)
             else:
                 call = {'zygosity': 'low_gp_no_call', 'affected': False,
                         'call_confidence': 'low', 'glimpse2_gt': gt,
                         'glimpse2_gp': gp, 'source': 'dog10k_imputed',
-                        'note': f'max GP {max_gp:.2f} below {GP_HIGH} threshold'}
+                        'note': f'max GP {max_gp:.2f} too uncertain to call'}
             new_v[DOG] = call
 
         else:
