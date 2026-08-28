@@ -211,6 +211,7 @@ preflight() {
            "$REF_JSON/darwins_ark_size_prs.tsv.gz" "$REF_JSON/darwins_ark_blend.json" \
            "$REF_JSON/darwins_ark/manifest.json.gz" "$REF_JSON/darwins_ark/wts_biddability.tsv.gz" \
            "$REF_JSON/mito_haplogroups.json.gz" \
+           "$D/relatives_ref/geno.npy" "$D/relatives_ref/meta.json.gz" "$D/relatives_ref/keys.tsv" \
            "$D/COSMO/glimpse2_dog10k/het_out/dog10k_het.het" \
            "$D/COSMO/glimpse2_dog10k/het_out/panel_af.tsv.gz"; do
     [[ -e "$f" ]] || { log "  MISSING REFERENCE: $f"; missing=1; }
@@ -2042,6 +2043,93 @@ breed_result = {
 with open(f'{PUB}/breed_result.json', 'w') as f:
     json.dump(breed_result, f, indent=2)
 print("breed_result.json written")
+PYEOF
+
+# ── 9b: Relatives (KING-robust kinship vs reference dogs) ───
+# KING-robust, not a GRM: with global allele frequencies a GRM scores two
+# unrelated Boxers at phi ~0.9 purely from breed homogeneity, while KING keeps
+# same-breed background below ~0.05 — under the 2nd-degree threshold (0.0884).
+# Validated on this cohort: same-dog kit pairs 0.499, cross-platform same-dog
+# 0.489, known sib groups 0.20-0.26, Cosmo vs Luna -0.03 (unrelated).
+log "=== Stage 9b: Relatives (KING kinship vs $((2031)) reference dogs) ==="
+REL_DS="$OUT/relatives_ds.tsv"
+awk 'NR>1{print $1"\t"$2}' "$BREED_SITES" > "$OUT/relatives_sites.pos"
+$MM bcftools query -R "$OUT/relatives_sites.pos" -f '%CHROM\t%POS\t%REF\t%ALT[\t%DS]\n' \
+    "$IMPUTED_BCF" > "$REL_DS"
+log "  dosages at $(wc -l < "$REL_DS") reference sites"
+
+REL_DS="$REL_DS" REL_REF="$D/relatives_ref" PUB_DIR="$PUB" SAMPLE="$DOG_NAME" \
+"$DATA_PYTHON" - <<'PYEOF'
+import gzip, json, os
+import numpy as np
+
+ref_dir = os.environ['REL_REF']
+R = np.load(ref_dir + '/geno.npy')                       # sites x refs, int8, -1 = missing
+meta = json.load(gzip.open(ref_dir + '/meta.json.gz', 'rt'))
+keys = {}
+with open(ref_dir + '/keys.tsv', encoding='utf-8') as f:
+    for i, line in enumerate(f):
+        keys[tuple(line.rstrip('\n').split('\t'))] = i
+
+q = np.full(R.shape[0], -1, dtype=np.int8)
+for line in open(os.environ['REL_DS'], encoding='utf-8'):
+    p = line.rstrip('\n').split('\t')
+    i = keys.get((p[0], p[1], p[2], p[3]))
+    if i is None:
+        continue
+    ds = float(p[4])
+    q[i] = 0 if ds < 0.5 else (1 if ds < 1.5 else 2)
+
+use = q >= 0
+Rs, qs = R[use], q[use]
+valid = Rs >= 0                                           # per-ref non-missing mask
+het_rows, homA_rows, homB_rows = qs == 1, qs == 0, qs == 2
+Nhh   = (Rs[het_rows] == 1).sum(axis=0)
+Nopp  = (Rs[homA_rows] == 2).sum(axis=0) + (Rs[homB_rows] == 0).sum(axis=0)
+nhet_r = (Rs == 1).sum(axis=0)
+nhet_q = valid[het_rows].sum(axis=0)                      # query hets over each ref's sites
+denom = nhet_q + nhet_r
+phi = np.where(denom > 0, (Nhh - 2.0 * Nopp) / np.maximum(denom, 1), -1.0)
+
+t = meta['thresholds']
+def category(v):
+    if v >= t['self']: return 'same_dog'
+    if v >= t['first_degree']: return 'first_degree'
+    if v >= t['second_degree']: return 'second_degree'
+    if v >= t['third_degree']: return 'distant'
+    return None
+
+matches = []
+for j in np.argsort(phi)[::-1]:
+    cat = category(float(phi[j]))
+    if cat is None or len(matches) >= 10:
+        break
+    s = meta['samples'][j]
+    # Privacy: reference-dog identifiers never reach the report — only breed,
+    # source and relationship tier. Panel dogs are public research data.
+    matches.append({
+        'kinship': round(float(phi[j]), 3),
+        'category': cat,
+        'breed': s['label'],
+        'source': 'Dog10K research panel' if s['source'] == 'dog10k' else 'Prosper K9 reference cohort',
+    })
+
+out = {
+    'n_reference_dogs': len(meta['samples']),
+    'n_sites_used': int(use.sum()),
+    'matches': matches,
+    'n_matches': len(matches),
+    'summary': ('No relatives detected among the reference dogs.' if not matches else
+                '{} match(es) at third-degree kinship or closer.'.format(len(matches))),
+    'thresholds': t,
+    'method': meta['method'] + ' Same-breed background stays below the second-degree '
+              'threshold, so listed matches reflect genuine kinship, not shared breed.',
+}
+with open(os.environ['PUB_DIR'] + '/relatives_result.json', 'w', encoding='utf-8') as f:
+    json.dump(out, f, indent=2)
+top = matches[0] if matches else None
+print('relatives_result.json: {} matches{}'.format(
+    len(matches), '' if not top else '; top {} {} ({})'.format(top['kinship'], top['category'], top['breed'])))
 PYEOF
 
 fi # end stage 9

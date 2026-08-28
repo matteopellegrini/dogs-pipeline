@@ -65,3 +65,4 @@ reference_panel/coverage_cnv_panel.json
 # Same lifecycle as the coverage panels: built on Hoffman from the cohort,
 # synced by scp. See the note above.
 reference_panel/microbiome_panel.json
+relatives_ref/
