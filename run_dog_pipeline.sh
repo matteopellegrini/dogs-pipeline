@@ -3381,9 +3381,19 @@ KNOWN_VARIANTS = [
     # b1 allele: p.Arg345Cys. BCF encodes on the + strand as ref=T, alt=A (AF≈8% in Dog10K panel).
     dict(locus='B', chrom='chr11', pos=33376317, exp_ref='T', exp_alt='A',
          allele='b', inheritance='recessive', effect='TYRP1 p.Arg345Cys (b1) — brown/liver'),
-    # b2 allele: p.Gln354*. BCF encodes on the + strand as ref=C, alt=T (AF≈53% in Dog10K panel).
-    dict(locus='B', chrom='chr11', pos=33440938, exp_ref='C', exp_alt='T',
-         allele='b', inheritance='recessive', effect='TYRP1 p.Gln354* (b2) — brown/liver'),
+    # Second brown allele: the bc-region haplotype at the exon-1 end of TYRP1
+    # (minus strand, so codon 41 sits at the HIGH coordinate end ~33.40Mb).
+    # Chosen empirically from the Dog10K panel: carried by the b1-heterozygous
+    # obligate-brown dogs (Vizslas, Weimaraners) and by zero Boxers.
+    #
+    # The previous entry here (chr11:33440938, labeled "b2 p.Gln354*") was
+    # WRONG: its ALT allele runs at 53% panel-wide, is carried by Boxers and
+    # absent from obligate browns — a common linked variant, not a brown
+    # allele. Combined with phase-blind compound-het logic it called a third
+    # of the reference cohort chocolate (b/b), including at least one dog
+    # whose owner confirms a black nose.
+    dict(locus='B', chrom='chr11', pos=33400944, exp_ref='A', exp_alt='G',
+         allele='b', inheritance='recessive', effect='TYRP1 bc-region brown haplotype tag'),
 
     # D locus: MLPH (chr25)
     # d1: splice site c.123+1G>A — recessive dilute
@@ -3600,26 +3610,43 @@ def call_locus(locus, calls):
             'Sable (ay) or wild agouti (aw) likely but require structural variant analysis to confirm.')
 
     elif locus == 'B':
-        b_by_pos = {c['pos']: c['n_alt'] for c in calls
-                    if c['locus'] == 'B' and c['allele'] == 'b'
-                    and c['found'] and c['n_alt'] is not None}
-        if not b_by_pos:
+        b_calls = [c for c in calls
+                   if c['locus'] == 'B' and c['allele'] == 'b'
+                   and c['found'] and c['n_alt'] is not None]
+        if not b_calls:
             return '?', '?', 'low', 'TYRP1 brown alleles not found in Dog10K panel'
-        any_hom = any(n == 2 for n in b_by_pos.values())
-        n_het_sites = sum(1 for n in b_by_pos.values() if n == 1)
-        if any_hom or n_het_sites >= 2:
-            return 'b', 'b', 'high', 'Brown/liver eumelanin (b/b or compound b1/b2)'
-        if n_het_sites == 1:
-            # One b allele detected. The Dog10K panel only covers b1 (p.Arg345Cys) and
-            # b2 (p.Gln354*). A dog that appears chocolate may carry b1/b3 or b1/b4
-            # compound het where the second allele is absent from the panel. Cannot
-            # distinguish B/b carrier from b/b compound het from panel data alone.
-            return 'b', '?', 'low', ('One b allele detected (heterozygous). The Dog10K panel '
-                'covers b1 (p.Arg345Cys) and b2 (p.Gln354*) only — a second b allele at '
-                'an unqueried position (b3, b4, or other TYRP1 variant) cannot be excluded. '
-                'Genotype is B/b (carrier, black eumelanin) OR b/b compound het (chocolate) '
-                'if a second allele is present outside the panel.')
-        return 'B', 'B', 'high', 'No brown alleles detected (B/B)'
+        if any(c['n_alt'] == 2 for c in b_calls):
+            return 'b', 'b', 'high', 'Brown/liver eumelanin (b/b) — black pigment becomes brown; nose and pads liver/brown'
+        het = [c for c in b_calls if c['n_alt'] == 1]
+        if len(het) >= 2:
+            # Two different brown variants, each heterozygous. Phase decides:
+            # on OPPOSITE haplotypes (trans) both gene copies are broken and
+            # the dog is brown; on the SAME haplotype (cis) one copy is intact
+            # and the dog is a black-nosed carrier. GLIMPSE genotypes are
+            # phased, so read the haplotype side of each ALT.
+            sides = set()
+            phased = True
+            for c in het:
+                gt = str(c.get('gt', ''))
+                if '|' not in gt:
+                    phased = False
+                    break
+                sides.add(gt.split('|').index('1'))
+            if phased and len(sides) > 1:
+                return 'b', 'b', 'medium', ('Brown/liver eumelanin — two different brown variants on opposite '
+                    'chromosome copies (compound heterozygous). Phasing is statistical at low pass, so treat '
+                    'with moderate confidence.')
+            if phased:
+                return 'B', 'b', 'medium', ('Carrier (B/b): two brown variants detected but on the SAME '
+                    'chromosome copy, so one intact copy remains — black pigment, black nose. '
+                    'Puppies may inherit the brown haplotype.')
+            return 'b', '?', 'low', ('Two brown variants detected but phase is unavailable; genotype is '
+                'B/b (carrier, black nose) or b/b (brown) — a DNA test with parental phasing would resolve it.')
+        if len(het) == 1:
+            return 'B', 'b', 'medium', ('Carrier (B/b): one brown allele detected. Pigment stays black '
+                '(black nose and pads); puppies may inherit brown if the other parent also carries it. '
+                'Rare brown alleles outside the panel cannot be fully excluded.')
+        return 'B', 'B', 'high', 'No brown alleles detected (B/B) — black eumelanin, black nose and pads'
 
     elif locus == 'D':
         d_by_pos = {c['pos']: c['n_alt'] for c in calls
