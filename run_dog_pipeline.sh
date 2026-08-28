@@ -2099,12 +2099,17 @@ def category(v):
     if v >= t['third_degree']: return 'distant'
     return None
 
+sample_name = os.environ.get('SAMPLE', '').lower()
 matches = []
 for j in np.argsort(phi)[::-1]:
     cat = category(float(phi[j]))
     if cat is None or len(matches) >= 10:
         break
     s = meta['samples'][j]
+    # Reference dogs that ARE this sample (cohort dogs re-run through the
+    # pipeline) are not a finding — skip the self row, keep true duplicates.
+    if s['id'].lower() == sample_name:
+        continue
     # Privacy: reference-dog identifiers never reach the report — only breed,
     # source and relationship tier. Panel dogs are public research data.
     matches.append({
