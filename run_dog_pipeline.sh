@@ -1362,10 +1362,43 @@ out = {
                '{} haplotype-labeled GenBank mitogenomes.'.format(refs['meta']['n_refs'])),
     'snps': sorted([p, b] for p, b in dog),
 }
+# ── Known mitochondrial disease variants ──
+# The full mitogenome is called at 60-500x, so screening the (few) published
+# canine mtDNA disease variants is essentially free. Heteroplasmy-aware: the
+# report carries the fraction of reads supporting each variant.
+try:
+    dz = json.load(gzip.open(os.environ['REFJ'] + '/mito_disease.json.gz', 'rt'))
+except Exception:
+    dz = json.load(open(os.environ['REFJ'] + '/mito_disease.json'))
+screen = []
+rows = []
+for line in open(os.environ['MITO_DIR'] + '/snps.tsv', encoding='utf-8'):
+    f2 = line.rstrip('\n').split('\t')
+    if len(f2) >= 5:
+        rows.append(f2)
+for dvar in dz['variants']:
+    hit = None
+    for f2 in rows:
+        p2, r2, a2 = int(f2[0]), f2[1], f2[2]
+        if dvar['type'] == 'del' and len(r2) > len(a2) and abs(p2 - dvar['chrm_pos']) <= dvar.get('window', 3):
+            hit = f2; break
+        if dvar['type'] == 'snv' and p2 == dvar['chrm_pos'] and r2 == dvar.get('ref') and a2 == dvar.get('alt'):
+            hit = f2; break
+    entry = {'name': dvar['name'], 'gene': dvar['gene'], 'breed': dvar['breed'],
+             'description': dvar['description'], 'reference': dvar['reference'],
+             'detected': bool(hit)}
+    if hit:
+        parts = [int(x) for x in hit[4].split(',') if x.isdigit()]
+        entry['heteroplasmy_pct'] = round(100.0 * parts[-1] / sum(parts), 1) if parts and sum(parts) else None
+        entry['note'] = 'Detected — discuss with your veterinarian; mitochondrial variants pass from mother to all offspring.'
+    screen.append(entry)
+out['disease_screen'] = screen
+out['disease_screen_note'] = dz['note']
+
 with open(pub + '/mito_result.json', 'w', encoding='utf-8') as f:
     json.dump(out, f, indent=2)
-print('mito_result.json: haplogroup {} ({}), dist {}, margin {}, depth {}x'.format(
-    group, hap0, d0, margin, depth))
+print('mito_result.json: haplogroup {} ({}), dist {}, margin {}, depth {}x, screen {}'.format(
+    group, hap0, d0, margin, depth, ['%s=%s' % (e['gene'], e['detected']) for e in screen]))
 PYEOF
 fi # end stage 6
 

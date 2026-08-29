@@ -1,0 +1,29 @@
+{
+ "variants": [
+  {
+   "name": "Sensory Ataxic Neuropathy (SAN)",
+   "gene": "mt-tRNA-Tyr",
+   "chrm_pos": 11073,
+   "type": "del",
+   "window": 3,
+   "nc_pos": "m.5304del (NC_002008)",
+   "breed": "Golden Retriever (one maternal lineage)",
+   "description": "A maternally inherited nerve disease of Golden Retrievers caused by a one-base deletion in a mitochondrial tRNA gene: affected dogs develop progressive incoordination from adolescence. All affected dogs trace to a single 1970s maternal ancestor, so absence is the expected result outside that line.",
+   "reference": "Baranowska et al. 2009, PLoS Genetics"
+  },
+  {
+   "name": "Mitochondrial leukoencephalomyelopathy",
+   "gene": "mt-CYB",
+   "chrm_pos": 1900,
+   "type": "snv",
+   "ref": "C",
+   "alt": "T",
+   "window": 0,
+   "nc_pos": "m.14474G>A (NC_002008)",
+   "breed": "Australian Cattle Dog, Shetland Sheepdog",
+   "description": "A maternally inherited degeneration of the spinal cord's white matter linked to a mitochondrial cytochrome-b change, causing progressive weakness in young dogs of affected maternal lines.",
+   "reference": "Li et al. 2006"
+  }
+ ],
+ "note": "Mitochondrial disease variants are inherited only through the mother and can be heteroplasmic (present in a fraction of mitochondria); the screen reports the share of sequencing reads carrying each variant."
+}
