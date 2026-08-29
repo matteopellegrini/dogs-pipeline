@@ -1588,44 +1588,76 @@ def gt_from_bam(chrom, pos, ref, alt, min_bq=20, min_mq=20):
                        'targeted DNA test before acting on this.').format(n_v)
     return out
 
-def gt_del_from_bam(chrom, pos, min_bq=0, min_mq=20, window=3):
-    """Genotype a known deletion from read CIGARs.
+def gt_sv_from_bam(chrom, pos, svtype='', bnd_window=15, min_mq=20):
+    """Genotype a known structural variant (del/ins/dup/inv/untyped) at a
+    known position from read alignments.
 
-    pysam sets pileupread.indel < 0 on the column PRECEDING a deletion, and
-    catalogue coordinates vary by one or two bases in which position they
-    name, so the deletion is counted at its maximum across a small window.
-    Reads that span the window without any deletion count as reference.
+    Two orthogonal read signatures, per event class:
+      - deletions shorter than a read appear as D operations in the CIGAR of
+        every read crossing them;
+      - any breakpoint (insertion, duplication junction, inversion, or a
+        deletion longer than a read) truncates alignments, so reads soft-clip
+        at the breakpoint coordinate.
+    Reads that span the site cleanly with margin count as reference support.
+    Catalogue coordinates are approximate to a few bases (target-site
+    duplications, ambiguous naming), hence the +-bnd_window tolerance —
+    same approach validated for MDR1 (4-bp del) and merle (PMEL SINE).
     """
-    best = None
+    lo, hi = pos - bnd_window, pos + bnd_window
+    n_del = n_clip = n_span = 0
     try:
         bam_fh = pysam.AlignmentFile(BAM, 'rb')
-        for col in bam_fh.pileup(chrom, max(0, pos - window - 1), pos + window,
-                                  truncate=True, min_base_quality=min_bq,
-                                  min_mapping_quality=min_mq,
-                                  ignore_overlaps=True, ignore_orphans=True):
-            n_del = sum(1 for r in col.pileups if r.indel < 0)
-            n_span = sum(1 for r in col.pileups if not r.is_del and not r.is_refskip)
-            n_clean = n_span - n_del
-            if best is None or n_del > best[0]:
-                best = (n_del, n_clean)
+        for r in bam_fh.fetch(chrom, max(0, pos - 200), pos + 200):
+            if r.is_unmapped or r.mapping_quality < min_mq or r.is_secondary or r.is_supplementary:
+                continue
+            start, end = r.reference_start + 1, r.reference_end
+            cig = r.cigartuples or []
+            has_del = False
+            rp = start
+            for op, ln in cig:
+                if op in (0, 7, 8):
+                    rp += ln
+                elif op == 2:
+                    if rp - 1 <= hi and rp + ln >= lo:
+                        has_del = True
+                    rp += ln
+                elif op == 3:
+                    rp += ln
+            clip_left  = cig and cig[0][0] in (4, 5) and cig[0][1] >= 8 and lo <= start <= hi
+            clip_right = cig and cig[-1][0] in (4, 5) and cig[-1][1] >= 8 and lo <= end <= hi
+            if has_del:
+                n_del += 1
+            elif clip_left or clip_right:
+                n_clip += 1
+            elif start <= lo - 5 and end >= hi + 5:
+                n_span += 1
         bam_fh.close()
     except Exception:
         return None
-    if best is None:
-        return None
-    n_del, n_clean = best
-    n_v = n_del + n_clean
+    t = (svtype or '').lower()
+    if 'del' in t:
+        n_alt = n_del + n_clip          # short dels cigar; long dels clip
+    elif t:
+        n_alt = n_clip                  # ins/dup/inv: junction clips only
+    else:
+        n_alt = n_del + n_clip          # untyped: any structural evidence
+    n_v = n_alt + n_span
     if n_v < 2:
         return None
-    f_del = n_del / n_v
-    zyg = 'ref/ref' if f_del < 0.1 else ('alt/alt' if f_del > 0.9 else 'het')
+    f_alt = n_alt / n_v
+    zyg = 'ref/ref' if f_alt < 0.1 else ('alt/alt' if f_alt > 0.9 else 'het')
     conf = 'low' if n_v < 5 else ('high' if n_v >= 20 else ('medium' if n_v >= 10 else 'low'))
-    out = {'zygosity': zyg, 'depth': n_v, 'ref_count': n_clean, 'alt_count': n_del,
+    if zyg != 'ref/ref' and n_alt < 2:
+        return None                      # a single anomalous read is not a call
+    out = {'zygosity': zyg, 'depth': n_v, 'ref_count': n_span, 'alt_count': n_alt,
            'affected': zyg in ('alt/alt', 'het'), 'call_confidence': conf,
-           'source': 'bam_direct_del'}
-    if n_v < 5 and out['affected']:
-        out['note'] = ('Deletion seen in {} of {} reads — low confidence; confirm with a '
-                       'targeted DNA test before acting on this.').format(n_del, n_v)
+           'source': 'bam_direct_sv', 'sv_evidence': {'del_reads': n_del, 'clip_reads': n_clip}}
+    if out['affected'] and conf != 'high':
+        out['note'] = ('Structural change seen in {} of {} reads — {} confidence; confirm with a '
+                       'targeted DNA test before acting on this.').format(n_alt, n_v, conf)
+    if not t:
+        out['note'] = (out.get('note', '') + ' Variant type not specified in the catalogue; '
+                       'this call reports structural evidence at the position.').strip()
     return out
 
 variants = []
@@ -1648,8 +1680,8 @@ for v in omia_ref.get('variants', []):
         # in the catalogue — but applies to any del with coordinates.
         # Insertions and complex events stay uncalled.
         del_call = None
-        if pos and (v.get('variant_type') or '').lower() in ('del', 'deletion'):
-            del_call = gt_del_from_bam(chrom, int(pos))
+        if pos and chrom:
+            del_call = gt_sv_from_bam(chrom, int(pos), v.get('variant_type') or '')
         if del_call:
             new_v[DOG] = del_call
             n_bam += 1
