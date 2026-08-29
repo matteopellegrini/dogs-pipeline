@@ -2174,7 +2174,7 @@ for j in np.argsort(phi)[::-1]:
         'kinship': round(float(phi[j]), 3),
         'category': cat,
         'breed': s['label'],
-        'source': 'Dog10K research panel' if s['source'] == 'dog10k' else 'Prosper K9 reference cohort',
+        'source': 'Dog10K research panel' if s['source'] == 'dog10k' else 'ProsperK9 reference cohort',
     }
     # Reference dogs processed through the full pipeline carry their own
     # report-derived descriptors — still anonymous, but far more vivid than a
