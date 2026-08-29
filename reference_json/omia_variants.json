@@ -9,47 +9,6 @@
  "method": "Merged: OMIA canFam4 positions + PublishedDogVariants_OMIA_and_Commercial.xlsx. SNVs called from BAM pileup (min_bq=20, min_mq=20). Indels: depth-only (zygosity not called). Sorted affected-first.",
  "variants": [
   {
-   "variant_id": "34",
-   "gene": "MC1R",
-   "chrom": "chr5",
-   "pos": 64186854,
-   "ref": "C",
-   "alt": "T",
-   "hgvs_c": "c.790A>G",
-   "hgvs_p": "p.(M264V)",
-   "phene_name": "Coat colour, mask (melanistic mask, Em allele)",
-   "omia_id": "001590",
-   "deleterious": "no",
-   "characterised": "yes",
-   "mol_gen": "Homozygous M264V (Em/Em): all dogs with a melanistic mask carry at least one copy of this MC1R variant. Schmutz et al. (2003) showed this A>G transition at codon 264 causes the mask phenotype. Homozygous dogs express a full melanistic mask.",
-   "clinical_note": "Coat colour trait, not a disease variant. Consistent with a dark facial mask phenotype.",
-   "nelk": {
-    "zygosity": "homozygous",
-    "depth": 31,
-    "ref_count": 0,
-    "alt_count": 31,
-    "affected": true
-   },
-   "cosmo": {
-    "zygosity": "alt/alt",
-    "depth": 3,
-    "ref_count": 0,
-    "alt_count": 3,
-    "affected": true,
-    "call_confidence": "high",
-    "glimpse2_gt": "1|1",
-    "glimpse2_af": 1.0,
-    "glimpse2_gp": [
-     0.0,
-     0.0,
-     1.0
-    ],
-    "confidence_source": "bam+glimpse2"
-   },
-   "panel": "Wisdom, Embark",
-   "source": "OMIA+Excel"
-  },
-  {
    "gene": "TYRP1",
    "chrom": "chr11",
    "pos": 33376317,

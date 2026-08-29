@@ -3597,44 +3597,26 @@ MIN_GP  = 0.80   # min max(GP) to trust a GLIMPSE2 call
 # exp_ref/exp_alt: expected REF/ALT in canFam4; if swapped in BCF, n_alt is flipped.
 # inheritance: 'recessive' (need 2 copies) | 'dominant' (1 copy sufficient)
 KNOWN_VARIANTS = [
-    # E locus: MC1R (chr5)
-    # e1: p.Arg306* (c.916C>T) — major recessive-red allele (loss-of-function)
+    # E locus: MC1R (chr5) — MC1R's CDS sits at chr5:64,186,690–64,187,643 on the MINUS
+    # strand in canFam4 (verified by translating the reverse complement: the frame opens
+    # with MSGQGPQRRLLGSLN and codon 306 is CGA = Arg exactly at 64,186,728–). Earlier
+    # revisions placed the gene at chr5:63.92Mb (another assembly's coordinate) and called
+    # 64186854 a "CPNE7 intron proxy" — both wrong.
     #
-    # NOTE: chr5:64186854 is NOT the MC1R p.Arg306* coding position in canFam4 (ROS_Cfam_1.0).
-    # snpEff annotates it as an intron_variant in CPNE7 (c.1030-385G>A), located ~2–3 kb
-    # downstream of the DPEP1–CPNE7 intergenic gap where MC1R sits in the canFam4 assembly.
-    # The canFam4 annotation omits MC1R as a separate gene entry; the actual causal position
-    # (c.916C>T p.Arg306*) falls in that gap (chr5:~64155000–64184000) and is NOT genotyped
-    # by name in the Dog10K panel.
-    #
-    # This position (64186854) is in the Dog10K panel at T allele freq ≈28.6% and is in strong
-    # LD with the e haplotype on most chromosomes — it acts as a PROXY SNP. When a dog carries
-    # the T allele at this CPNE7 intronic site on both chromosomes without carrying the actual
-    # causal MC1R mutation (e.g., a chocolate b/b dog on an e-haplotype background), the pipeline
-    # incorrectly calls e/e. See call_locus() for the confidence-downgrade logic.
-    #
-    # TODO: identify the correct canFam4 coordinate for MC1R p.Arg306* from NCBI ROS_Cfam_1.0
-    # annotation release (gene ID: LOC403803) and add it as a second E-locus entry. Until then,
-    # all e/e calls from this position alone are reported at low confidence with a validation warning.
-    # Actual MC1R p.Arg306* coding position in canFam4 (ROS_Cfam_1.0, Gene ID 489652).
-    # MC1R is on the minus strand at chr5:63922271–63923224 (CDS). Position c.916 in the CDS
-    # (codon 306, AGA→TGA = p.Arg306*) maps to genomic chr5:63922309. On the plus strand the
-    # reference allele is T (= A on the coding/minus strand = Arg) and the e allele is A
-    # (= T on the coding strand = TGA stop). This site is NOT in the Dog10K SNP panel; the
-    # pipeline will fall back to BAM pileup. At low-pass depth (<5 quality reads) it reports
-    # "not in panel / no BAM reads" which is expected for 2–6× samples.
-    dict(locus='E', chrom='chr5', pos=63922309, exp_ref='T', exp_alt='A',
-         allele='e', inheritance='recessive',
-         effect='MC1R p.Arg306* — causal e allele (c.916A>T on coding strand, AGA→TGA stop; canFam4 chr5:63922309)'),
-    # Proxy SNP: CPNE7 intron variant in LD with the e haplotype (in Dog10K panel at AF≈29%).
-    # NOT the MC1R coding variant. Used as an imputation proxy because the actual position above
-    # is absent from the Dog10K reference panel. e/e calls from this site alone are low-confidence.
+    # e1 — the causal recessive-red stop, MC1R c.916 p.Arg306* (codon CGA→TGA). Plus
+    # strand: ref G, alt A. NOT in the Dog10K panel, so only direct reads can show it;
+    # min_reads=1 because even a single read at the stop codon is informative context.
+    dict(locus='E', chrom='chr5', pos=64186728, exp_ref='G', exp_alt='A',
+         allele='e', inheritance='recessive', min_reads=1,
+         effect='MC1R p.Arg306* — causal recessive-red (e) stop, c.916C>T coding = chr5:64186728 G>A plus strand'),
+    # e_tag — MC1R c.790 M264V (codon 264). The canFam4 REFERENCE (a German Shepherd, a
+    # masked breed) carries V264 = the Em melanistic-mask allele; the ALT (plus-strand T,
+    # coding A) is the ordinary non-mask M264 that the e stop arose on. So alt copies
+    # bound the possible e copies: alt/alt is NECESSARY for e/e but far from sufficient
+    # (alt AF ≈71% in Dog10K), and ref copies are mask-type functional MC1R.
     dict(locus='E', chrom='chr5', pos=64186854, exp_ref='C', exp_alt='T',
-         allele='e', inheritance='recessive',
-         effect='e haplotype proxy SNP (CPNE7 intron, chr5:64186854) — in LD with e allele in Dog10K panel but NOT the causal MC1R p.Arg306* coding variant'),
-    # Em: melanistic mask — dominant; tagging SNP at chr5:64188070
-    dict(locus='E', chrom='chr5', pos=64188070, exp_ref=None, exp_alt=None,
-         allele='Em', inheritance='dominant', effect='MC1R — melanistic mask haplotype tag'),
+         allele='e_tag', inheritance='recessive',
+         effect='MC1R c.790 M264V (chr5:64186854) — REF C = V264 Em mask haplotype; ALT T = non-mask M264 background that e arises on'),
 
     # K locus: CBD103 (chr16)
     # KB: p.Lys43Arg (c.128A>G) — dominant black
@@ -3685,7 +3667,8 @@ KNOWN_VARIANTS = [
 
 ALLELES_REFERENCE = {
     'E': {'Em': 'Melanistic mask (dominant)', 'E': 'Wild type extension',
-          'e':  'Recessive red/yellow — two copies needed'},
+          'e':  'Recessive red/yellow — two copies needed',
+          'e?': 'Possibly recessive red — e-compatible background but causal stop not covered by reads'},
     'K': {'KB':  'Dominant black — one copy = solid black',
           'kbr': 'Brindle (incompletely dominant)',
           'ky':  'Non-black/agouti — A locus determines pattern'},
@@ -3702,7 +3685,7 @@ ALLELES_REFERENCE = {
 LOCUS_INFO = {
     'E': dict(gene='MC1R',  chrom='chr5',  name='Extension locus',
               role='Master pigment switch: eumelanin (black/brown) vs phaeomelanin (yellow/red)',
-              phenotype_contribution='e/e → all coat pigment is yellow/red regardless of other loci'),
+              phenotype_contribution='e/e → all coat pigment yellow/red; called from reads at the causal MC1R stop plus the M264V haplotype; low-pass depth can leave it unresolved'),
     'K': dict(gene='CBD103', chrom='chr16', name='Dominant black locus',
               role='KB locks melanocytes in eumelanin production, overriding the A locus',
               phenotype_contribution='KB/- → solid eumelanin; ky/ky → A locus controls patterning'),
@@ -3756,7 +3739,7 @@ for line in res.stdout.strip().split('\n'):
 print(f"BCF hits: {len(bcf_hits)}/{len(KNOWN_VARIANTS)} positions in Dog10K panel")
 
 # ── BAM pileup fallback ───────────────────────────────────────────────────
-def bam_pileup(chrom, pos):
+def bam_pileup(chrom, pos, min_reads=5):
     try:
         bam = pysam.AlignmentFile(BAM, 'rb')
         counts = {}
@@ -3769,7 +3752,7 @@ def bam_pileup(chrom, pos):
                     b = r.alignment.query_sequence[r.query_position].upper()
                     counts[b] = counts.get(b, 0) + 1
         bam.close()
-        return counts if sum(counts.values()) >= 5 else None
+        return counts if sum(counts.values()) >= min_reads else None
     except Exception:
         return None
 
@@ -3794,7 +3777,7 @@ for v in KNOWN_VARIANTS:
             'gt': hit['gt'], 'gp': hit['gp'], 'max_gp': hit['max_gp'],
             'raf': hit['raf'], 'conf': 'low'})
     else:
-        counts = bam_pileup(v['chrom'], v['pos'])
+        counts = bam_pileup(v['chrom'], v['pos'], v.get('min_reads', 5))
         if counts:
             total = sum(counts.values())
             variant_calls.append({**v, 'found': True, 'source': f'BAM pileup ({total} reads)',
@@ -3858,46 +3841,52 @@ def call_locus(locus, calls):
     """Returns (allele1, allele2, confidence, interpretation)."""
 
     if locus == 'E':
-        n_e  = n_copies('E', 'e',  calls)
-        n_em = n_copies('E', 'Em', calls)
-        if not any_found('E', calls):
-            return '?', '?', 'low', 'MC1R positions not found in Dog10K panel'
-        if n_e == 2:
-            # Determine whether the homozygous call is supported by the actual MC1R coding position
-            # (chr5:63922309) or only by the proxy SNP (chr5:64186854, CPNE7 intron).
-            ACTUAL_MC1R_POS = 63922309
-            PROXY_POS       = 64186854
-            e_hom_calls = [c for c in calls if c['locus'] == 'E' and c['allele'] == 'e'
-                           and c['found'] and c.get('n_alt') == 2]
-            # Check whether the actual coding position has any alt read evidence from BAM pileup.
-            # bam_pileup returns counts when ≥5 quality reads are found; otherwise n_alt=None.
-            actual_bam = next((c for c in calls if c['locus'] == 'E' and c['allele'] == 'e'
-                               and c.get('pos') == ACTUAL_MC1R_POS and c['found']), None)
-            actual_has_alt = (actual_bam is not None and
-                              actual_bam.get('bam_counts', {}).get('A', 0) > 0)
-            proxy_only = bool(e_hom_calls) and all(c['pos'] == PROXY_POS for c in e_hom_calls)
-            if proxy_only and not actual_has_alt:
-                bam_depth = (actual_bam.get('bam_counts', {}) if actual_bam else {})
-                depth_str = f'{sum(bam_depth.values())} reads, all reference' if bam_depth else 'no reads'
-                return ('e', 'e', 'low',
-                    f'Homozygous e/e from proxy SNP only (chr5:64186854, CPNE7 intron, alt allele freq ≈29%). '
-                    f'The actual MC1R p.Arg306* coding position (chr5:63922309) is not in the Dog10K panel; '
-                    f'BAM pileup shows {depth_str} — insufficient coverage to confirm or exclude the causal allele. '
-                    f'If this dog shows eumelanin pigmentation (black/brown coat), the proxy call is likely a false positive '
-                    f'and the true genotype is E/e or E/E. If the dog is cream/yellow, e/e remains plausible.')
-            if proxy_only and actual_has_alt:
-                return ('e', 'e', 'medium',
-                    'Homozygous e/e: proxy SNP homozygous (chr5:64186854) AND alt reads detected at actual '
-                    'MC1R coding position (chr5:63922309) from BAM pileup — consistent with e/e but low '
-                    'BAM depth limits confidence.')
-            return 'e', 'e', 'high', 'Homozygous recessive red — all coat pigment is phaeomelanin (yellow/red/cream)'
-        if n_e == 1 and n_em and n_em >= 1:
-            return 'Em', 'e', 'medium', 'Melanistic mask carrier for recessive red (Em/e)'
-        if n_e == 1:
-            return 'E', 'e', 'medium', 'Carrier for recessive red (E/e) — normal extension expressed'
-        if n_em and n_em >= 1:
-            return 'Em', 'E', 'medium', 'Melanistic mask on wild-type extension background (Em/E)'
-        return 'E', 'E', 'medium', 'No e or Em alleles detected — wild-type extension (E/E)'
+        # Two informative sites, both inside MC1R (see the variant table):
+        #   e1  chr5:64186728 G>A  — the causal p.Arg306* stop; BAM reads only.
+        #   tag chr5:64186854 C>T  — c.790 M264V; REF = Em mask-type functional
+        #       haplotype, ALT = the non-mask background e arises on, so the
+        #       imputed alt count is an upper bound on possible e copies.
+        e1  = next((c for c in calls if c['locus'] == 'E' and c.get('pos') == 64186728
+                    and c.get('bam_counts')), None)
+        tag = next((c for c in calls if c['locus'] == 'E' and c.get('pos') == 64186854
+                    and c['found'] and c.get('n_alt') is not None), None)
+        e1_ref = e1['bam_counts'].get('G', 0) if e1 else 0
+        e1_alt = e1['bam_counts'].get('A', 0) if e1 else 0
+        if not tag and not e1:
+            return '?', '?', 'low', 'MC1R not covered by the imputation panel or by reads at this depth'
+        # Direct reads at the stop codon outrank the tag.
+        if e1_alt >= 2 and e1_ref == 0:
+            return ('e', 'e', 'medium' if e1_alt >= 3 else 'low',
+                f'Recessive red (e/e): {e1_alt} reads carry the MC1R p.Arg306* stop and none the functional '
+                f'allele — all coat pigment is phaeomelanin (cream/yellow/red)')
+        if e1_ref >= 1 and e1_alt >= 1:
+            return ('E', 'e', 'low',
+                f'Carrier for recessive red (E/e): reads at MC1R p.306 show both the functional allele '
+                f'({e1_ref}) and the p.Arg306* stop ({e1_alt}) — eumelanin coat is expressed')
+        if e1_ref >= 2:
+            return ('E', 'E' if e1_ref >= 3 else '?',
+                'medium' if e1_ref >= 3 else 'low',
+                f'No recessive-red stop in {e1_ref} reads at MC1R p.306 — a functional copy is present, '
+                f'eumelanin coat is expressed')
+        # Stop codon not covered decisively — bound e by the M264V tag.
+        n_tag = tag['n_alt'] if tag else None
+        if n_tag == 0:
+            return ('Em', 'Em', 'medium',
+                'Both MC1R copies are the V264 mask-type functional haplotype (Em/Em) — eumelanin coat '
+                'expressed; a melanistic mask may show where the coat is phaeomelanin-patterned')
+        if n_tag == 1:
+            return ('E', 'Em', 'medium',
+                'One mask-type (V264) and one standard MC1R copy — at most one recessive-red allele '
+                'possible, so a functional copy is present and eumelanin coat is expressed')
+        if n_tag == 2:
+            hint = (f' One read at the stop codon does carry e — consistent with E/e or e/e.'
+                    if e1_alt == 1 else '')
+            return ('e?', 'e?', 'low',
+                'Both MC1R copies are the non-mask haplotype that recessive red arises on, but the causal '
+                'p.Arg306* stop itself is not covered by enough reads to decide. The dog may be e/e '
+                '(cream/yellow/red coat) or E/E / E/e (eumelanin coat expressed).' + hint +
+                ' The dog\'s actual coat color resolves this.')
+        return '?', '?', 'low', 'E locus not resolvable at this sequencing depth'
 
     elif locus == 'K':
         n_kb = n_copies('K', 'KB', calls)
@@ -4021,14 +4010,12 @@ for locus in ['E', 'K', 'A', 'B', 'D', 'M', 'S', 'W']:
     loci_gt[locus] = dict(allele1=a1, allele2=a2, confidence=conf, interpretation=interp)
 
 # ── Cross-locus E locus validation ────────────────────────────────────────
-# When the E locus is called e/e from the proxy SNP only (low confidence),
-# use K and B to compute what the coat would be if the proxy is a false positive.
-# The proxy SNP (chr5:64186854, CPNE7 intron) tags the e haplotype but is not the
-# causal MC1R coding variant; false positives are known (e.g. chocolate dogs).
-# Knowing the K+B "eumelanic" prediction helps interpret ambiguity.
+# When the E locus is unresolved ('e?' — both copies on the non-mask M264V
+# background but the causal p.Arg306* stop not covered by reads), use K and B
+# to name what the coat would be if a functional copy is present, so the report
+# states both scenarios concretely instead of asserting cream/red.
 e_gt = loci_gt['E']
-if (e_gt['allele1'] == 'e' and e_gt['allele2'] == 'e'
-        and e_gt['confidence'] == 'low'):
+if e_gt['allele1'] == 'e?' and e_gt['allele2'] == 'e?':
     k_gt = loci_gt['K']
     b_gt = loci_gt['B']
     has_KB = 'KB' in (k_gt['allele1'], k_gt['allele2'])
@@ -4043,14 +4030,12 @@ if (e_gt['allele1'] == 'e' and e_gt['allele2'] == 'e'
         alt_color = 'black or sable (A locus)'
     updated_interp = (
         e_gt['interpretation'] +
-        f' If the proxy call is a false positive, the coat would be {alt_color} '
+        f' If a functional MC1R copy is present, the coat would be {alt_color} '
         f'based on K ({k_gt["allele1"]}/{k_gt["allele2"]}) and '
-        f'B ({b_gt["allele1"]}/{b_gt["allele2"]}) loci. '
-        f'Phenotype confirmation is required to distinguish e/e (cream/yellow) '
-        f'from {alt_color}.'
+        f'B ({b_gt["allele1"]}/{b_gt["allele2"]}) loci.'
     )
     loci_gt['E'] = {**e_gt, 'interpretation': updated_interp,
-                    'proxy_false_positive_prediction': alt_color}
+                    'eumelanic_alternative': alt_color}
 
 # ── Phenotype prediction: hierarchical epistasis protocol ─────────────────
 # Implements the standard five-locus diagnostic hierarchy:
@@ -4093,6 +4078,19 @@ def predict_phenotype(loci_gt):
     # Step 3 Tier 1: E locus — e/e = recessive red, overrides all other loci
     is_e_hom = e1 == 'e' and e2 == 'e'
     has_em   = 'Em' in (e1, e2)
+
+    # Unresolved E ('e?'): both MC1R copies on the e-compatible background but
+    # the causal stop not covered by reads. State both scenarios rather than
+    # asserting either one — the owner's eyes resolve it instantly.
+    if e1 == 'e?':
+        alt_solid = f'solid {eume_color}' if 'KB' in (k1, k2) else f'{eume_color} (patterned by the A locus)'
+        base_color = (f'Not resolved at this sequencing depth — either cream/yellow/red (if e/e) '
+                      f'or {alt_solid} (if a functional MC1R copy is present). '
+                      f'The dog\'s actual coat color tells you which; {nose_color} from B/D loci either way')
+        pattern = (f'If e/e: solid phaeomelanin (cream/yellow/red). '
+                   f'Otherwise: {alt_solid}. Skin pigment ({nose_color}) comes from B and D loci independently.')
+        dilution = 'See B/D loci — applies to the eumelanin scenario'
+        return base_color, pattern, dilution
 
     if is_e_hom:
         base_color = (f'Phaeomelanin — cream / yellow / red '
@@ -4210,8 +4208,8 @@ for locus in ['E', 'K', 'A', 'B', 'D', 'M', 'S', 'W']:
         'interpretation': g['interpretation'],
         'observed_variants': obs,
     }
-    if g.get('proxy_false_positive_prediction'):
-        locus_entry['proxy_false_positive_prediction'] = g['proxy_false_positive_prediction']
+    if g.get('eumelanic_alternative'):
+        locus_entry['eumelanic_alternative'] = g['eumelanic_alternative']
     loci_result[locus] = locus_entry
 
 coat = {
