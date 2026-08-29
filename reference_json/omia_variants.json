@@ -110,7 +110,7 @@
   {
    "gene": "EHBP1L1",
    "chrom": "chr18",
-   "pos": 52633683,
+   "pos": 53141299,
    "ref": "G",
    "alt": "A",
    "variant_type": "G>A",
@@ -126,7 +126,8 @@
     "affected": true,
     "call_confidence": "low"
    },
-   "source": "Excel"
+   "source": "Excel",
+   "coordinate_lifted": "canFam3.1->canFam4 via 801bp flank bwa (MAPQ60 unique), 2026-08-29"
   },
   {
    "gene": "FGF5",
@@ -5101,9 +5102,9 @@
   {
    "gene": "MSTN",
    "chrom": "chr37",
-   "pos": 630059,
-   "ref": "T",
-   "alt": "A",
+   "pos": 530753,
+   "ref": "A",
+   "alt": "T",
    "variant_type": "T>A",
    "trait": "Muscular Hypertrophy",
    "variant_breed": "Whippet",
@@ -5117,7 +5118,8 @@
     "affected": false,
     "call_confidence": "medium"
    },
-   "source": "Excel"
+   "source": "Excel",
+   "coordinate_lifted": "canFam3.1->canFam4 via 801bp flank bwa (MAPQ60 unique), 2026-08-29"
   },
   {
    "variant_id": "1372",
@@ -5883,7 +5885,7 @@
   {
    "gene": "ANLN",
    "chrom": "chr14",
-   "pos": 47912316,
+   "pos": 48012465,
    "ref": "C",
    "alt": "T",
    "variant_type": "C>T",
@@ -5899,7 +5901,8 @@
     "affected": false,
     "call_confidence": "low"
    },
-   "source": "Excel"
+   "source": "Excel",
+   "coordinate_lifted": "canFam3.1->canFam4 via 801bp flank bwa (MAPQ60 unique), 2026-08-29"
   },
   {
    "gene": "APRT",
@@ -10708,7 +10711,7 @@
   {
    "gene": "FAM20C",
    "chrom": "chr16",
-   "pos": 17188594,
+   "pos": 17919452,
    "ref": "C",
    "alt": "T",
    "variant_type": "C>T",
@@ -10724,7 +10727,8 @@
     "affected": false,
     "call_confidence": "no_coverage"
    },
-   "source": "Excel"
+   "source": "Excel",
+   "coordinate_lifted": "canFam3.1->canFam4 via 801bp flank bwa (MAPQ60 unique), 2026-08-29"
   },
   {
    "variant_id": "576",
