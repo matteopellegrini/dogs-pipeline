@@ -3651,7 +3651,7 @@ ALLELES_REFERENCE = {
           'a':  'Recessive black (recessive)'},
     'B': {'B': 'Black eumelanin (dominant)', 'b': 'Brown/liver eumelanin — two copies needed'},
     'D': {'D': 'Full pigment (dominant)', 'd': 'Dilute/blue — two copies needed'},
-    'M': {'M': 'Merle (dominant, PMEL SINE insertion — not detectable from SNP data)', 'm': 'Non-merle (assumed)'},
+    'M': {'M': 'Merle (dominant, PMEL SINE insertion — detected from reads at the insertion site)', 'm': 'Non-merle'},
     'S': {'S': 'Solid / minimal white', 'sp': 'Piebald spotting (recessive)', 'sw': 'Extreme white (recessive)'},
     'W': {'w': 'Non-white', 'W': 'Extreme white (dominant, KIT structural — not detectable from SNP data)'},
 }
@@ -4182,7 +4182,7 @@ coat = {
         **({'validation_warning': validation_warning} if validation_warning else {}),
         'caveat': ('E, K, B, D loci called from Dog10K GLIMPSE2 imputed BCF (causal SNPs). '
                    'A locus sable (ay/aw) requires structural variant analysis not available here. '
-                   'Merle (M) and extreme white (W) require PCR or long-read. '
+                   'Merle (M) is screened from reads at the PMEL insertion site (the exact merle class needs a length test); extreme white (W) requires PCR or long-read. '
                    'Commercial tests (Embark, Wisdom Panel) cover additional alleles.'),
         'irf4_note': irf4_note,
     },
