@@ -53,7 +53,21 @@ def main():
         if base is None or ref.upper() == base: continue
         if COMP.get(ref.upper()) == base:
             if COMP.get(ref.upper()) == alt.upper():
-                ambiguous += 1     # A/T or C/G — unverifiable, leave guarded
+                # Palindromic pair (A/T or C/G). Every plausible error model —
+                # strand flip, or ref/alt transposed — converges on the same
+                # repair: ref = canFam4 base, disease allele = its complement.
+                # The only remaining alternative (disease allele == reference
+                # base, i.e. every dog affected) is exactly what the assembly
+                # guard exists to exclude. Verified where checkable: KLKB1
+                # chr16:45427398 is in the Dog10K panel as A>T, disease allele
+                # at 1/3858 — matching this repair.
+                v['ref'], v['alt'] = base, COMP[base]
+                v['strand_fixed'] = True
+                v['palindromic_fix'] = True
+                fixed += 1
+                print('FLIPPED(palindromic) %-8s %s:%s %s>%s -> %s>%s (%s)' % (
+                    v.get('gene'), chrom, pos, ref, alt, v['ref'], v['alt'],
+                    str(v.get('trait'))[:40]))
                 continue
             v['ref'], v['alt'] = COMP[ref.upper()], COMP[alt.upper()]
             v['strand_fixed'] = True

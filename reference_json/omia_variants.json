@@ -132,8 +132,8 @@
    "gene": "FGF5",
    "chrom": "chr32",
    "pos": 35486609,
-   "ref": "T",
-   "alt": "A",
+   "ref": "A",
+   "alt": "T",
    "variant_type": "T>A",
    "trait": "Coat Length (lh5)",
    "variant_breed": "",
@@ -147,14 +147,16 @@
     "affected": true,
     "call_confidence": "low"
    },
-   "source": "Excel"
+   "source": "Excel",
+   "strand_fixed": true,
+   "palindromic_fix": true
   },
   {
    "gene": "FVIII",
    "chrom": "chrX",
    "pos": 124099739,
-   "ref": "C",
-   "alt": "G",
+   "ref": "G",
+   "alt": "C",
    "variant_type": "C>G",
    "trait": "Factor VIII Deficiency, Hemophilia A ",
    "variant_breed": "Boxer",
@@ -169,14 +171,16 @@
     "call_confidence": "low",
     "note": "hemizygous chrX (male); single-read call"
    },
-   "source": "Excel"
+   "source": "Excel",
+   "strand_fixed": true,
+   "palindromic_fix": true
   },
   {
    "gene": "G6PC",
    "chrom": "chr9",
    "pos": 20011008,
-   "ref": "G",
-   "alt": "C",
+   "ref": "C",
+   "alt": "G",
    "variant_type": "G>C",
    "trait": "Glycogen Storage Disease Type IA, Von Gierke Disease (GSD IA)",
    "variant_breed": "Maltese",
@@ -190,14 +194,16 @@
     "affected": true,
     "call_confidence": "low"
    },
-   "source": "Excel"
+   "source": "Excel",
+   "strand_fixed": true,
+   "palindromic_fix": true
   },
   {
    "gene": "GALC",
    "chrom": "chr8",
    "pos": 59621429,
-   "ref": "A",
-   "alt": "T",
+   "ref": "T",
+   "alt": "A",
    "variant_type": "A>T",
    "trait": "Globoid Cell Leukodystrophy, Krabbe disease ",
    "variant_breed": "Irish Setter",
@@ -211,14 +217,16 @@
     "affected": true,
     "call_confidence": "low"
    },
-   "source": "Excel"
+   "source": "Excel",
+   "strand_fixed": true,
+   "palindromic_fix": true
   },
   {
    "gene": "MANBA",
    "chrom": "chr32",
    "pos": 15735654,
-   "ref": "A",
-   "alt": "T",
+   "ref": "T",
+   "alt": "A",
    "variant_type": "A>T",
    "trait": "Beta Mannosidosis",
    "variant_breed": "German Shepherd Dog",
@@ -232,14 +240,16 @@
     "affected": true,
     "call_confidence": "low"
    },
-   "source": "Excel"
+   "source": "Excel",
+   "strand_fixed": true,
+   "palindromic_fix": true
   },
   {
    "gene": "PLG",
    "chrom": "chr1",
    "pos": 50068844,
-   "ref": "T",
-   "alt": "A",
+   "ref": "A",
+   "alt": "T",
    "variant_type": "T>A",
    "trait": "Ligneous Membranitis ",
    "variant_breed": "Scottish Terrier",
@@ -253,14 +263,16 @@
     "affected": true,
     "call_confidence": "low"
    },
-   "source": "Excel"
+   "source": "Excel",
+   "strand_fixed": true,
+   "palindromic_fix": true
   },
   {
    "gene": "RHO",
    "chrom": "chr20",
    "pos": 5711695,
-   "ref": "C",
-   "alt": "G",
+   "ref": "G",
+   "alt": "C",
    "variant_type": "C>G",
    "trait": "Progressive Retinal Atrophy, autosomal dominant",
    "variant_breed": "",
@@ -274,7 +286,9 @@
     "affected": true,
     "call_confidence": "low"
    },
-   "source": "Excel"
+   "source": "Excel",
+   "strand_fixed": true,
+   "palindromic_fix": true
   },
   {
    "gene": "ABCA4",
@@ -10223,8 +10237,8 @@
    "gene": "COL11A2",
    "chrom": "chr12",
    "pos": 2807737,
-   "ref": "G",
-   "alt": "C",
+   "ref": "C",
+   "alt": "G",
    "variant_type": "G>C",
    "trait": "Skeletal Dysplasia 2, SD2 ",
    "variant_breed": "Labrador Retriever",
@@ -10246,7 +10260,9 @@
     "glimpse2_af": 0.0,
     "confidence_source": "glimpse2_v2"
    },
-   "source": "Excel"
+   "source": "Excel",
+   "strand_fixed": true,
+   "palindromic_fix": true
   },
   {
    "gene": "COL1A2",
@@ -10273,8 +10289,8 @@
    "gene": "COL4A4",
    "chrom": "chr25",
    "pos": 40152263,
-   "ref": "A",
-   "alt": "T",
+   "ref": "T",
+   "alt": "A",
    "variant_type": "A>T",
    "trait": "Hereditary Nephropathy, Familial Nephropathy, autosomal recessive (ARHN) ",
    "variant_breed": "English Cocker Spaniel",
@@ -10288,7 +10304,9 @@
     "affected": false,
     "call_confidence": "no_coverage"
    },
-   "source": "Excel"
+   "source": "Excel",
+   "strand_fixed": true,
+   "palindromic_fix": true
   },
   {
    "gene": "COL4A5",
@@ -12365,8 +12383,8 @@
    "gene": "KLKB1",
    "chrom": "chr16",
    "pos": 45427398,
-   "ref": "T",
-   "alt": "A",
+   "ref": "A",
+   "alt": "T",
    "variant_type": "T>A",
    "trait": "Prekallikrein Deficiency ",
    "variant_breed": "",
@@ -12388,7 +12406,9 @@
     ],
     "confidence_source": "glimpse2_contradicts_bam"
    },
-   "source": "Excel"
+   "source": "Excel",
+   "strand_fixed": true,
+   "palindromic_fix": true
   }
  ]
 }
