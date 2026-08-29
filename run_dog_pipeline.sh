@@ -1664,21 +1664,21 @@ def gt_sv_from_bam(chrom, pos, svtype='', pos_end=None, bnd_window=15, min_mq=20
     exp_len = (pos_end - pos) if (pos_end and pos_end > pos) else None
     large = exp_len is not None and exp_len > 60
     breakpoints = [pos, pos_end] if large else [pos]
-    n_del = n_clip = n_span = 0
+    # Evidence is counted per FRAGMENT, not per alignment: overlapping mates of
+    # one pair are a single molecule, and counting them twice let a lone
+    # chimeric fragment (both mates 62S19M30S at the same spot) satisfy the
+    # 2-read floor and call a healthy dog alt/alt for a RELN deletion.
+    frag_del, frag_clip, frag_span = set(), set(), set()
     try:
         bam_fh = pysam.AlignmentFile(BAM, 'rb')
-        seen = set()
         for bp in breakpoints:
             lo, hi = bp - bnd_window, bp + bnd_window
             for r in bam_fh.fetch(chrom, max(0, bp - 200), bp + 200):
                 if r.is_unmapped or r.mapping_quality < min_mq or r.is_secondary or r.is_supplementary:
                     continue
-                rid = (r.query_name, r.flag, r.reference_start)
-                if rid in seen:
-                    continue
-                seen.add(rid)
                 start, end = r.reference_start + 1, r.reference_end
                 cig = r.cigartuples or []
+                aligned = sum(ln for op, ln in cig if op in (0, 7, 8))
                 has_del = False
                 if not large:
                     rp = start
@@ -1700,15 +1700,25 @@ def gt_sv_from_bam(chrom, pos, svtype='', pos_end=None, bnd_window=15, min_mq=20
                             rp += ln
                 clip_left  = cig and cig[0][0] in (4, 5) and cig[0][1] >= 8 and lo <= start <= hi
                 clip_right = cig and cig[-1][0] in (4, 5) and cig[-1][1] >= 8 and lo <= end <= hi
+                # A mostly-clipped alignment is mapping noise, not a breakpoint:
+                # a <30bp anchor can land anywhere in the genome.
+                if (clip_left or clip_right) and aligned < 30:
+                    clip_left = clip_right = False
+                name = r.query_name
                 if has_del:
-                    n_del += 1
+                    frag_del.add(name)
                 elif clip_left or clip_right:
-                    n_clip += 1
+                    frag_clip.add(name)
                 elif start <= lo - 5 and end >= hi + 5:
-                    n_span += 1
+                    frag_span.add(name)
         bam_fh.close()
     except Exception:
         return None
+    # A fragment with any alt-supporting alignment is alt; only fragments with
+    # no alt evidence at all count as reference support.
+    n_del  = len(frag_del)
+    n_clip = len(frag_clip - frag_del)
+    n_span = len(frag_span - frag_del - frag_clip)
     t = (svtype or '').lower()
     if 'del' in t:
         n_alt = n_del + n_clip          # short dels cigar; long dels clip
