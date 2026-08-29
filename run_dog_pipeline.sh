@@ -3624,6 +3624,46 @@ def n_copies(locus, allele, calls):
 def any_found(locus, calls):
     return any(c['locus'] == locus and c['found'] for c in calls)
 
+# ── Merle (PMEL SINE insertion) from read alignments ─────────────────────
+# The merle allele is a ~250-280bp SINE inserted at the intron10/exon11
+# boundary of PMEL. Coordinate derived by mapping the RefSeq (ROS_Cfam
+# NC_051814.1:299657, NM_001103216.1 exon structure) junction flank onto
+# canFam4: unique 800bp MAPQ60 hit -> junction at chr10:644,511 (15bp TSD).
+# Short reads cannot span the insertion, so a merle chromosome shows up as
+# reads SOFT-CLIPPED at the junction; a non-merle chromosome as reads
+# spanning it cleanly. The poly-A length that separates cryptic from full
+# merle is NOT measurable from short reads — a positive call is therefore
+# "a merle-type insertion is present", class unknown.
+MERLE_CHROM, MERLE_POS, MERLE_TSD = 'chr10', 644511, 15
+
+def detect_merle_sine():
+    try:
+        bam_fh = pysam.AlignmentFile(BAM, 'rb')
+    except Exception:
+        return None
+    n_clip = 0; n_span = 0
+    lo, hi = MERLE_POS - MERLE_TSD, MERLE_POS + MERLE_TSD
+    try:
+        for r in bam_fh.fetch(MERLE_CHROM, MERLE_POS - 200, MERLE_POS + 200):
+            if r.is_unmapped or r.mapping_quality < 20 or r.is_secondary or r.is_supplementary:
+                continue
+            start, end = r.reference_start + 1, r.reference_end  # 1-based inclusive
+            cig = r.cigartuples or []
+            clip_left  = cig and cig[0][0] in (4, 5)
+            clip_right = cig and cig[-1][0] in (4, 5)
+            # a clip whose breakpoint falls inside the TSD window is insertion evidence
+            if (clip_right and lo <= end <= hi and cig[-1][1] >= 8) or                (clip_left and lo <= start <= hi and cig[0][1] >= 8):
+                n_clip += 1
+            elif start <= lo - 5 and end >= hi + 5:
+                n_span += 1
+    except Exception:
+        return None
+    finally:
+        bam_fh.close()
+    return {'n_clip': n_clip, 'n_span': n_span}
+
+MERLE_EVIDENCE = detect_merle_sine()
+
 def call_locus(locus, calls):
     """Returns (allele1, allele2, confidence, interpretation)."""
 
@@ -3748,7 +3788,27 @@ def call_locus(locus, calls):
         return 'D', 'D', 'high', 'No dilute alleles detected (D/D) — full pigment'
 
     elif locus == 'M':
-        return 'm', 'm', 'low', 'Merle (PMEL SINE insertion) not detectable from SNP imputation — PCR required'
+        ev = MERLE_EVIDENCE
+        if not ev:
+            return 'm', 'm', 'low', 'Merle (PMEL SINE insertion) not assessable — no read data at the PMEL junction'
+        nc, ns = ev['n_clip'], ev['n_span']
+        if nc >= 2:
+            if ns == 0 and nc >= 3:
+                return 'M*', 'M*', 'low', ('Merle-type SINE insertion detected on both read sets ({} clipped, 0 spanning reads) — '
+                    'likely two merle-family alleles. The class (cryptic to full merle) requires a specialized '
+                    'length test.').format(nc)
+            return 'M*', 'm', 'medium' if nc >= 3 else 'low', ('Merle-type SINE insertion detected ({} clipped vs {} clean reads at the '
+                'PMEL junction). The dog carries a merle-family allele; whether it shows as merle depends on the '
+                'insertion length (cryptic merle looks solid), which requires a specialized test.').format(nc, ns)
+        if nc == 1:
+            return 'm', '?', 'low', ('One read hints at a merle-type insertion ({} clean reads) — inconclusive at this '
+                'sequencing depth; a targeted merle test would resolve it.').format(ns)
+        if ns >= 5:
+            return 'm', 'm', 'medium', 'No merle insertion seen across {} reads spanning the PMEL junction (m/m).'.format(ns)
+        if ns >= 2:
+            return 'm', 'm', 'low', ('No merle insertion seen, but only {} reads span the PMEL junction — a merle allele '
+                'could be missed at this depth.').format(ns)
+        return 'm', '?', 'low', 'Too few reads at the PMEL junction to assess merle at this sequencing depth.'
 
     elif locus == 'S':
         n_sp = n_copies('S', 'sp', calls)
@@ -3970,7 +4030,7 @@ coat = {
         'predicted_pattern': pattern,
         'predicted_dilution': dilution,
         'predicted_white': 'Not detectable from SNP data (S locus limited; W requires structural variant)',
-        'predicted_merle': 'Not detectable from SNP imputation — requires PCR or long-read sequencing',
+        'predicted_merle': loci_gt['M']['interpretation'],
         'overall_confidence': overall_conf,
         **({'validation_warning': validation_warning} if validation_warning else {}),
         'caveat': ('E, K, B, D loci called from Dog10K GLIMPSE2 imputed BCF (causal SNPs). '
