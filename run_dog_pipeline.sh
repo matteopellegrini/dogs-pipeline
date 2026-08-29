@@ -3674,7 +3674,7 @@ LOCUS_INFO = {
               phenotype_contribution='d/d lightens all eumelanin; phaeomelanin unaffected'),
     'M': dict(gene='PMEL',  chrom='chr10', name='Merle locus',
               role='SINE insertion causes mosaic pigment dilution producing merle pattern',
-              phenotype_contribution='Not detectable from SNP imputation — requires PCR or long-read'),
+              phenotype_contribution='Detected from sequencing reads at the PMEL insertion site; the merle class (cryptic to harlequin) needs a specialized length test'),
     'S': dict(gene='MITF',  chrom='chr20', name='Spotting locus',
               role='Controls melanocyte migration extent → white spotting area',
               phenotype_contribution='sp/sp → piebald; limited resolution from single SNP'),
