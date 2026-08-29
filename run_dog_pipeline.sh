@@ -1277,7 +1277,9 @@ $MM bwa-mem2 index "$MITO_DIR/chrM.fa" >/dev/null 2>&1
 MITO_R1=$(ls "$FASTQ_DIR"/*_R1_*.fastq.gz 2>/dev/null | sort -V)
 MITO_R2=$(ls "$FASTQ_DIR"/*_R2_*.fastq.gz 2>/dev/null | sort -V)
 [[ -n "$MITO_R1" && -n "$MITO_R2" ]] || die "Stage 6d: no _R1_/_R2_ FASTQs in $FASTQ_DIR"
-$MM bwa-mem2 mem -t "$NPROC" "$MITO_DIR/chrM.fa" <(zcat $MITO_R1) <(zcat $MITO_R2) 2>"$MITO_DIR/bwa.log" \
+# gunzip -c, not zcat: macOS zcat appends ".Z" to filenames and dies, which
+# silently fed bwa an empty stream on Mac runs (0 reads, bogus haplogroup).
+$MM bwa-mem2 mem -t "$NPROC" "$MITO_DIR/chrM.fa" <(gunzip -c $MITO_R1) <(gunzip -c $MITO_R2) 2>"$MITO_DIR/bwa.log" \
   | $MM samtools view -b -F 4 -q 20 - \
   | $MM samtools sort -o "$MITO_DIR/chrM.bam" -
 $MM samtools index "$MITO_DIR/chrM.bam"
@@ -1313,6 +1315,24 @@ for line in open(mito_dir + '/snps.tsv', encoding='utf-8'):
         het += 1
     if af >= 0.7:
         dog.add((pos - 1, alt))
+
+if depth < 5 or (len(dog) == 0 and het == 0):
+    # No usable mitochondrial reads (or an upstream failure produced an empty
+    # call set): an empty variant set would spuriously 'match' the most
+    # reference-like records, so refuse to assign rather than fabricate.
+    out = {
+        'haplogroup': None, 'nearest_haplotype': None, 'confidence': 'none',
+        'suppressed': True, 'mean_chrm_depth': depth, 'n_snps_vs_reference': 0,
+        'candidate_heteroplasmy_sites': 0,
+        'group_story': '', 'group_frequencies': {},
+        'summary': ('Maternal lineage could not be determined: no usable mitochondrial '
+                    'sequence was recovered for this sample.'),
+        'method': 'Suppressed — insufficient mitochondrial read data.',
+    }
+    with open(pub + '/mito_result.json', 'w', encoding='utf-8') as f:
+        json.dump(out, f, indent=2)
+    print('mito_result.json: suppressed (depth {}x, {} snps)'.format(depth, len(dog)))
+    raise SystemExit(0)
 
 hits = sorted((len(dog ^ {tuple(s) for s in r['snps']}), r['haplotype'], r['acc'])
               for r in refs['refs'])
