@@ -1588,6 +1588,46 @@ def gt_from_bam(chrom, pos, ref, alt, min_bq=20, min_mq=20):
                        'targeted DNA test before acting on this.').format(n_v)
     return out
 
+def gt_del_from_bam(chrom, pos, min_bq=0, min_mq=20, window=3):
+    """Genotype a known deletion from read CIGARs.
+
+    pysam sets pileupread.indel < 0 on the column PRECEDING a deletion, and
+    catalogue coordinates vary by one or two bases in which position they
+    name, so the deletion is counted at its maximum across a small window.
+    Reads that span the window without any deletion count as reference.
+    """
+    best = None
+    try:
+        bam_fh = pysam.AlignmentFile(BAM, 'rb')
+        for col in bam_fh.pileup(chrom, max(0, pos - window - 1), pos + window,
+                                  truncate=True, min_base_quality=min_bq,
+                                  min_mapping_quality=min_mq,
+                                  ignore_overlaps=True, ignore_orphans=True):
+            n_del = sum(1 for r in col.pileups if r.indel < 0)
+            n_span = sum(1 for r in col.pileups if not r.is_del and not r.is_refskip)
+            n_clean = n_span - n_del
+            if best is None or n_del > best[0]:
+                best = (n_del, n_clean)
+        bam_fh.close()
+    except Exception:
+        return None
+    if best is None:
+        return None
+    n_del, n_clean = best
+    n_v = n_del + n_clean
+    if n_v < 2:
+        return None
+    f_del = n_del / n_v
+    zyg = 'ref/ref' if f_del < 0.1 else ('alt/alt' if f_del > 0.9 else 'het')
+    conf = 'low' if n_v < 5 else ('high' if n_v >= 20 else ('medium' if n_v >= 10 else 'low'))
+    out = {'zygosity': zyg, 'depth': n_v, 'ref_count': n_clean, 'alt_count': n_del,
+           'affected': zyg in ('alt/alt', 'het'), 'call_confidence': conf,
+           'source': 'bam_direct_del'}
+    if n_v < 5 and out['affected']:
+        out['note'] = ('Deletion seen in {} of {} reads — low confidence; confirm with a '
+                       'targeted DNA test before acting on this.').format(n_del, n_v)
+    return out
+
 variants = []
 n_panel = 0; n_bam = 0; n_indel = 0; n_not_callable = 0
 
@@ -1601,10 +1641,22 @@ for v in omia_ref.get('variants', []):
     is_snv = pos and len(ref) == 1 and len(alt) == 1
 
     if not is_snv:
-        # Indels: not resolvable by imputation or low-pass BAM
-        new_v[DOG] = {'zygosity': 'indel_no_call', 'affected': False,
-                      'call_confidence': 'none', 'source': 'indel'}
-        n_indel += 1
+        # Deletions ARE resolvable from reads: an aligner marks a deletion in
+        # the CIGAR of every read spanning it, so counting deletion-carrying
+        # vs clean-spanning reads genotypes it like a SNV pileup. Added for
+        # MDR1 (ABCB1 4-bp del, chr14:13704489) — the most-requested variant
+        # in the catalogue — but applies to any del with coordinates.
+        # Insertions and complex events stay uncalled.
+        del_call = None
+        if pos and (v.get('variant_type') or '').lower() in ('del', 'deletion'):
+            del_call = gt_del_from_bam(chrom, int(pos))
+        if del_call:
+            new_v[DOG] = del_call
+            n_bam += 1
+        else:
+            new_v[DOG] = {'zygosity': 'indel_no_call', 'affected': False,
+                          'call_confidence': 'none', 'source': 'indel'}
+            n_indel += 1
 
     else:
         gt, af, gp, in_panel = query_glimpse2(chrom, int(pos), ref, alt)
