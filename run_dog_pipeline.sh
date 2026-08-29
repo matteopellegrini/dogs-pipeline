@@ -210,7 +210,7 @@ preflight() {
            "$REF_JSON/prs_lmm_betas.json.gz" \
            "$REF_JSON/darwins_ark_size_prs.tsv.gz" "$REF_JSON/darwins_ark_blend.json" \
            "$REF_JSON/darwins_ark/manifest.json.gz" "$REF_JSON/darwins_ark/wts_biddability.tsv.gz" \
-           "$REF_JSON/mito_haplogroups.json.gz" \
+           "$REF_JSON/mito_haplogroups.json.gz" "$REF_JSON/ortho_risk.json" \
            "$D/relatives_ref/geno.npy" "$D/relatives_ref/meta.json.gz" "$D/relatives_ref/keys.tsv" \
            "$D/COSMO/glimpse2_dog10k/het_out/dog10k_het.het" \
            "$D/COSMO/glimpse2_dog10k/het_out/panel_af.tsv.gz"; do
@@ -3269,6 +3269,79 @@ with open(f'{PUB}/prs_result.json', 'w') as f:
     json.dump(prs_result, f, indent=2)
 print(f"prs_result.json written ({len(traits_out)} traits)")
 PYEOF
+# ── 11c: Orthopedic risk (breed-ancestry-weighted epidemiology) ──────────
+# Hip dysplasia and cranial cruciate ligament rupture are polygenic — no
+# single variant to genotype — but both have solid breed-level epidemiology
+# (OFA hip statistics; VetCompass/JAVMA CCL odds), and this dog's ancestry
+# composition is known precisely. The report therefore gives an
+# ancestry-weighted risk, clearly framed as breed statistics, not an
+# individual DNA test.
+log "  Orthopedic risk (ancestry-weighted)"
+PUB_DIR="$PUB" REFJ="$REF_JSON" "$DATA_PYTHON" - <<'PYEOF'
+import json, os, re
+
+pub = os.environ['PUB_DIR']
+art = json.load(open(os.environ['REFJ'] + '/ortho_risk.json'))
+breed = json.load(open(pub + '/breed_result.json'))
+bc = breed['breed_composition']
+comp = (sorted(bc.items(), key=lambda x: -x[1]) if isinstance(bc, dict)
+        else [(e.get('breed_name') or e.get('breed'), e['proportion']) for e in bc])
+
+def norm(x):
+    return re.sub(r'[^a-z0-9]+', '', str(x).replace('_', ' ').lower())
+
+def weighted(table, default):
+    total_w = 0.0; acc = 0.0; contrib = []
+    for name, prop in comp:
+        v = table.get(norm(name))
+        if v is None:
+            # panel size-variant labels: try dropping leading Standard/Miniature/Toy
+            v = table.get(norm(re.sub(r'^(standard|miniature|toy)\s+', '', str(name), flags=re.I)))
+        if v is None:
+            v = default
+        else:
+            contrib.append({'breed': str(name).replace('_', ' ').title(), 'value': v, 'proportion': round(prop, 3)})
+        acc += prop * v; total_w += prop
+    return (acc / total_w if total_w else default), contrib
+
+hip_tab = art['hip_dysplasia']['by_breed']
+hip_mean = art['hip_dysplasia']['population_mean_pct']
+hip, hip_contrib = weighted(hip_tab, hip_mean)
+hip_ratio = hip / hip_mean
+hip_cat = ('elevated' if hip_ratio >= 1.5 else 'somewhat elevated' if hip_ratio >= 1.15
+           else 'reduced' if hip_ratio <= 0.7 else 'average')
+
+ccl_tab = art['ccl']['by_breed']
+ccl, ccl_contrib = weighted(ccl_tab, 1.0)
+ccl_cat = ('elevated' if ccl >= 1.5 else 'somewhat elevated' if ccl >= 1.15
+           else 'reduced' if ccl <= 0.7 else 'average')
+
+out = {
+  'hip_dysplasia': {
+    'ancestry_weighted_pct': round(hip, 1),
+    'population_average_pct': hip_mean,
+    'relative_risk': round(hip_ratio, 2),
+    'category': hip_cat,
+    'top_contributors': sorted(hip_contrib, key=lambda c: -c['proportion'] * c['value'])[:4],
+    'source': art['hip_dysplasia']['source'],
+    'caveat': art['hip_dysplasia']['caveat'],
+  },
+  'ccl': {
+    'relative_risk': round(ccl, 2),
+    'category': ccl_cat,
+    'top_contributors': sorted(ccl_contrib, key=lambda c: -c['proportion'] * abs(c['value'] - 1))[:4],
+    'sources': art['ccl']['sources'],
+  },
+  'prevention_note': ('For both conditions, keeping a lean body weight is the single most '
+                      'effective ownable factor; controlled exercise, and for at-risk dogs a '
+                      'discussion with your vet about conditioning and neuter timing, also help.'),
+  'method': art['method'],
+}
+with open(pub + '/ortho_result.json', 'w') as f:
+    json.dump(out, f, indent=2)
+print('ortho_result.json: hip {:.1f}% ({}), CCL RR {:.2f} ({})'.format(hip, hip_cat, ccl, ccl_cat))
+PYEOF
+
 fi # end stage 11
 
 if (( FROM_STAGE <= 12 && TO_STAGE >= 12 )); then
