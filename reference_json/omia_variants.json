@@ -8056,10 +8056,10 @@
   {
    "gene": "MFN2",
    "chrom": "chr2",
-   "pos": 83765720,
-   "ref": "G",
-   "alt": "C",
-   "variant_type": "G>C",
+   "pos": 83765723,
+   "ref": null,
+   "alt": null,
+   "variant_type": "del",
    "trait": "Fetal-Onset Neonatal Neuroaxonal Dystrophy ",
    "variant_breed": "Giant Schnauzer",
    "panel": "Embark, Wisdom",
@@ -8072,7 +8072,8 @@
     "affected": false,
     "call_confidence": "low"
    },
-   "source": "Excel"
+   "source": "Excel",
+   "coordinate_lifted": "OMIA CanFam3.1 g.84289962_84289964del (E539del) lifted via 801bp flank bwa MAPQ60, 2026-08-29"
   },
   {
    "variant_id": "1374",
@@ -11093,9 +11094,9 @@
   {
    "gene": "ITGA2B",
    "chrom": "chr9",
-   "pos": 18932503,
-   "ref": "C",
-   "alt": "G",
+   "pos": 18929832,
+   "ref": "G",
+   "alt": "C",
    "variant_type": "C>G",
    "trait": "Glanzmann's Thrombasthenia Type I ",
    "variant_breed": "Great Pyrenees",
@@ -11109,7 +11110,8 @@
     "affected": false,
     "call_confidence": "no_coverage"
    },
-   "source": "Excel"
+   "source": "Excel",
+   "coordinate_lifted": "OMIA CanFam3.1 g.19054488G>C (Otterhound c.1192G>C) lifted via 801bp flank bwa MAPQ60, 2026-08-29"
   },
   {
    "gene": "KCNQ1",
