@@ -1588,7 +1588,7 @@ def gt_from_bam(chrom, pos, ref, alt, min_bq=20, min_mq=20):
                        'targeted DNA test before acting on this.').format(n_v)
     return out
 
-def gt_sv_from_bam(chrom, pos, svtype='', bnd_window=15, min_mq=20):
+def gt_sv_from_bam(chrom, pos, svtype='', pos_end=None, bnd_window=15, min_mq=20):
     """Genotype a known structural variant (del/ins/dup/inv/untyped) at a
     known position from read alignments.
 
@@ -1603,34 +1603,56 @@ def gt_sv_from_bam(chrom, pos, svtype='', bnd_window=15, min_mq=20):
     duplications, ambiguous naming), hence the +-bnd_window tolerance —
     same approach validated for MDR1 (4-bp del) and merle (PMEL SINE).
     """
-    lo, hi = pos - bnd_window, pos + bnd_window
+    # Size-awareness matters: the catalogue mixes 1-4bp deletions (visible as
+    # D operations inside reads) with deletions of tens of KILOBASES (never
+    # visible as D — only as soft-clips at the two breakpoints). Counting any
+    # overlapping D as the pathogenic allele mis-called a normal Poodle
+    # homozygous for a 130kb dwarfism deletion off a benign 1bp indel.
+    exp_len = (pos_end - pos) if (pos_end and pos_end > pos) else None
+    large = exp_len is not None and exp_len > 60
+    breakpoints = [pos, pos_end] if large else [pos]
     n_del = n_clip = n_span = 0
     try:
         bam_fh = pysam.AlignmentFile(BAM, 'rb')
-        for r in bam_fh.fetch(chrom, max(0, pos - 200), pos + 200):
-            if r.is_unmapped or r.mapping_quality < min_mq or r.is_secondary or r.is_supplementary:
-                continue
-            start, end = r.reference_start + 1, r.reference_end
-            cig = r.cigartuples or []
-            has_del = False
-            rp = start
-            for op, ln in cig:
-                if op in (0, 7, 8):
-                    rp += ln
-                elif op == 2:
-                    if rp - 1 <= hi and rp + ln >= lo:
-                        has_del = True
-                    rp += ln
-                elif op == 3:
-                    rp += ln
-            clip_left  = cig and cig[0][0] in (4, 5) and cig[0][1] >= 8 and lo <= start <= hi
-            clip_right = cig and cig[-1][0] in (4, 5) and cig[-1][1] >= 8 and lo <= end <= hi
-            if has_del:
-                n_del += 1
-            elif clip_left or clip_right:
-                n_clip += 1
-            elif start <= lo - 5 and end >= hi + 5:
-                n_span += 1
+        seen = set()
+        for bp in breakpoints:
+            lo, hi = bp - bnd_window, bp + bnd_window
+            for r in bam_fh.fetch(chrom, max(0, bp - 200), bp + 200):
+                if r.is_unmapped or r.mapping_quality < min_mq or r.is_secondary or r.is_supplementary:
+                    continue
+                rid = (r.query_name, r.flag, r.reference_start)
+                if rid in seen:
+                    continue
+                seen.add(rid)
+                start, end = r.reference_start + 1, r.reference_end
+                cig = r.cigartuples or []
+                has_del = False
+                if not large:
+                    rp = start
+                    for op, ln in cig:
+                        if op in (0, 7, 8):
+                            rp += ln
+                        elif op == 2:
+                            if rp - 1 <= hi and rp + ln >= lo:
+                                # D length must be consistent with the expected
+                                # deletion; unknown-size dels require >=2bp so a
+                                # ubiquitous 1bp homopolymer slip cannot call.
+                                if exp_len is not None:
+                                    if exp_len // 2 <= ln <= exp_len * 2:
+                                        has_del = True
+                                elif ln >= 2:
+                                    has_del = True
+                            rp += ln
+                        elif op == 3:
+                            rp += ln
+                clip_left  = cig and cig[0][0] in (4, 5) and cig[0][1] >= 8 and lo <= start <= hi
+                clip_right = cig and cig[-1][0] in (4, 5) and cig[-1][1] >= 8 and lo <= end <= hi
+                if has_del:
+                    n_del += 1
+                elif clip_left or clip_right:
+                    n_clip += 1
+                elif start <= lo - 5 and end >= hi + 5:
+                    n_span += 1
         bam_fh.close()
     except Exception:
         return None
@@ -1681,7 +1703,7 @@ for v in omia_ref.get('variants', []):
         # Insertions and complex events stay uncalled.
         del_call = None
         if pos and chrom:
-            del_call = gt_sv_from_bam(chrom, int(pos), v.get('variant_type') or '')
+            del_call = gt_sv_from_bam(chrom, int(pos), v.get('variant_type') or '', v.get('pos_end'))
         if del_call:
             new_v[DOG] = del_call
             n_bam += 1
