@@ -329,7 +329,7 @@ _keep_from_scratch() {
   mkdir -p "$FINAL_OUT"
   local f
   for f in pipeline.log pipeline.done fastp.json fastp.html \
-           coverage_1mb.tsv coverage_cnv.tsv \
+           coverage_1mb.tsv coverage_cnv.tsv coverage_50kb.tsv.gz \
            sites.bam sites.bam.bai sites.bam.csi sites.bed \
            "${DOG_LOWER}_metaphlan.txt" "${DOG_LOWER}_metaphlan.mapout.bz2"; do
     [[ -e "$OUT/$f" ]] && cp -p "$OUT/$f" "$FINAL_OUT/$f" 2>/dev/null || true
@@ -514,6 +514,18 @@ awk -v w="$CNV_WINDOW" 'BEGIN{OFS="\t"} $1~/^chr([0-9]+|X)$/ {
 }' "$FASTA.fai" > "$OUT/windows_cnv.bed"
 $MM samtools bedcov "$OUT/windows_cnv.bed" "$OUT/markdup.bam" > "$OUT/coverage_cnv.tsv"
 log "CNV coverage: $(wc -l < $OUT/coverage_cnv.tsv) windows"
+
+# 5c — fixed 50kb grid for the unified CNV framework (planned replacement for
+# the dual 1Mb/adaptive scheme): one window scale for every dog regardless of
+# depth, so a cohort panel-of-normals can be built per window and segments can
+# span 50kb to whole chromosomes. Emitted for every sample NOW so the batch in
+# flight captures it while its BAM still exists (~2MB gz; kept from scratch).
+awk 'BEGIN{OFS="\t"} $1~/^chr([0-9]+|X)$/ {
+  for(s=0; s<$2; s+=50000)
+    print $1, s, (s+50000<$2 ? s+50000 : $2)
+}' "$FASTA.fai" > "$OUT/windows_50kb.bed"
+$MM samtools bedcov "$OUT/windows_50kb.bed" "$OUT/markdup.bam" | gzip > "$OUT/coverage_50kb.tsv.gz"
+log "50kb coverage: $(gunzip -c "$OUT/coverage_50kb.tsv.gz" | wc -l) windows"
 fi # end stage 5
 
 if (( FROM_STAGE <= 6 && TO_STAGE >= 6 )); then

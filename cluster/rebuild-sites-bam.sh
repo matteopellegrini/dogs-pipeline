@@ -24,13 +24,15 @@ ROW=$(awk -v i="${SGE_TASK_ID:?}" 'NR==i{print; exit}' "$ROWS")
 sample=$(awk -F'\t' -v r="$ROW" 'NR==r{print $4}' "$SHEET")
 outdir=$(awk -F'\t' -v r="$ROW" 'NR==r{print $5}' "$SHEET")
 
-# Realign: stages 1-4 produce markdup.bam and (new) sites.bam.
+# Realign: stages 1-5 produce markdup.bam, (new) sites.bam, and the coverage
+# window counts including the fixed 50kb grid for the unified CNV framework —
+# the one chance to count windows before the big BAM is deleted again.
 # USE_LOCAL_SCRATCH=0: the scratch profile copies back only a whitelist and
 # DELETES markdup.bam with the scratch dir — stages 8/13 below then have no
 # reads (this is also how the 92 dogs lost their BAMs originally). Write to
 # the persistent work dir; the big BAM is removed by this script at the end.
-USE_LOCAL_SCRATCH=0 TO_STAGE=4 PUBLISH_RESULTS=0 bash run_dog_pipeline.sh "$SHEET" "$ROW" 1 \
-  || { echo "ERROR: stages 1-4 failed for $sample"; exit 1; }
+USE_LOCAL_SCRATCH=0 TO_STAGE=5 PUBLISH_RESULTS=0 bash run_dog_pipeline.sh "$SHEET" "$ROW" 1 \
+  || { echo "ERROR: stages 1-5 failed for $sample"; exit 1; }
 [[ -f "$outdir/sites.bam" ]] || { echo "ERROR: sites.bam missing for $sample"; exit 1; }
 
 # Read-dependent report stages against the fresh BAM.
