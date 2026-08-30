@@ -41,6 +41,7 @@ TO_STAGE=8  PUBLISH_RESULTS=0 bash run_dog_pipeline.sh "$SHEET" "$ROW" 8 \
 TO_STAGE=13 PUBLISH_RESULTS=0 bash run_dog_pipeline.sh "$SHEET" "$ROW" 13 \
   || { echo "ERROR: stage 13 failed for $sample"; exit 1; }
 
-# Big BAM goes away again; sites.bam (a few MB) stays forever.
-rm -f "$outdir/markdup.bam" "$outdir/markdup.bam.csi" "$outdir/markdup.bam.bai"
+# Policy change 2026-08-30: BAMs are KEPT while the pipeline is still being
+# iterated on (~4GB/dog vs 23TB free) — deleting them forced repeated
+# realignment campaigns. sites.bam stays as the durable extract regardless.
 echo "REBUILD-DONE $sample"

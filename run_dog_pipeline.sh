@@ -328,8 +328,13 @@ _keep_from_scratch() {
   [[ -n "$FINAL_OUT" && -d "$OUT" ]] || return 0
   mkdir -p "$FINAL_OUT"
   local f
+  # markdup.bam is KEPT while the pipeline is still being iterated on: at ~4GB
+  # per 2x dog the full cohort is ~5TB against 23TB free, and deleting it has
+  # already forced three realignment campaigns (stage-8/13 reruns, sites.bam,
+  # 50kb grid). Revisit — delete or convert to CRAM — once the callers settle.
   for f in pipeline.log pipeline.done fastp.json fastp.html \
            coverage_1mb.tsv coverage_cnv.tsv coverage_50kb.tsv.gz \
+           markdup.bam markdup.bam.bai markdup.bam.csi \
            sites.bam sites.bam.bai sites.bam.csi sites.bed \
            "${DOG_LOWER}_metaphlan.txt" "${DOG_LOWER}_metaphlan.mapout.bz2"; do
     [[ -e "$OUT/$f" ]] && cp -p "$OUT/$f" "$FINAL_OUT/$f" 2>/dev/null || true
