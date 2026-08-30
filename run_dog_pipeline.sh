@@ -330,6 +330,7 @@ _keep_from_scratch() {
   local f
   for f in pipeline.log pipeline.done fastp.json fastp.html \
            coverage_1mb.tsv coverage_cnv.tsv \
+           sites.bam sites.bam.bai sites.bam.csi sites.bed \
            "${DOG_LOWER}_metaphlan.txt" "${DOG_LOWER}_metaphlan.mapout.bz2"; do
     [[ -e "$OUT/$f" ]] && cp -p "$OUT/$f" "$FINAL_OUT/$f" 2>/dev/null || true
   done
