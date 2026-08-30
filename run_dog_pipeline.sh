@@ -455,6 +455,27 @@ $MM bwa-mem2 mem \
 rm -f "$OUT/trimmed_R1.fastq.gz" "$OUT/trimmed_R2.fastq.gz"
 $MM samtools flagstat "$OUT/markdup.bam" | tee -a "$LOG"
 log "BAM ready: $OUT/markdup.bam"
+
+# ── Permanent mini-BAM of known-variant regions ──────────────────────────
+# Disk cleanup deletes markdup.bam eventually; when stage 8/13 was later rerun
+# on 92 BAM-less dogs it silently degraded every read-based call to
+# "insufficient reads". Keep a few-MB extract (catalogue sites, MC1R, TYRP1,
+# PMEL merle junction, chrM) so read-based stages can always be rerun.
+"$DATA_PYTHON" - << PYEOF > "$OUT/sites.bed"
+import json
+regs = [('chrM', 0, 17000), ('chr10', 643510, 645512),
+        ('chr5', 64185000, 64189000), ('chr11', 33399000, 33402000)]
+db = json.load(open("$OMIA_DB"))
+for v in db['variants']:
+    c, p = v.get('chrom'), v.get('pos')
+    if not c or not p: continue
+    e = v.get('pos_end') or p
+    regs.append((c, max(0, int(p) - 500), int(e) + 500))
+for c, s, e in regs: print(f'{c}\t{s}\t{e}')
+PYEOF
+$MM samtools view -b -M -L "$OUT/sites.bed" "$OUT/markdup.bam" > "$OUT/sites.bam"
+$MM samtools index "$OUT/sites.bam"
+log "sites.bam ready ($($MM samtools view -c "$OUT/sites.bam") reads at known-variant regions)"
 fi # end stages 3+4
 
 if (( FROM_STAGE <= 5 && TO_STAGE >= 5 )); then
@@ -1526,11 +1547,18 @@ fi # end stage 7
 if (( FROM_STAGE <= 8 && TO_STAGE >= 8 )); then
 # ── Stage 8: OMIA genotyping from Dog10K imputed panel ───────
 log "=== Stage 8: OMIA genotyping (Dog10K imputed + BAM fallback) ==="
+# markdup.bam may have been cleaned up; sites.bam is the permanent extract of
+# the same reads at known-variant regions. NEVER run without one of them — a
+# BAM-less rerun silently rewrites every read-based call as "insufficient
+# reads" (happened to 92 published dogs on 2026-08-29).
+CALL_BAM="$OUT/markdup.bam"
+[[ -f "$CALL_BAM" ]] || CALL_BAM="$OUT/sites.bam"
+[[ -f "$CALL_BAM" ]] || die "Stage 8 needs reads: neither markdup.bam nor sites.bam in $OUT — refusing to write a degraded report"
 "$DATA_PYTHON" - << PYEOF
 import subprocess, pysam, json, re
 
 BCF       = "$IMPUTED_BCF"
-BAM       = "$OUT/markdup.bam"
+BAM       = "$CALL_BAM"
 OMIA      = "$OMIA_DB"
 QC_JSON   = "$PUB/qc_result.json"
 PUB       = "$PUB"
@@ -3584,7 +3612,12 @@ fi # end stage 12
 if (( FROM_STAGE <= 13 && TO_STAGE >= 13 )); then
 # ── Stage 13: Coat color (GLIMPSE2 imputed genotypes at causal loci) ─────
 log "=== Stage 13: Coat color ==="
-export IMPUTED_BCF MARKDUP_BAM="$OUT/markdup.bam" PUB DOG_LOWER
+# Same BAM resolution as stage 8: fall back to the permanent sites.bam, refuse
+# to run with neither (merle and B-locus phasing need reads).
+CALL_BAM="$OUT/markdup.bam"
+[[ -f "$CALL_BAM" ]] || CALL_BAM="$OUT/sites.bam"
+[[ -f "$CALL_BAM" ]] || die "Stage 13 needs reads: neither markdup.bam nor sites.bam in $OUT — refusing to write a degraded report"
+export IMPUTED_BCF MARKDUP_BAM="$CALL_BAM" PUB DOG_LOWER
 "$DATA_PYTHON" - << 'PYEOF'
 import subprocess, json, pysam, re, tempfile, os
 
