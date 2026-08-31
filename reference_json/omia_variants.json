@@ -36,7 +36,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "A coat-color variant, not a disease: TYRP1 'brown' alleles turn black pigment to brown/liver (including nose and paw pads) when a dog carries two brown alleles in any combination."
+   "description": "A coat-color variant, not a disease: TYRP1 'brown' alleles turn black pigment to brown/liver (including nose and paw pads) when a dog carries two brown alleles in any combination.",
+   "category": "coat"
   },
   {
    "gene": "ATP7B",
@@ -66,7 +67,8 @@
     "confidence_source": "glimpse2_v2"
    },
    "source": "Excel",
-   "description": "An inherited defect of copper handling in the liver: copper accumulates over years and can cause chronic liver damage. Manageable with diet and medication when identified."
+   "description": "An inherited defect of copper handling in the liver: copper accumulates over years and can cause chronic liver damage. Manageable with diet and medication when identified.",
+   "category": "disease"
   },
   {
    "gene": "EHBP1L1",
@@ -89,7 +91,8 @@
    },
    "source": "Excel",
    "coordinate_lifted": "canFam3.1->canFam4 via 801bp flank bwa (MAPQ60 unique), 2026-08-29",
-   "description": "A rare inherited syndrome combining abnormal red-cell production with muscle disease."
+   "description": "A rare inherited syndrome combining abnormal red-cell production with muscle disease.",
+   "category": "disease"
   },
   {
    "gene": "FGF5",
@@ -113,7 +116,8 @@
    "source": "Excel",
    "strand_fixed": true,
    "palindromic_fix": true,
-   "description": "A coat-trait variant, not a disease: this change in the FGF5 gene region is one of several that produce a long coat when a dog carries two long-coat copies in total."
+   "description": "A coat-trait variant, not a disease: this change in the FGF5 gene region is one of several that produce a long coat when a dog carries two long-coat copies in total.",
+   "category": "trait"
   },
   {
    "gene": "FVIII",
@@ -138,7 +142,8 @@
    "source": "Excel",
    "strand_fixed": true,
    "palindromic_fix": true,
-   "description": "An inherited deficiency of one of the blood-clotting factors, causing prolonged bleeding after injury or surgery \u2014 severity ranges from mild to serious depending on the factor and variant. Worth telling your vet before any procedure."
+   "description": "An inherited deficiency of one of the blood-clotting factors, causing prolonged bleeding after injury or surgery \u2014 severity ranges from mild to serious depending on the factor and variant. Worth telling your vet before any procedure.",
+   "category": "disease"
   },
   {
    "gene": "G6PC",
@@ -162,7 +167,8 @@
    "source": "Excel",
    "strand_fixed": true,
    "palindromic_fix": true,
-   "description": "An inherited inability to store or release glycogen (the body's sugar reserve) properly, typically causing low blood sugar, exercise intolerance and organ enlargement. Recessive."
+   "description": "An inherited inability to store or release glycogen (the body's sugar reserve) properly, typically causing low blood sugar, exercise intolerance and organ enlargement. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "GALC",
@@ -186,7 +192,8 @@
    "source": "Excel",
    "strand_fixed": true,
    "palindromic_fix": true,
-   "description": "A severe inherited disease of nerve insulation (myelin), causing progressive weakness and neurological decline in young dogs. Recessive."
+   "description": "A severe inherited disease of nerve insulation (myelin), causing progressive weakness and neurological decline in young dogs. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "MANBA",
@@ -210,7 +217,8 @@
    "source": "Excel",
    "strand_fixed": true,
    "palindromic_fix": true,
-   "description": "A rare inherited storage disease in which a sugar-processing enzyme is missing, causing progressive neurological disease. Recessive."
+   "description": "A rare inherited storage disease in which a sugar-processing enzyme is missing, causing progressive neurological disease. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "PLG",
@@ -234,7 +242,8 @@
    "source": "Excel",
    "strand_fixed": true,
    "palindromic_fix": true,
-   "description": "A rare inherited plasminogen deficiency causing woody, inflamed membranes of the eyes, mouth and gums."
+   "description": "A rare inherited plasminogen deficiency causing woody, inflamed membranes of the eyes, mouth and gums.",
+   "category": "disease"
   },
   {
    "gene": "RHO",
@@ -258,7 +267,8 @@
    "source": "Excel",
    "strand_fixed": true,
    "palindromic_fix": true,
-   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years."
+   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years.",
+   "category": "disease"
   },
   {
    "gene": "ABCA4",
@@ -280,7 +290,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited macular degeneration causing gradual central-vision loss in adult dogs."
+   "description": "An inherited macular degeneration causing gradual central-vision loss in adult dogs.",
+   "category": "disease"
   },
   {
    "gene": "ABCB1",
@@ -303,7 +314,8 @@
    },
    "source": "Excel",
    "description": "The famous multidrug-sensitivity variant: dogs with the MDR1 deletion cannot pump certain drugs out of the brain, making common medications (ivermectin, loperamide, some sedatives and chemotherapy drugs) potentially dangerous at normal doses. One copy warrants caution; two copies require strict avoidance \u2014 always share this result with your vet.",
-   "pos_end": 13704492
+   "pos_end": 13704492,
+   "category": "disease"
   },
   {
    "gene": "ABHD5",
@@ -326,7 +338,8 @@
    },
    "source": "Excel",
    "description": "An inherited skin condition in which the outer skin layer does not form normally, causing flaking, scaling and a rough or darkened skin surface. Usually recessive; severity varies widely and management is topical.",
-   "pos_end": 2774947
+   "pos_end": 2774947,
+   "category": "disease"
   },
   {
    "gene": "ACADM",
@@ -348,7 +361,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited defect in burning medium-chain fats for energy, which can cause low energy and metabolic crises, especially when fasting."
+   "description": "An inherited defect in burning medium-chain fats for energy, which can cause low energy and metabolic crises, especially when fasting.",
+   "category": "disease"
   },
   {
    "gene": "ACSL5",
@@ -371,7 +385,8 @@
    },
    "source": "Excel",
    "description": "An inherited difficulty absorbing dietary fats, causing poor weight gain and digestive signs.",
-   "pos_end": 23780528
+   "pos_end": 23780528,
+   "category": "disease"
   },
   {
    "gene": "ADAMTS17",
@@ -394,7 +409,8 @@
    },
    "source": "Excel",
    "description": "An inherited form of glaucoma in which pressure builds inside the eye, which is painful and can damage vision; some forms also loosen the lens. Regular eye-pressure checks help catch it early in at-risk dogs.",
-   "pos_end": 46250588
+   "pos_end": 46250588,
+   "category": "disease"
   },
   {
    "gene": "ADAMTS17",
@@ -417,7 +433,8 @@
    },
    "source": "Excel",
    "description": "An inherited form of glaucoma in which pressure builds inside the eye, which is painful and can damage vision; some forms also loosen the lens. Regular eye-pressure checks help catch it early in at-risk dogs.",
-   "pos_end": 41320127
+   "pos_end": 41320127,
+   "category": "disease"
   },
   {
    "gene": "ADAMTS20",
@@ -439,7 +456,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited developmental defect of the lip/palate (with fused toes in some pups), evident at birth."
+   "description": "An inherited developmental defect of the lip/palate (with fused toes in some pups), evident at birth.",
+   "category": "disease"
   },
   {
    "gene": "AGL",
@@ -461,7 +479,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited inability to store or release glycogen (the body's sugar reserve) properly, typically causing low blood sugar, exercise intolerance and organ enlargement. Recessive."
+   "description": "An inherited inability to store or release glycogen (the body's sugar reserve) properly, typically causing low blood sugar, exercise intolerance and organ enlargement. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "AKNA",
@@ -484,7 +503,8 @@
    },
    "source": "Excel",
    "description": "An inherited predisposition to chronic airway inflammation and recurrent respiratory infections in puppies.",
-   "pos_end": 68985445
+   "pos_end": 68985445,
+   "category": "disease"
   },
   {
    "gene": "ALX4",
@@ -507,7 +527,8 @@
    },
    "source": "Excel",
    "description": "A pigmentation trait, not a disease: variants near ALX4 are associated with blue eyes, notably in Huskies.",
-   "pos_end": 45324405
+   "pos_end": 45324405,
+   "category": "coat"
   },
   {
    "gene": "AMN",
@@ -530,7 +551,8 @@
    },
    "source": "Excel",
    "description": "An inherited inability to absorb vitamin B12 from food, causing poor growth, lethargy and anemia in young dogs \u2014 very treatable with B12 supplementation once recognized.",
-   "pos_end": 71212967
+   "pos_end": 71212967,
+   "category": "disease"
   },
   {
    "gene": "APC",
@@ -552,7 +574,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited predisposition to numerous intestinal polyps that can progress to cancer; affected dogs benefit from GI surveillance."
+   "description": "An inherited predisposition to numerous intestinal polyps that can progress to cancer; affected dogs benefit from GI surveillance.",
+   "category": "disease"
   },
   {
    "gene": "ARHGEF10",
@@ -575,7 +598,8 @@
    },
    "source": "Excel",
    "description": "An inherited nerve disease appearing in young dogs, causing progressive hind-limb weakness, exercise intolerance and sometimes noisy breathing from voice-box involvement.",
-   "pos_end": 60206059
+   "pos_end": 60206059,
+   "category": "disease"
   },
   {
    "gene": "ATP13A2",
@@ -597,7 +621,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy."
+   "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy.",
+   "category": "disease"
   },
   {
    "gene": "ATP1B2",
@@ -619,7 +644,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited degeneration of the cerebellum, the balance-and-coordination center of the brain, causing a wobbly gait that typically worsens over time. Recessive \u2014 carriers are unaffected."
+   "description": "An inherited degeneration of the cerebellum, the balance-and-coordination center of the brain, causing a wobbly gait that typically worsens over time. Recessive \u2014 carriers are unaffected.",
+   "category": "disease"
   },
   {
    "gene": "ATP2A2",
@@ -642,7 +668,8 @@
    },
    "source": "Excel",
    "description": "An inherited skin disorder causing wart-like, crusted skin lesions.",
-   "pos_end": 8434020
+   "pos_end": 8434020,
+   "category": "disease"
   },
   {
    "gene": "BCAN",
@@ -665,7 +692,8 @@
    },
    "source": "Excel",
    "description": "An inherited exercise-triggered muscle stiffness of Cavalier King Charles Spaniels: episodes of rigid limbs and collapse with normal consciousness, often manageable with medication.",
-   "pos_end": 41322250
+   "pos_end": 41322250,
+   "category": "disease"
   },
   {
    "gene": "CHRNE",
@@ -687,7 +715,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited fault at the nerve-muscle junction, causing weakness that worsens with exercise in puppies. Recessive."
+   "description": "An inherited fault at the nerve-muscle junction, causing weakness that worsens with exercise in puppies. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "CHRNE",
@@ -709,7 +738,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited fault at the nerve-muscle junction, causing weakness that worsens with exercise in puppies. Recessive."
+   "description": "An inherited fault at the nerve-muscle junction, causing weakness that worsens with exercise in puppies. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "CLCN1",
@@ -731,7 +761,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited muscle-relaxation defect: muscles stiffen with initial movement ('warm-up' stiffness), giving a stiff bunny-hop gait. Recessive; dogs adapt well."
+   "description": "An inherited muscle-relaxation defect: muscles stiffen with initial movement ('warm-up' stiffness), giving a stiff bunny-hop gait. Recessive; dogs adapt well.",
+   "category": "disease"
   },
   {
    "gene": "CLCN1",
@@ -753,7 +784,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited muscle-relaxation defect: muscles stiffen with initial movement ('warm-up' stiffness), giving a stiff bunny-hop gait. Recessive; dogs adapt well."
+   "description": "An inherited muscle-relaxation defect: muscles stiffen with initial movement ('warm-up' stiffness), giving a stiff bunny-hop gait. Recessive; dogs adapt well.",
+   "category": "disease"
   },
   {
    "gene": "CNGB3",
@@ -776,7 +808,8 @@
    },
    "source": "Excel",
    "description": "An inherited loss of retinal cone cells causing day blindness and absent color vision, with night vision preserved. Recessive.",
-   "pos_end": 33745116
+   "pos_end": 33745116,
+   "category": "disease"
   },
   {
    "gene": "COL1A2",
@@ -799,7 +832,8 @@
    },
    "source": "Excel",
    "description": "'Brittle bone disease' \u2014 an inherited collagen defect making bones fragile and prone to fracture, with possible dental and joint involvement, from puppyhood.",
-   "pos_end": 19857653
+   "pos_end": 19857653,
+   "category": "disease"
   },
   {
    "gene": "COL5A1",
@@ -821,7 +855,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited connective-tissue defect: skin is stretchy, fragile and tears easily, and joints can be loose. Managed by protecting the skin from trauma."
+   "description": "An inherited connective-tissue defect: skin is stretchy, fragile and tears easily, and joints can be loose. Managed by protecting the skin from trauma.",
+   "category": "disease"
   },
   {
    "gene": "COL7A1",
@@ -844,7 +879,8 @@
    },
    "source": "Excel",
    "description": "An inherited skin-fragility disease: the skin layers separate with minor friction, causing blisters and sores. Severity varies by form.",
-   "pos_end": 40932891
+   "pos_end": 40932891,
+   "category": "disease"
   },
   {
    "gene": "CUBN",
@@ -866,7 +902,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited inability to absorb vitamin B12 from food, causing poor growth, lethargy and anemia in young dogs \u2014 very treatable with B12 supplementation once recognized."
+   "description": "An inherited inability to absorb vitamin B12 from food, causing poor growth, lethargy and anemia in young dogs \u2014 very treatable with B12 supplementation once recognized.",
+   "category": "disease"
   },
   {
    "gene": "DMD",
@@ -888,7 +925,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age."
+   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age.",
+   "category": "disease"
   },
   {
    "gene": "DMD",
@@ -910,7 +948,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age."
+   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age.",
+   "category": "disease"
   },
   {
    "gene": "EHBP1L1",
@@ -932,7 +971,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "A rare inherited syndrome combining abnormal red-cell production with muscle disease."
+   "description": "A rare inherited syndrome combining abnormal red-cell production with muscle disease.",
+   "category": "disease"
   },
   {
    "gene": "ENAM",
@@ -955,7 +995,8 @@
    },
    "source": "Excel",
    "description": "An inherited enamel defect: teeth form with thin or pitted enamel, look discolored, and wear or chip easily. Managed with dental care.",
-   "pos_end": 61005999
+   "pos_end": 61005999,
+   "category": "disease"
   },
   {
    "gene": "EPS8L2",
@@ -978,7 +1019,8 @@
    },
    "source": "Excel",
    "description": "An inherited progressive hearing loss beginning in early adulthood; a BAER hearing test tracks it definitively.",
-   "pos_end": 26258416
+   "pos_end": 26258416,
+   "category": "disease"
   },
   {
    "gene": "FAM134B",
@@ -1001,7 +1043,8 @@
    },
    "source": "Excel",
    "description": "An inherited degeneration of sensory nerves causing loss of sensation, incoordination and self-injury in young dogs.",
-   "pos_end": 88163720
+   "pos_end": 88163720,
+   "category": "disease"
   },
   {
    "gene": "FAN1",
@@ -1024,7 +1067,8 @@
    },
    "source": "Excel",
    "description": "An inherited kidney-tubule defect in which nutrients are lost into urine, causing excessive drinking, weight loss and metabolic imbalance; manageable with supplementation protocols. Seen classically in Basenjis.",
-   "pos_end": 38383947
+   "pos_end": 38383947,
+   "category": "disease"
   },
   {
    "gene": "FGF3/FGF4/FGF19/ORAOV1",
@@ -1047,7 +1091,8 @@
    },
    "source": "Excel",
    "description": "A coat trait, not a disease: the duplication behind the Rhodesian Ridgeback's ridge. Two copies increase the risk of a skin condition called dermoid sinus.",
-   "pos_end": 48962003
+   "pos_end": 48962003,
+   "category": "trait"
   },
   {
    "gene": "FGF5",
@@ -1070,7 +1115,8 @@
    },
    "source": "Excel",
    "description": "A coat-trait variant, not a disease: this change in the FGF5 gene region is one of several that produce a long coat when a dog carries two long-coat copies in total.",
-   "pos_end": 35475233
+   "pos_end": 35475233,
+   "category": "trait"
   },
   {
    "gene": "FGF5",
@@ -1093,7 +1139,8 @@
    },
    "source": "Excel",
    "description": "A coat-trait variant, not a disease: this change in the FGF5 gene region is one of several that produce a long coat when a dog carries two long-coat copies in total.",
-   "pos_end": 35475244
+   "pos_end": 35475244,
+   "category": "trait"
   },
   {
    "gene": "G6PC",
@@ -1115,7 +1162,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited inability to store or release glycogen (the body's sugar reserve) properly, typically causing low blood sugar, exercise intolerance and organ enlargement. Recessive."
+   "description": "An inherited inability to store or release glycogen (the body's sugar reserve) properly, typically causing low blood sugar, exercise intolerance and organ enlargement. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "GLB1",
@@ -1138,7 +1186,8 @@
    },
    "source": "Excel",
    "description": "A severe inherited storage disease of nerve cells causing progressive neurological decline in puppies. Recessive \u2014 carriers are healthy.",
-   "pos_end": 3991927
+   "pos_end": 3991927,
+   "category": "disease"
   },
   {
    "gene": "GLRA1",
@@ -1161,7 +1210,8 @@
    },
    "source": "Excel",
    "description": "An inherited 'startle disease': affected puppies stiffen dramatically in response to noise or handling. Recessive.",
-   "pos_end": 58338989
+   "pos_end": 58338989,
+   "category": "disease"
   },
   {
    "gene": "GRM1",
@@ -1183,7 +1233,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "A severe inherited coordination disorder evident as soon as puppies try to walk; affected pups cannot stand or walk purposefully. Recessive."
+   "description": "A severe inherited coordination disorder evident as soon as puppies try to walk; affected pups cannot stand or walk purposefully. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "HES7",
@@ -1205,7 +1256,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited malformation of vertebrae and ribs ('comma defect'), causing a shortened, kinked spine; severity varies."
+   "description": "An inherited malformation of vertebrae and ribs ('comma defect'), causing a shortened, kinked spine; severity varies.",
+   "category": "disease"
   },
   {
    "gene": "HEXB",
@@ -1227,7 +1279,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "A severe inherited storage disease of nerve cells (the canine analog of Tay-Sachs) causing progressive neurological decline in puppies. Recessive."
+   "description": "A severe inherited storage disease of nerve cells (the canine analog of Tay-Sachs) causing progressive neurological decline in puppies. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "KRT1",
@@ -1250,7 +1303,8 @@
    },
    "source": "Excel",
    "description": "An inherited skin condition in which the outer skin layer does not form normally, causing flaking, scaling and a rough or darkened skin surface. Usually recessive; severity varies widely and management is topical.",
-   "pos_end": 44229730
+   "pos_end": 44229730,
+   "category": "disease"
   },
   {
    "gene": "KRT71",
@@ -1273,7 +1327,8 @@
    },
    "source": "Excel",
    "description": "A coat-texture variant, not a disease: KRT71 curl alleles produce a wavy to curly coat, as in Poodles and doodle mixes.",
-   "pos_end": 44109043
+   "pos_end": 44109043,
+   "category": "trait"
   },
   {
    "gene": "LHX3",
@@ -1296,7 +1351,8 @@
    },
    "source": "Excel",
    "description": "An inherited pituitary hormone deficiency causing proportionate dwarfism and coat abnormalities; treatable when identified young.",
-   "pos_end": 49251382
+   "pos_end": 49251382,
+   "category": "disease"
   },
   {
    "gene": "LMNA",
@@ -1318,7 +1374,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "A severe inherited heart-muscle disease of young dogs caused by a structural-protein defect, leading to heart failure or sudden death."
+   "description": "A severe inherited heart-muscle disease of young dogs caused by a structural-protein defect, leading to heart failure or sudden death.",
+   "category": "disease"
   },
   {
    "gene": "MANBA",
@@ -1341,7 +1398,8 @@
    },
    "source": "Excel",
    "description": "A rare inherited storage disease in which a sugar-processing enzyme is missing, causing progressive neurological disease. Recessive.",
-   "pos_end": 15825845
+   "pos_end": 15825845,
+   "category": "disease"
   },
   {
    "gene": "MERTK",
@@ -1363,7 +1421,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years."
+   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years.",
+   "category": "disease"
   },
   {
    "gene": "MOCOS",
@@ -1385,7 +1444,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited defect of purine metabolism causing xanthine bladder/kidney stones; managed with diet and hydration."
+   "description": "An inherited defect of purine metabolism causing xanthine bladder/kidney stones; managed with diet and hydration.",
+   "category": "disease"
   },
   {
    "gene": "NAGLU",
@@ -1407,7 +1467,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited storage disease in which the body cannot fully break down certain complex sugars, which accumulate and affect bones, joints, eyes and organs. Recessive \u2014 two copies are needed."
+   "description": "An inherited storage disease in which the body cannot fully break down certain complex sugars, which accumulate and affect bones, joints, eyes and organs. Recessive \u2014 two copies are needed.",
+   "category": "disease"
   },
   {
    "gene": "NIPAL4",
@@ -1429,7 +1490,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited skin condition in which the outer skin layer does not form normally, causing flaking, scaling and a rough or darkened skin surface. Usually recessive; severity varies widely and management is topical."
+   "description": "An inherited skin condition in which the outer skin layer does not form normally, causing flaking, scaling and a rough or darkened skin surface. Usually recessive; severity varies widely and management is topical.",
+   "category": "disease"
   },
   {
    "gene": "NKX2-8",
@@ -1451,7 +1513,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited spinal-cord malformation causing a characteristic crouched, hopping gait; present from puppyhood and non-progressive."
+   "description": "An inherited spinal-cord malformation causing a characteristic crouched, hopping gait; present from puppyhood and non-progressive.",
+   "category": "disease"
   },
   {
    "gene": "PDE6A",
@@ -1473,7 +1536,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years."
+   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years.",
+   "category": "disease"
   },
   {
    "gene": "PITRM1",
@@ -1496,7 +1560,8 @@
    },
    "source": "Excel",
    "description": "An inherited energy-metabolism defect of nerve cells causing seizures and progressive neurological decline.",
-   "pos_end": 31223274
+   "pos_end": 31223274,
+   "category": "disease"
   },
   {
    "gene": "PKLR",
@@ -1518,7 +1583,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited red-blood-cell enzyme deficiency causing chronic anemia and, over time, bone and liver changes. Recessive."
+   "description": "An inherited red-blood-cell enzyme deficiency causing chronic anemia and, over time, bone and liver changes. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "PKLR",
@@ -1540,7 +1606,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited red-blood-cell enzyme deficiency causing chronic anemia and, over time, bone and liver changes. Recessive."
+   "description": "An inherited red-blood-cell enzyme deficiency causing chronic anemia and, over time, bone and liver changes. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "PNPLA8",
@@ -1562,7 +1629,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited progressive degeneration of the spinal cord and brain causing worsening weakness and incoordination."
+   "description": "An inherited progressive degeneration of the spinal cord and brain causing worsening weakness and incoordination.",
+   "category": "disease"
   },
   {
    "gene": "PTPLA",
@@ -1584,7 +1652,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited muscle disease in which muscle fibers develop abnormally, causing weakness, poor exercise tolerance and difficulty holding the head up, from a few months of age."
+   "description": "An inherited muscle disease in which muscle fibers develop abnormally, causing weakness, poor exercise tolerance and difficulty holding the head up, from a few months of age.",
+   "category": "disease"
   },
   {
    "gene": "RALGAPA1",
@@ -1607,7 +1676,8 @@
    },
    "source": "Excel",
    "description": "An inherited degeneration of the cerebellum, the balance-and-coordination center of the brain, causing a wobbly gait that typically worsens over time. Recessive \u2014 carriers are unaffected.",
-   "pos_end": 14635986
+   "pos_end": 14635986,
+   "category": "disease"
   },
   {
    "gene": "RAPGEF6",
@@ -1629,7 +1699,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited condition affecting the nerves of the voice box (and often other long nerves), causing noisy breathing, voice change and exercise intolerance, sometimes with generalized polyneuropathy."
+   "description": "An inherited condition affecting the nerves of the voice box (and often other long nerves), causing noisy breathing, voice change and exercise intolerance, sometimes with generalized polyneuropathy.",
+   "category": "disease"
   },
   {
    "gene": "RBM20",
@@ -1652,7 +1723,8 @@
    },
    "source": "Excel",
    "description": "An inherited heart-muscle weakness in which the heart enlarges and pumps poorly, potentially leading to heart failure; onset is typically in adulthood and regular cardiac checks help at-risk dogs.",
-   "pos_end": 22371400
+   "pos_end": 22371400,
+   "category": "disease"
   },
   {
    "gene": "RELN",
@@ -1674,7 +1746,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "A severe inherited brain-development disorder ('smooth brain') causing seizures and profound neurological deficits in puppies."
+   "description": "A severe inherited brain-development disorder ('smooth brain') causing seizures and profound neurological deficits in puppies.",
+   "category": "disease"
   },
   {
    "gene": "RPGRIP1",
@@ -1696,7 +1769,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years."
+   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years.",
+   "category": "disease"
   },
   {
    "gene": "SERAC1",
@@ -1719,7 +1793,8 @@
    },
    "source": "Excel",
    "description": "An inherited multi-system brain degeneration causing progressive movement difficulties in young dogs.",
-   "pos_end": 48141432
+   "pos_end": 48141432,
+   "category": "disease"
   },
   {
    "gene": "SLC35D1",
@@ -1742,7 +1817,8 @@
    },
    "source": "Excel",
    "description": "An inherited bone overgrowth of the jaw and skull in growing puppies, painful during flare-ups but typically self-limiting as growth ends.",
-   "pos_end": 43854683
+   "pos_end": 43854683,
+   "category": "disease"
   },
   {
    "gene": "SLC3A1",
@@ -1765,7 +1841,8 @@
    },
    "source": "Excel",
    "description": "An inherited kidney transport defect in which the amino acid cystine leaks into urine and can form bladder or kidney stones, more often in males. Management focuses on diet and urinary monitoring.",
-   "pos_end": 47785682
+   "pos_end": 47785682,
+   "category": "disease"
   },
   {
    "gene": "STK38L",
@@ -1787,7 +1864,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited early-onset retinal degeneration causing vision loss in young dogs. Recessive."
+   "description": "An inherited early-onset retinal degeneration causing vision loss in young dogs. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "TGM1",
@@ -1809,7 +1887,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited skin condition in which the outer skin layer does not form normally, causing flaking, scaling and a rough or darkened skin surface. Usually recessive; severity varies widely and management is topical."
+   "description": "An inherited skin condition in which the outer skin layer does not form normally, causing flaking, scaling and a rough or darkened skin surface. Usually recessive; severity varies widely and management is topical.",
+   "category": "disease"
   },
   {
    "gene": "TNR",
@@ -1831,7 +1910,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited movement disorder combining abnormal muscle contractions with incoordination."
+   "description": "An inherited movement disorder combining abnormal muscle contractions with incoordination.",
+   "category": "disease"
   },
   {
    "gene": "VLDLR",
@@ -1853,7 +1933,8 @@
     "call_confidence": "indel_unresolved"
    },
    "source": "Excel",
-   "description": "An inherited condition of the cerebellum, the brain's balance-and-coordination center, producing an unsteady, uncoordinated gait. Recessive forms are typical \u2014 carriers are healthy."
+   "description": "An inherited condition of the cerebellum, the brain's balance-and-coordination center, producing an unsteady, uncoordinated gait. Recessive forms are typical \u2014 carriers are healthy.",
+   "category": "disease"
   },
   {
    "gene": "ACPT",
@@ -1875,7 +1956,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited enamel defect: teeth form with thin or pitted enamel, look discolored, and wear or chip easily. Managed with dental care."
+   "description": "An inherited enamel defect: teeth form with thin or pitted enamel, look discolored, and wear or chip easily. Managed with dental care.",
+   "category": "disease"
   },
   {
    "gene": "ADAMTS2",
@@ -1897,7 +1979,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited connective-tissue defect: skin is stretchy, fragile and tears easily, and joints can be loose. Managed by protecting the skin from trauma."
+   "description": "An inherited connective-tissue defect: skin is stretchy, fragile and tears easily, and joints can be loose. Managed by protecting the skin from trauma.",
+   "category": "disease"
   },
   {
    "gene": "AP3B1",
@@ -1919,7 +2002,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "'Grey Collie syndrome' \u2014 an inherited disorder in which infection-fighting cells drop in ~2-week cycles, causing recurring fevers and infections. Recessive and serious."
+   "description": "'Grey Collie syndrome' \u2014 an inherited disorder in which infection-fighting cells drop in ~2-week cycles, causing recurring fevers and infections. Recessive and serious.",
+   "category": "disease"
   },
   {
    "gene": "ARSB",
@@ -1942,7 +2026,8 @@
    },
    "source": "Excel",
    "description": "An inherited storage disease in which the body cannot fully break down certain complex sugars, which accumulate and affect bones, joints, eyes and organs. Recessive \u2014 two copies are needed.",
-   "pos_end": 28031581
+   "pos_end": 28031581,
+   "category": "disease"
   },
   {
    "gene": "ARSB",
@@ -1965,7 +2050,8 @@
    },
    "source": "Excel",
    "description": "An inherited storage disease in which the body cannot fully break down certain complex sugars, which accumulate and affect bones, joints, eyes and organs. Recessive \u2014 two copies are needed.",
-   "pos_end": 28031673
+   "pos_end": 28031673,
+   "category": "disease"
   },
   {
    "gene": "BEST1",
@@ -1987,7 +2073,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited retinal condition producing localized areas of retinal detachment visible on eye exams; vision is usually only mildly affected and lesions can partially resolve. Recessive."
+   "description": "An inherited retinal condition producing localized areas of retinal detachment visible on eye exams; vision is usually only mildly affected and lesions can partially resolve. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "CUBN",
@@ -2009,7 +2096,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited inability to absorb vitamin B12 from food, causing poor growth, lethargy and anemia in young dogs \u2014 very treatable with B12 supplementation once recognized."
+   "description": "An inherited inability to absorb vitamin B12 from food, causing poor growth, lethargy and anemia in young dogs \u2014 very treatable with B12 supplementation once recognized.",
+   "category": "disease"
   },
   {
    "gene": "DMD",
@@ -2031,7 +2119,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age."
+   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age.",
+   "category": "disease"
   },
   {
    "gene": "DMD",
@@ -2053,7 +2142,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age."
+   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age.",
+   "category": "disease"
   },
   {
    "gene": "DMD",
@@ -2075,7 +2165,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age."
+   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age.",
+   "category": "disease"
   },
   {
    "gene": "FAM161A",
@@ -2097,7 +2188,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years."
+   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years.",
+   "category": "disease"
   },
   {
    "gene": "FGA",
@@ -2119,7 +2211,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited absence of fibrinogen, a key clotting protein, causing a serious bleeding tendency."
+   "description": "An inherited absence of fibrinogen, a key clotting protein, causing a serious bleeding tendency.",
+   "category": "disease"
   },
   {
    "gene": "FGF4 retrogene",
@@ -2141,7 +2234,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "The FGF4-chr12 variant behind short-legged builds also causes discs to age prematurely, raising the risk of painful disc herniation (IVDD). One of the most consequential structural variants in dogs \u2014 keeping affected dogs lean and limiting spine-jarring activity helps."
+   "description": "The FGF4-chr12 variant behind short-legged builds also causes discs to age prematurely, raising the risk of painful disc herniation (IVDD). One of the most consequential structural variants in dogs \u2014 keeping affected dogs lean and limiting spine-jarring activity helps.",
+   "category": "disease"
   },
   {
    "gene": "FIX",
@@ -2163,7 +2257,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited deficiency of one of the blood-clotting factors, causing prolonged bleeding after injury or surgery \u2014 severity ranges from mild to serious depending on the factor and variant. Worth telling your vet before any procedure."
+   "description": "An inherited deficiency of one of the blood-clotting factors, causing prolonged bleeding after injury or surgery \u2014 severity ranges from mild to serious depending on the factor and variant. Worth telling your vet before any procedure.",
+   "category": "disease"
   },
   {
    "gene": "FVIII",
@@ -2185,7 +2280,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited deficiency of one of the blood-clotting factors, causing prolonged bleeding after injury or surgery \u2014 severity ranges from mild to serious depending on the factor and variant. Worth telling your vet before any procedure."
+   "description": "An inherited deficiency of one of the blood-clotting factors, causing prolonged bleeding after injury or surgery \u2014 severity ranges from mild to serious depending on the factor and variant. Worth telling your vet before any procedure.",
+   "category": "disease"
   },
   {
    "gene": "FXI",
@@ -2207,7 +2303,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited deficiency of one of the blood-clotting factors, causing prolonged bleeding after injury or surgery \u2014 severity ranges from mild to serious depending on the factor and variant. Worth telling your vet before any procedure."
+   "description": "An inherited deficiency of one of the blood-clotting factors, causing prolonged bleeding after injury or surgery \u2014 severity ranges from mild to serious depending on the factor and variant. Worth telling your vet before any procedure.",
+   "category": "disease"
   },
   {
    "gene": "FYCO1",
@@ -2229,7 +2326,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited clouding of the lens appearing in young dogs; can progress to impair vision, and is surgically treatable."
+   "description": "An inherited clouding of the lens appearing in young dogs; can progress to impair vision, and is surgically treatable.",
+   "category": "disease"
   },
   {
    "gene": "HEXB",
@@ -2252,7 +2350,8 @@
    },
    "source": "Excel",
    "description": "A severe inherited storage disease of nerve cells (the canine analog of Tay-Sachs) causing progressive neurological decline in puppies. Recessive.",
-   "pos_end": 56494921
+   "pos_end": 56494921,
+   "category": "disease"
   },
   {
    "gene": "MFF",
@@ -2275,7 +2374,8 @@
    },
    "source": "Excel",
    "description": "A severe inherited defect of mitochondrial dynamics causing early-onset neurological disease.",
-   "pos_end": 40323003
+   "pos_end": 40323003,
+   "category": "disease"
   },
   {
    "gene": "NME5",
@@ -2297,7 +2397,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited defect of the airway's microscopic cilia causing chronic nasal discharge, cough and recurrent airway infections from early life."
+   "description": "An inherited defect of the airway's microscopic cilia causing chronic nasal discharge, cough and recurrent airway infections from early life.",
+   "category": "disease"
   },
   {
    "gene": "RAB3GAP1",
@@ -2319,7 +2420,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited condition affecting the nerves of the voice box (and often other long nerves), causing noisy breathing, voice change and exercise intolerance, sometimes with generalized polyneuropathy."
+   "description": "An inherited condition affecting the nerves of the voice box (and often other long nerves), causing noisy breathing, voice change and exercise intolerance, sometimes with generalized polyneuropathy.",
+   "category": "disease"
   },
   {
    "gene": "RAB3GAP1",
@@ -2341,7 +2443,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited syndrome combining nerve degeneration with eye abnormalities in young dogs."
+   "description": "An inherited syndrome combining nerve degeneration with eye abnormalities in young dogs.",
+   "category": "disease"
   },
   {
    "gene": "ACADVL",
@@ -2371,7 +2474,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "An inherited defect in muscle energy metabolism causing weakness or collapse during intense exercise."
+   "description": "An inherited defect in muscle energy metabolism causing weakness or collapse during intense exercise.",
+   "category": "disease"
   },
   {
    "gene": "ADAMTS10",
@@ -2401,7 +2505,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "An inherited form of glaucoma in which pressure builds inside the eye, which is painful and can damage vision; some forms also loosen the lens. Regular eye-pressure checks help catch it early in at-risk dogs."
+   "description": "An inherited form of glaucoma in which pressure builds inside the eye, which is painful and can damage vision; some forms also loosen the lens. Regular eye-pressure checks help catch it early in at-risk dogs.",
+   "category": "disease"
   },
   {
    "gene": "ADAMTS17",
@@ -2431,7 +2536,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "An inherited form of glaucoma in which pressure builds inside the eye, which is painful and can damage vision; some forms also loosen the lens. Regular eye-pressure checks help catch it early in at-risk dogs."
+   "description": "An inherited form of glaucoma in which pressure builds inside the eye, which is painful and can damage vision; some forms also loosen the lens. Regular eye-pressure checks help catch it early in at-risk dogs.",
+   "category": "disease"
   },
   {
    "gene": "ADAMTS17",
@@ -2461,7 +2567,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "An inherited weakness of the fibers holding the eye's lens: the lens can slip out of place in middle age, which is an emergency for vision. Knowing risk in advance enables monitoring. Semi-dominant with two-copy dogs at high risk."
+   "description": "An inherited weakness of the fibers holding the eye's lens: the lens can slip out of place in middle age, which is an emergency for vision. Knowing risk in advance enables monitoring. Semi-dominant with two-copy dogs at high risk.",
+   "category": "disease"
   },
   {
    "gene": "AMHR2",
@@ -2491,7 +2598,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "An inherited condition of male dogs that retain internal female duct structures; can cause cryptorchidism and is otherwise usually silent."
+   "description": "An inherited condition of male dogs that retain internal female duct structures; can cause cryptorchidism and is otherwise usually silent.",
+   "category": "disease"
   },
   {
    "gene": "ANO6",
@@ -2521,7 +2629,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "A rare inherited platelet defect causing prolonged bleeding after injury or surgery despite normal platelet counts."
+   "description": "A rare inherited platelet defect causing prolonged bleeding after injury or surgery despite normal platelet counts.",
+   "category": "disease"
   },
   {
    "gene": "ASIP",
@@ -2551,7 +2660,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "A coat-color variant, not a disease: two copies of the recessive ASIP 'a' allele make a solid black coat, common in shepherd breeds."
+   "description": "A coat-color variant, not a disease: two copies of the recessive ASIP 'a' allele make a solid black coat, common in shepherd breeds.",
+   "category": "coat"
   },
   {
    "gene": "BEST1",
@@ -2582,7 +2692,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited retinal condition producing localized areas of retinal detachment visible on eye exams; vision is usually only mildly affected and lesions can partially resolve. Recessive."
+   "description": "An inherited retinal condition producing localized areas of retinal detachment visible on eye exams; vision is usually only mildly affected and lesions can partially resolve. Recessive.",
+   "category": "disease"
   },
   {
    "variant_id": "455",
@@ -2615,7 +2726,8 @@
     "call_confidence": "high"
    },
    "panel": "Embark, Wisdom",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "gene": "CAT",
@@ -2646,7 +2758,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited deficiency of the enzyme catalase, occasionally associated with mouth ulcers; usually mild."
+   "description": "An inherited deficiency of the enzyme catalase, occasionally associated with mouth ulcers; usually mild.",
+   "category": "disease"
   },
   {
    "variant_id": "971",
@@ -2683,7 +2796,8 @@
    "source": "OMIA+Excel",
    "trait": "Neuronal Ceroid Lipofuscinosis 8 (NCL8)",
    "trait_inherited_from_gene": true,
-   "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy."
+   "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy.",
+   "category": "disease"
   },
   {
    "gene": "CLN8",
@@ -2713,7 +2827,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy."
+   "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy.",
+   "category": "disease"
   },
   {
    "variant_id": "548",
@@ -2751,7 +2866,8 @@
    "trait": "Achromatopsia, cone degeneration",
    "trait_inherited_from_gene": true,
    "description": "An inherited loss of the retina's cone cells, causing day blindness and complete color-vision loss while night vision is preserved. Recessive.",
-   "pos_end": 45284313
+   "pos_end": 45284313,
+   "category": "disease"
   },
   {
    "gene": "CNTNAP1",
@@ -2781,7 +2897,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "An inherited condition affecting the nerves of the voice box (and often other long nerves), causing noisy breathing, voice change and exercise intolerance, sometimes with generalized polyneuropathy."
+   "description": "An inherited condition affecting the nerves of the voice box (and often other long nerves), causing noisy breathing, voice change and exercise intolerance, sometimes with generalized polyneuropathy.",
+   "category": "disease"
   },
   {
    "variant_id": "471",
@@ -2818,7 +2935,8 @@
    "source": "OMIA+Excel",
    "trait": "Hereditary Nephropathy, X-linked (XLHN)",
    "trait_inherited_from_gene": true,
-   "description": "An inherited kidney disease in which the kidney's filtering membranes are structurally weak, leading to protein loss in urine and progressive kidney failure, often at a young age in affected dogs."
+   "description": "An inherited kidney disease in which the kidney's filtering membranes are structurally weak, leading to protein loss in urine and progressive kidney failure, often at a young age in affected dogs.",
+   "category": "disease"
   },
   {
    "gene": "CYB5R3",
@@ -2840,7 +2958,8 @@
     "call_confidence": "high"
    },
    "source": "Excel",
-   "description": "An inherited enzyme deficiency in which a portion of hemoglobin is locked in a form that cannot carry oxygen, causing bluish gums and reduced stamina; usually mild."
+   "description": "An inherited enzyme deficiency in which a portion of hemoglobin is locked in a form that cannot carry oxygen, causing bluish gums and reduced stamina; usually mild.",
+   "category": "disease"
   },
   {
    "gene": "CYB5R3",
@@ -2870,7 +2989,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "An inherited enzyme deficiency in which a portion of hemoglobin is locked in a form that cannot carry oxygen, causing bluish gums and reduced stamina; usually mild."
+   "description": "An inherited enzyme deficiency in which a portion of hemoglobin is locked in a form that cannot carry oxygen, causing bluish gums and reduced stamina; usually mild.",
+   "category": "disease"
   },
   {
    "gene": "DNM1",
@@ -2901,7 +3021,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "The DNM1 variant: affected dogs (two copies) can develop wobbly hind limbs and collapse after 5-15 minutes of intense excitement or exercise, then recover fully. Managed by moderating high-intensity play. Carriers are unaffected."
+   "description": "The DNM1 variant: affected dogs (two copies) can develop wobbly hind limbs and collapse after 5-15 minutes of intense excitement or exercise, then recover fully. Managed by moderating high-intensity play. Carriers are unaffected.",
+   "category": "disease"
   },
   {
    "variant_id": "452",
@@ -2934,7 +3055,8 @@
     "call_confidence": "high"
    },
    "source": "OMIA",
-   "pos_end": 61005998
+   "pos_end": 61005998,
+   "category": "disease"
   },
   {
    "gene": "ENAM",
@@ -2964,7 +3086,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "An inherited enamel defect: teeth form with thin or pitted enamel, look discolored, and wear or chip easily. Managed with dental care."
+   "description": "An inherited enamel defect: teeth form with thin or pitted enamel, look discolored, and wear or chip easily. Managed with dental care.",
+   "category": "disease"
   },
   {
    "gene": "FAM83G",
@@ -2994,7 +3117,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "An inherited overgrowth of paw-pad horn causing thick, cracked pads that can be painful on hard surfaces; managed with softening care."
+   "description": "An inherited overgrowth of paw-pad horn causing thick, cracked pads that can be painful on hard surfaces; managed with softening care.",
+   "category": "disease"
   },
   {
    "gene": "FGF5",
@@ -3026,7 +3150,8 @@
    "source": "Excel",
    "strand_fixed": true,
    "description": "A coat-trait variant, not a disease: this change in the FGF5 gene region is one of several that produce a long coat when a dog carries two long-coat copies in total.",
-   "pos_end": 35475226
+   "pos_end": 35475226,
+   "category": "trait"
   },
   {
    "gene": "GDNF-AS",
@@ -3056,7 +3181,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "An inherited loss of pain sensation in the paws leading affected young dogs to self-injure; a serious welfare condition. Recessive."
+   "description": "An inherited loss of pain sensation in the paws leading affected young dogs to self-injure; a serious welfare condition. Recessive.",
+   "category": "disease"
   },
   {
    "variant_id": "1232",
@@ -3096,7 +3222,8 @@
    "variant_breed": "Chihuahua",
    "panel": "OMIA",
    "reference": "https://dx.doi.org/10.1177/1040638720938671",
-   "pos_end": 15094291
+   "pos_end": 15094291,
+   "category": "disease"
   },
   {
    "gene": "ITGA10",
@@ -3127,7 +3254,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "A body-shape variant: an extra FGF4 gene copy produces the short-legged build of many breeds. It is also associated with premature disc aging."
+   "description": "A body-shape variant: an extra FGF4 gene copy produces the short-legged build of many breeds. It is also associated with premature disc aging.",
+   "category": "disease"
   },
   {
    "gene": "ITGB2",
@@ -3157,7 +3285,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "A severe inherited immune defect: white blood cells cannot reach infection sites, causing recurrent, life-threatening infections in puppies. Recessive."
+   "description": "A severe inherited immune defect: white blood cells cannot reach infection sites, causing recurrent, life-threatening infections in puppies. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "KCNIP4",
@@ -3187,7 +3316,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "An inherited loss of coordination caused by degeneration in the brain's movement circuits, typically appearing in puppies or young dogs and progressing over time."
+   "description": "An inherited loss of coordination caused by degeneration in the brain's movement circuits, typically appearing in puppies or young dogs and progressing over time.",
+   "category": "disease"
   },
   {
    "gene": "KCNJ10",
@@ -3217,7 +3347,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "An inherited degeneration affecting the cerebellum and spinal pathways, causing progressive incoordination, sometimes with muscle twitching or seizures. Recessive."
+   "description": "An inherited degeneration affecting the cerebellum and spinal pathways, causing progressive incoordination, sometimes with muscle twitching or seizures. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "KCNJ10",
@@ -3247,7 +3378,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "An inherited degeneration of the cerebellum, the balance-and-coordination center of the brain, causing a wobbly gait that typically worsens over time. Recessive \u2014 carriers are unaffected."
+   "description": "An inherited degeneration of the cerebellum, the balance-and-coordination center of the brain, causing a wobbly gait that typically worsens over time. Recessive \u2014 carriers are unaffected.",
+   "category": "disease"
   },
   {
    "gene": "LGI2",
@@ -3277,7 +3409,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "An inherited epilepsy of puppies that typically begins and resolves within the first months of life; most dogs outgrow it fully."
+   "description": "An inherited epilepsy of puppies that typically begins and resolves within the first months of life; most dogs outgrow it fully.",
+   "category": "disease"
   },
   {
    "gene": "LMBR1L",
@@ -3307,7 +3440,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "A benign inherited change in white-blood-cell appearance (Pelger-Hu\u00ebt-like); usually no health impact but can confuse lab work."
+   "description": "A benign inherited change in white-blood-cell appearance (Pelger-Hu\u00ebt-like); usually no health impact but can confuse lab work.",
+   "category": "disease"
   },
   {
    "variant_id": "1314",
@@ -3349,7 +3483,8 @@
    },
    "variant_breed": "Rottweiler",
    "panel": "Wisdom",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "variant_id": "976",
@@ -3391,7 +3526,8 @@
    },
    "variant_breed": "Bull Terrier",
    "panel": "Wisdom",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "gene": "MLPH",
@@ -3421,7 +3557,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "A coat-color variant, not a disease on its own: two dilution copies lighten black pigment to blue/grey and brown to lilac. In some breeds dilute coats can be prone to a patchy hair loss called color-dilution alopecia."
+   "description": "A coat-color variant, not a disease on its own: two dilution copies lighten black pigment to blue/grey and brown to lilac. In some breeds dilute coats can be prone to a patchy hair loss called color-dilution alopecia.",
+   "category": "coat"
   },
   {
    "gene": "MLPH",
@@ -3451,7 +3588,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "A coat-color variant, not a disease on its own: two dilution copies lighten black pigment to blue/grey and brown to lilac. In some breeds dilute coats can be prone to a patchy hair loss called color-dilution alopecia."
+   "description": "A coat-color variant, not a disease on its own: two dilution copies lighten black pigment to blue/grey and brown to lilac. In some breeds dilute coats can be prone to a patchy hair loss called color-dilution alopecia.",
+   "category": "coat"
   },
   {
    "variant_id": "470",
@@ -3486,7 +3624,8 @@
    "source": "OMIA",
    "trait": "Muscular Hypertrophy",
    "trait_inherited_from_gene": true,
-   "description": "The 'bully whippet' myostatin variant: one copy is associated with a more muscular build; two copies produce heavy, double-muscled dogs. A body-build trait rather than an illness."
+   "description": "The 'bully whippet' myostatin variant: one copy is associated with a more muscular build; two copies produce heavy, double-muscled dogs. A body-build trait rather than an illness.",
+   "category": "trait"
   },
   {
    "gene": "NAPEPLD",
@@ -3516,7 +3655,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "An inherited degeneration of white matter in the brain and spinal cord causing progressive weakness and incoordination in young dogs. Recessive."
+   "description": "An inherited degeneration of white matter in the brain and spinal cord causing progressive weakness and incoordination in young dogs. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "NECAP1",
@@ -3547,7 +3687,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years."
+   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years.",
+   "category": "disease"
   },
   {
    "gene": "NPHS1",
@@ -3577,7 +3718,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "An inherited kidney-filter weakness that leaks protein into urine and can progress to kidney disease; monitored with urine and blood checks. Best known in soft-coated Wheaten Terriers."
+   "description": "An inherited kidney-filter weakness that leaks protein into urine and can progress to kidney disease; monitored with urine and blood checks. Best known in soft-coated Wheaten Terriers.",
+   "category": "disease"
   },
   {
    "gene": "P3H2",
@@ -3607,7 +3749,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "The Norwegian Lundehund's inherited intestinal disease: protein is lost through an inflamed gut, causing weight loss and effusions; lifelong dietary management."
+   "description": "The Norwegian Lundehund's inherited intestinal disease: protein is lost through an inflamed gut, causing weight loss and effusions; lifelong dietary management.",
+   "category": "disease"
   },
   {
    "gene": "PCYT1A",
@@ -3637,7 +3780,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "An inherited mild dwarfism: affected dogs have shortened legs relative to their body without other health problems. Recessive."
+   "description": "An inherited mild dwarfism: affected dogs have shortened legs relative to their body without other health problems. Recessive.",
+   "category": "disease"
   },
   {
    "variant_id": "582",
@@ -3678,7 +3822,8 @@
    "variant_type": "G>A",
    "reference": "https://doi.org/10.1073/pnas.90.9.3968",
    "strand_fixed": true,
-   "pos_end": 92356054
+   "pos_end": 92356054,
+   "category": "disease"
   },
   {
    "gene": "PLEC",
@@ -3708,7 +3853,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "An inherited skin-fragility disease: the skin layers separate with minor friction, causing blisters and sores."
+   "description": "An inherited skin-fragility disease: the skin layers separate with minor friction, causing blisters and sores.",
+   "category": "disease"
   },
   {
    "variant_id": "1338",
@@ -3743,7 +3889,8 @@
    "source": "OMIA",
    "trait": "Ligneous Membranitis",
    "trait_inherited_from_gene": true,
-   "description": "A rare inherited plasminogen deficiency causing woody, inflamed membranes of the eyes, mouth and gums."
+   "description": "A rare inherited plasminogen deficiency causing woody, inflamed membranes of the eyes, mouth and gums.",
+   "category": "disease"
   },
   {
    "variant_id": "616",
@@ -3778,7 +3925,8 @@
    "variant_breed": "Golden Retriever",
    "panel": "Embark",
    "source": "OMIA+Excel",
-   "pos_end": 5599032
+   "pos_end": 5599032,
+   "category": "disease"
   },
   {
    "gene": "PRCD",
@@ -3808,7 +3956,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years."
+   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years.",
+   "category": "disease"
   },
   {
    "variant_id": "988",
@@ -3847,7 +3996,8 @@
    "variant_type": "ins",
    "variant_breed": "Doberman Pinscher",
    "panel": "Wisdom",
-   "reference": "https://doi.org/10.1111/jvim.15060"
+   "reference": "https://doi.org/10.1111/jvim.15060",
+   "category": "disease"
   },
   {
    "variant_id": "552",
@@ -3880,7 +4030,8 @@
     "call_confidence": "high"
    },
    "panel": "Wisdom",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "gene": "SCN8A",
@@ -3911,7 +4062,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited degeneration affecting the cerebellum and spinal pathways, causing progressive incoordination, sometimes with muscle twitching or seizures. Recessive."
+   "description": "An inherited degeneration affecting the cerebellum and spinal pathways, causing progressive incoordination, sometimes with muscle twitching or seizures. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "SLC2A9",
@@ -3941,7 +4093,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "An inherited defect of uric-acid handling (universal in Dalmatians) causing urate bladder/kidney stones, especially in males. Managed with diet and hydration. Recessive."
+   "description": "An inherited defect of uric-acid handling (universal in Dalmatians) causing urate bladder/kidney stones, especially in males. Managed with diet and hydration. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "SOD1",
@@ -3971,7 +4124,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "A late-onset inherited spinal-cord degeneration (the canine analog of ALS): painless, progressive hind-limb weakness typically beginning after age 8. The SOD1 variant is a strong risk factor rather than a certainty \u2014 many two-copy dogs never develop signs. Recessive-with-incomplete-penetrance."
+   "description": "A late-onset inherited spinal-cord degeneration (the canine analog of ALS): painless, progressive hind-limb weakness typically beginning after age 8. The SOD1 variant is a strong risk factor rather than a certainty \u2014 many two-copy dogs never develop signs. Recessive-with-incomplete-penetrance.",
+   "category": "disease"
   },
   {
    "gene": "TUBB1",
@@ -4001,7 +4155,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "A benign inherited platelet trait: platelets are fewer but larger, and lab counts look low without a true bleeding problem \u2014 worth knowing so it is not mistaken for disease."
+   "description": "A benign inherited platelet trait: platelets are fewer but larger, and lab counts look low without a true bleeding problem \u2014 worth knowing so it is not mistaken for disease.",
+   "category": "disease"
   },
   {
    "variant_id": "370",
@@ -4040,7 +4195,8 @@
    "variant_type": "del",
    "variant_breed": "Pomeranian",
    "panel": "Embark, Wisdom",
-   "reference": "https://doi.org/10.1111/j.1939-1676.2009.0405.x"
+   "reference": "https://doi.org/10.1111/j.1939-1676.2009.0405.x",
+   "category": "disease"
   },
   {
    "variant_id": "572",
@@ -4072,7 +4228,8 @@
     "affected": false,
     "call_confidence": "medium"
    },
-   "source": "OMIA"
+   "source": "OMIA",
+   "category": "disease"
   },
   {
    "gene": "BIN1",
@@ -4094,7 +4251,8 @@
     "call_confidence": "medium"
    },
    "source": "Excel",
-   "description": "An inherited muscle disease causing weakness and exercise intolerance from a young age."
+   "description": "An inherited muscle disease causing weakness and exercise intolerance from a young age.",
+   "category": "disease"
   },
   {
    "variant_id": "862",
@@ -4136,7 +4294,8 @@
    },
    "panel": "Wisdom",
    "source": "OMIA+Excel",
-   "strand_fixed": true
+   "strand_fixed": true,
+   "category": "disease"
   },
   {
    "variant_id": "851",
@@ -4168,7 +4327,8 @@
     "affected": false,
     "call_confidence": "medium"
    },
-   "source": "OMIA"
+   "source": "OMIA",
+   "category": "disease"
   },
   {
    "variant_id": "1274",
@@ -4205,7 +4365,8 @@
    "source": "OMIA+Excel",
    "trait": "Generalized Progressive Retinal Atrophy",
    "trait_inherited_from_gene": true,
-   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years."
+   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years.",
+   "category": "disease"
   },
   {
    "gene": "CLN8",
@@ -4227,7 +4388,8 @@
     "call_confidence": "medium"
    },
    "source": "Excel",
-   "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy."
+   "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy.",
+   "category": "disease"
   },
   {
    "variant_id": "547",
@@ -4262,7 +4424,8 @@
    "variant_breed": "Shetland Sheepdog",
    "panel": "Embark, Wisdom",
    "source": "OMIA+Excel",
-   "pos_end": 44524174
+   "pos_end": 44524174,
+   "category": "disease"
   },
   {
    "variant_id": "918",
@@ -4296,7 +4459,8 @@
    },
    "variant_breed": "Papillon",
    "panel": "Embark, Wisdom",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "variant_id": "1502",
@@ -4328,7 +4492,8 @@
     "affected": false,
     "call_confidence": "medium"
    },
-   "source": "OMIA"
+   "source": "OMIA",
+   "category": "disease"
   },
   {
    "gene": "COL5A1",
@@ -4350,7 +4515,8 @@
     "call_confidence": "medium"
    },
    "source": "Excel",
-   "description": "An inherited connective-tissue defect: skin is stretchy, fragile and tears easily, and joints can be loose. Managed by protecting the skin from trauma."
+   "description": "An inherited connective-tissue defect: skin is stretchy, fragile and tears easily, and joints can be loose. Managed by protecting the skin from trauma.",
+   "category": "disease"
   },
   {
    "gene": "CUBN",
@@ -4372,7 +4538,8 @@
     "call_confidence": "medium"
    },
    "source": "Excel",
-   "description": "An inherited inability to absorb vitamin B12 from food, causing poor growth, lethargy and anemia in young dogs \u2014 very treatable with B12 supplementation once recognized."
+   "description": "An inherited inability to absorb vitamin B12 from food, causing poor growth, lethargy and anemia in young dogs \u2014 very treatable with B12 supplementation once recognized.",
+   "category": "disease"
   },
   {
    "gene": "DLX6",
@@ -4395,7 +4562,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited developmental defect in which the palate does not close and the jaw is short; evident at birth."
+   "description": "An inherited developmental defect in which the palate does not close and the jaw is short; evident at birth.",
+   "category": "disease"
   },
   {
    "gene": "DNM2",
@@ -4417,7 +4585,8 @@
     "call_confidence": "medium"
    },
    "source": "Excel",
-   "description": "An inherited muscle disease in which muscle fibers develop abnormally, causing weakness and poor exercise tolerance from a young age."
+   "description": "An inherited muscle disease in which muscle fibers develop abnormally, causing weakness and poor exercise tolerance from a young age.",
+   "category": "disease"
   },
   {
    "variant_id": "1194",
@@ -4452,7 +4621,8 @@
    "variant_breed": "Rottweiler",
    "panel": "Wisdom",
    "source": "OMIA+Excel",
-   "pos_end": 58140386
+   "pos_end": 58140386,
+   "category": "disease"
   },
   {
    "variant_id": "461",
@@ -4487,7 +4657,8 @@
    "variant_breed": "English Springer Spaniel",
    "panel": "Embark",
    "source": "OMIA+Excel",
-   "pos_end": 75060045
+   "pos_end": 75060045,
+   "category": "disease"
   },
   {
    "variant_id": "1536",
@@ -4521,7 +4692,8 @@
    },
    "variant_breed": "German Spitz",
    "panel": "OMIA",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "gene": "GUSB",
@@ -4544,7 +4716,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited storage disease in which the body cannot fully break down certain complex sugars, which accumulate and affect bones, joints, eyes and organs. Recessive \u2014 two copies are needed."
+   "description": "An inherited storage disease in which the body cannot fully break down certain complex sugars, which accumulate and affect bones, joints, eyes and organs. Recessive \u2014 two copies are needed.",
+   "category": "disease"
   },
   {
    "variant_id": "568",
@@ -4579,7 +4752,8 @@
    "variant_breed": "Australian Shepherd",
    "panel": "Embark",
    "source": "OMIA+Excel",
-   "pos_end": 82783667
+   "pos_end": 82783667,
+   "category": "disease"
   },
   {
    "variant_id": "464",
@@ -4611,7 +4785,8 @@
     "affected": false,
     "call_confidence": "medium"
    },
-   "source": "OMIA"
+   "source": "OMIA",
+   "category": "disease"
   },
   {
    "variant_id": "465",
@@ -4643,7 +4818,8 @@
     "affected": false,
     "call_confidence": "medium"
    },
-   "source": "OMIA"
+   "source": "OMIA",
+   "category": "disease"
   },
   {
    "variant_id": "1260",
@@ -4677,7 +4853,8 @@
    },
    "variant_breed": "Beagle",
    "panel": "Wisdom",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "variant_id": "997",
@@ -4711,7 +4888,8 @@
    },
    "variant_breed": "Siberian Husky, Alaskan Husky",
    "panel": "Wisdom",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "variant_id": "551",
@@ -4745,7 +4923,8 @@
    },
    "variant_breed": "Chihuahua, Chinese Crested",
    "panel": "Embark, Wisdom",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "variant_id": "1216",
@@ -4778,7 +4957,8 @@
     "call_confidence": "medium"
    },
    "panel": "Wisdom",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "gene": "MPZ",
@@ -4800,7 +4980,8 @@
     "call_confidence": "medium"
    },
    "source": "Excel",
-   "description": "An inherited deficiency of nerve insulation causing weakness and tremor in puppies."
+   "description": "An inherited deficiency of nerve insulation causing weakness and tremor in puppies.",
+   "category": "disease"
   },
   {
    "gene": "MSTN",
@@ -4823,7 +5004,8 @@
    },
    "source": "Excel",
    "coordinate_lifted": "canFam3.1->canFam4 via 801bp flank bwa (MAPQ60 unique), 2026-08-29",
-   "description": "The 'bully whippet' myostatin variant: one copy is associated with a more muscular build; two copies produce heavy, double-muscled dogs. A body-build trait rather than an illness."
+   "description": "The 'bully whippet' myostatin variant: one copy is associated with a more muscular build; two copies produce heavy, double-muscled dogs. A body-build trait rather than an illness.",
+   "category": "trait"
   },
   {
    "variant_id": "1372",
@@ -4857,7 +5039,8 @@
    },
    "variant_breed": "Miniature Dachshund",
    "panel": "Wisdom",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "variant_id": "986",
@@ -4894,7 +5077,8 @@
    "source": "OMIA+Excel",
    "trait": "Leukoencephalomyelopathy",
    "trait_inherited_from_gene": true,
-   "description": "An inherited degeneration of white matter in the brain and spinal cord causing progressive weakness and incoordination in young dogs. Recessive."
+   "description": "An inherited degeneration of white matter in the brain and spinal cord causing progressive weakness and incoordination in young dogs. Recessive.",
+   "category": "disease"
   },
   {
    "variant_id": "474",
@@ -4932,7 +5116,8 @@
    "trait": "Early-onset progressive polyneuropathy",
    "trait_inherited_from_gene": true,
    "description": "An inherited degeneration of peripheral nerves causing progressive weakness and incoordination beginning in young dogs.",
-   "pos_end": 30226278
+   "pos_end": 30226278,
+   "category": "disease"
   },
   {
    "variant_id": "634",
@@ -4971,7 +5156,8 @@
    "variant_type": "del",
    "panel": "Wisdom",
    "reference": "https://doi.org/10.1101/gr.074302.107",
-   "pos_end": 60397582
+   "pos_end": 60397582,
+   "category": "disease"
   },
   {
    "gene": "PKD1",
@@ -4993,7 +5179,8 @@
     "call_confidence": "medium"
    },
    "source": "Excel",
-   "description": "An inherited condition in which fluid-filled cysts form in the kidneys and can progressively reduce kidney function; monitored with imaging and kidney values."
+   "description": "An inherited condition in which fluid-filled cysts form in the kidneys and can progressively reduce kidney function; monitored with imaging and kidney values.",
+   "category": "disease"
   },
   {
    "gene": "PKLR",
@@ -5015,7 +5202,8 @@
     "call_confidence": "medium"
    },
    "source": "Excel",
-   "description": "An inherited red-blood-cell enzyme deficiency causing chronic anemia and, over time, bone and liver changes. Recessive."
+   "description": "An inherited red-blood-cell enzyme deficiency causing chronic anemia and, over time, bone and liver changes. Recessive.",
+   "category": "disease"
   },
   {
    "variant_id": "585",
@@ -5053,7 +5241,8 @@
    "trait": "Thrombopathia",
    "trait_inherited_from_gene": true,
    "description": "An inherited platelet-function defect causing easy bruising, gum bleeds and prolonged bleeding after procedures. Tell your vet before surgery.",
-   "pos_end": 52923458
+   "pos_end": 52923458,
+   "category": "disease"
   },
   {
    "variant_id": "477",
@@ -5091,7 +5280,8 @@
    "trait": "Thrombopathia",
    "trait_inherited_from_gene": true,
    "description": "An inherited platelet-function defect causing easy bruising, gum bleeds and prolonged bleeding after procedures. Tell your vet before surgery.",
-   "pos_end": 52923515
+   "pos_end": 52923515,
+   "category": "disease"
   },
   {
    "variant_id": "577",
@@ -5131,7 +5321,8 @@
    "variant_breed": "New Zealand Huntaway",
    "panel": "Embark, Wisdom",
    "reference": "https://doi.org/10.1006/geno.2002.6699",
-   "pos_end": 2406799
+   "pos_end": 2406799,
+   "category": "disease"
   },
   {
    "variant_id": "954",
@@ -5171,7 +5362,8 @@
    "variant_breed": "Dachshund",
    "panel": "Embark, Wisdom",
    "reference": "https://doi.org/10.1006/geno.2000.6275",
-   "pos_end": 2406854
+   "pos_end": 2406854,
+   "category": "disease"
   },
   {
    "gene": "SH3TC2",
@@ -5193,7 +5385,8 @@
     "call_confidence": "medium"
    },
    "source": "Excel",
-   "description": "An inherited deficiency of nerve insulation causing weakness and tremor in puppies."
+   "description": "An inherited deficiency of nerve insulation causing weakness and tremor in puppies.",
+   "category": "disease"
   },
   {
    "variant_id": "642",
@@ -5233,7 +5426,8 @@
    "variant_breed": "Poodle",
    "panel": "Embark, Wisdom",
    "reference": "https://doi.org/10.1371/journal.pone.0051917",
-   "pos_end": 60893877
+   "pos_end": 60893877,
+   "category": "disease"
   },
   {
    "variant_id": "527",
@@ -5266,7 +5460,8 @@
     "call_confidence": "medium"
    },
    "source": "OMIA",
-   "pos_end": 47785684
+   "pos_end": 47785684,
+   "category": "disease"
   },
   {
    "variant_id": "675",
@@ -5301,7 +5496,8 @@
    "variant_breed": "Doberman Pinscher",
    "panel": "UCDavis",
    "source": "OMIA+Excel",
-   "pos_end": 74781874
+   "pos_end": 74781874,
+   "category": "disease"
   },
   {
    "variant_id": "575",
@@ -5340,7 +5536,8 @@
    "variant_type": "ins",
    "variant_breed": "Golden Retriever",
    "panel": "Embark, Wisdom",
-   "reference": "https://doi.org/10.1371/journal.pone.0021452"
+   "reference": "https://doi.org/10.1371/journal.pone.0021452",
+   "category": "disease"
   },
   {
    "variant_id": "1080",
@@ -5377,7 +5574,8 @@
    "source": "OMIA+Excel",
    "trait": "Startle Disease, Hyperekplexia",
    "trait_inherited_from_gene": true,
-   "description": "An inherited 'startle disease': affected puppies stiffen dramatically in response to noise or handling. Recessive."
+   "description": "An inherited 'startle disease': affected puppies stiffen dramatically in response to noise or handling. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "SLC6A5",
@@ -5411,7 +5609,8 @@
     "affected": false
    },
    "trait_inherited_from_gene": true,
-   "pos_end": 43267987
+   "pos_end": 43267987,
+   "category": "disease"
   },
   {
    "gene": "TPO",
@@ -5433,7 +5632,8 @@
     "call_confidence": "medium"
    },
    "source": "Excel",
-   "description": "An inherited thyroid hormone deficiency from birth, causing disproportionate dwarfism and lethargy; treatable with hormone replacement when identified early."
+   "description": "An inherited thyroid hormone deficiency from birth, causing disproportionate dwarfism and lethargy; treatable with hormone replacement when identified early.",
+   "category": "disease"
   },
   {
    "gene": "VMP1",
@@ -5455,7 +5655,8 @@
     "call_confidence": "medium"
    },
    "source": "Excel",
-   "description": "An inherited condition of the cerebellum, the brain's balance-and-coordination center, producing an unsteady, uncoordinated gait. Recessive forms are typical \u2014 carriers are healthy."
+   "description": "An inherited condition of the cerebellum, the brain's balance-and-coordination center, producing an unsteady, uncoordinated gait. Recessive forms are typical \u2014 carriers are healthy.",
+   "category": "disease"
   },
   {
    "variant_id": "968",
@@ -5489,7 +5690,8 @@
    },
    "variant_breed": "Shetland Sheepdog",
    "panel": "Embark, Wisdom",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "gene": "VWF",
@@ -5512,7 +5714,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "The most common inherited bleeding disorder of dogs: a shortage or defect of von Willebrand factor, a protein needed for blood clotting. Affected dogs may bruise easily or bleed longer after injury or surgery; severity varies by type. Mostly recessive, and worth mentioning to your vet before any surgery."
+   "description": "The most common inherited bleeding disorder of dogs: a shortage or defect of von Willebrand factor, a protein needed for blood clotting. Affected dogs may bruise easily or bleed longer after injury or surgery; severity varies by type. Mostly recessive, and worth mentioning to your vet before any surgery.",
+   "category": "disease"
   },
   {
    "gene": "YARS2",
@@ -5535,7 +5738,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited heart-muscle disease causing death in puppies or young dogs. Recessive \u2014 carriers are healthy."
+   "description": "An inherited heart-muscle disease causing death in puppies or young dogs. Recessive \u2014 carriers are healthy.",
+   "category": "disease"
   },
   {
    "gene": "ADAMTS10",
@@ -5557,7 +5761,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited form of glaucoma in which pressure builds inside the eye, which is painful and can damage vision; some forms also loosen the lens. Regular eye-pressure checks help catch it early in at-risk dogs."
+   "description": "An inherited form of glaucoma in which pressure builds inside the eye, which is painful and can damage vision; some forms also loosen the lens. Regular eye-pressure checks help catch it early in at-risk dogs.",
+   "category": "disease"
   },
   {
    "gene": "ADAMTS2",
@@ -5579,7 +5784,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited connective-tissue defect: skin is stretchy, fragile and tears easily, and joints can be loose. Managed by protecting the skin from trauma."
+   "description": "An inherited connective-tissue defect: skin is stretchy, fragile and tears easily, and joints can be loose. Managed by protecting the skin from trauma.",
+   "category": "disease"
   },
   {
    "gene": "ADAMTSL2",
@@ -5601,7 +5807,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "The Beagle connective-tissue syndrome: tight, thick skin, stiff joints and a characteristic tip-toe gait. Recessive; affected dogs often live full lives with accommodations."
+   "description": "The Beagle connective-tissue syndrome: tight, thick skin, stiff joints and a characteristic tip-toe gait. Recessive; affected dogs often live full lives with accommodations.",
+   "category": "disease"
   },
   {
    "gene": "AGXT",
@@ -5623,7 +5830,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited metabolic defect causing oxalate crystal deposition in kidneys, leading to early kidney failure. Recessive."
+   "description": "An inherited metabolic defect causing oxalate crystal deposition in kidneys, leading to early kidney failure. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "ALDH5A1",
@@ -5645,7 +5853,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited neurotransmitter-metabolism defect causing developmental delay, incoordination and seizures."
+   "description": "An inherited neurotransmitter-metabolism defect causing developmental delay, incoordination and seizures.",
+   "category": "disease"
   },
   {
    "gene": "ANLN",
@@ -5668,7 +5877,8 @@
    },
    "source": "Excel",
    "coordinate_lifted": "canFam3.1->canFam4 via 801bp flank bwa (MAPQ60 unique), 2026-08-29",
-   "description": "An inherited predisposition to sudden, severe lung inflammation in young dogs. Recessive and rare."
+   "description": "An inherited predisposition to sudden, severe lung inflammation in young dogs. Recessive and rare.",
+   "category": "disease"
   },
   {
    "gene": "APRT",
@@ -5690,7 +5900,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited enzyme deficiency that lets an insoluble compound (2,8-DHA) form stones in the urinary tract. Recessive; managed with diet and medication."
+   "description": "An inherited enzyme deficiency that lets an insoluble compound (2,8-DHA) form stones in the urinary tract. Recessive; managed with diet and medication.",
+   "category": "disease"
   },
   {
    "gene": "ARSB",
@@ -5712,7 +5923,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited storage disease in which the body cannot fully break down certain complex sugars, which accumulate and affect bones, joints, eyes and organs. Recessive \u2014 two copies are needed."
+   "description": "An inherited storage disease in which the body cannot fully break down certain complex sugars, which accumulate and affect bones, joints, eyes and organs. Recessive \u2014 two copies are needed.",
+   "category": "disease"
   },
   {
    "gene": "ARSG",
@@ -5735,7 +5947,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy."
+   "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy.",
+   "category": "disease"
   },
   {
    "gene": "ATP13A2",
@@ -5757,7 +5970,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy."
+   "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy.",
+   "category": "disease"
   },
   {
    "gene": "ATP2A2",
@@ -5779,7 +5993,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited skin disorder causing wart-like, crusted skin lesions."
+   "description": "An inherited skin disorder causing wart-like, crusted skin lesions.",
+   "category": "disease"
   },
   {
    "gene": "ATP7A",
@@ -5801,7 +6016,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited defect of copper handling in the liver: copper accumulates over years and can cause chronic liver damage. Manageable with diet and medication when identified."
+   "description": "An inherited defect of copper handling in the liver: copper accumulates over years and can cause chronic liver damage. Manageable with diet and medication when identified.",
+   "category": "disease"
   },
   {
    "gene": "BBS4",
@@ -5823,7 +6039,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years."
+   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years.",
+   "category": "disease"
   },
   {
    "variant_id": "93",
@@ -5856,7 +6073,8 @@
     "call_confidence": "low"
    },
    "panel": "OMIA",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "gene": "CAPN1",
@@ -5879,7 +6097,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited degeneration affecting the cerebellum and spinal pathways, causing progressive incoordination, sometimes with muscle twitching or seizures. Recessive."
+   "description": "An inherited degeneration affecting the cerebellum and spinal pathways, causing progressive incoordination, sometimes with muscle twitching or seizures. Recessive.",
+   "category": "disease"
   },
   {
    "variant_id": "458",
@@ -5918,7 +6137,8 @@
    "variant_type": "del",
    "panel": "Embark, Wisdom",
    "reference": "https://dx.doi.org/10.1126/science.1147880",
-   "pos_end": 55468994
+   "pos_end": 55468994,
+   "category": "coat"
   },
   {
    "gene": "CCDC39",
@@ -5941,7 +6161,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited defect of the airway's microscopic cilia causing chronic nasal discharge, cough and recurrent airway infections from early life."
+   "description": "An inherited defect of the airway's microscopic cilia causing chronic nasal discharge, cough and recurrent airway infections from early life.",
+   "category": "disease"
   },
   {
    "variant_id": "574",
@@ -5980,7 +6201,8 @@
    "variant_breed": "Schapendoes",
    "panel": "Wisdom",
    "reference": "https://doi.org/10.1007/s10048-009-0223-z",
-   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years."
+   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years.",
+   "category": "disease"
   },
   {
    "gene": "CDH23",
@@ -6002,7 +6224,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited form of deafness. In dogs, deafness is also commonly linked to white-pigment patterns; a BAER hearing test gives a definitive answer for an individual dog."
+   "description": "An inherited form of deafness. In dogs, deafness is also commonly linked to white-pigment patterns; a BAER hearing test gives a definitive answer for an individual dog.",
+   "category": "disease"
   },
   {
    "gene": "CHAT",
@@ -6024,7 +6247,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited fault at the nerve-muscle junction, causing weakness that worsens with exercise in puppies. Recessive."
+   "description": "An inherited fault at the nerve-muscle junction, causing weakness that worsens with exercise in puppies. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "CLCN1",
@@ -6046,7 +6270,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited muscle-relaxation defect: muscles stiffen with initial movement ('warm-up' stiffness), giving a stiff bunny-hop gait. Recessive; dogs adapt well."
+   "description": "An inherited muscle-relaxation defect: muscles stiffen with initial movement ('warm-up' stiffness), giving a stiff bunny-hop gait. Recessive; dogs adapt well.",
+   "category": "disease"
   },
   {
    "gene": "CLCN1",
@@ -6069,7 +6294,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited muscle-relaxation defect: muscles stiffen with initial movement ('warm-up' stiffness), giving a stiff bunny-hop gait. Recessive; dogs adapt well."
+   "description": "An inherited muscle-relaxation defect: muscles stiffen with initial movement ('warm-up' stiffness), giving a stiff bunny-hop gait. Recessive; dogs adapt well.",
+   "category": "disease"
   },
   {
    "variant_id": "541",
@@ -6106,7 +6332,8 @@
    "source": "OMIA+Excel",
    "trait": "Neuronal Ceroid Lipofuscinosis 5 (NCL5)",
    "trait_inherited_from_gene": true,
-   "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy."
+   "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy.",
+   "category": "disease"
   },
   {
    "gene": "CLN5",
@@ -6128,7 +6355,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy."
+   "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy.",
+   "category": "disease"
   },
   {
    "variant_id": "690",
@@ -6166,7 +6394,8 @@
    "trait": "Neuronal Ceroid Lipofuscinosis 8 (NCL8)",
    "trait_inherited_from_gene": true,
    "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy.",
-   "pos_end": 30780861
+   "pos_end": 30780861,
+   "category": "disease"
   },
   {
    "gene": "CNGB3",
@@ -6189,7 +6418,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited loss of retinal cone cells causing day blindness and absent color vision, with night vision preserved. Recessive."
+   "description": "An inherited loss of retinal cone cells causing day blindness and absent color vision, with night vision preserved. Recessive.",
+   "category": "disease"
   },
   {
    "variant_id": "1657",
@@ -6229,7 +6459,8 @@
     ],
     "confidence_source": "bam+glimpse2"
    },
-   "source": "OMIA"
+   "source": "OMIA",
+   "category": "disease"
   },
   {
    "gene": "COL1A1",
@@ -6251,7 +6482,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited bone overgrowth of the jaw and skull in growing puppies, painful during flare-ups but typically self-limiting as growth ends."
+   "description": "An inherited bone overgrowth of the jaw and skull in growing puppies, painful during flare-ups but typically self-limiting as growth ends.",
+   "category": "disease"
   },
   {
    "gene": "COL1A1",
@@ -6273,7 +6505,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "'Brittle bone disease' \u2014 an inherited collagen defect making bones fragile and prone to fracture, with possible dental and joint involvement, from puppyhood."
+   "description": "'Brittle bone disease' \u2014 an inherited collagen defect making bones fragile and prone to fracture, with possible dental and joint involvement, from puppyhood.",
+   "category": "disease"
   },
   {
    "gene": "COL1A2",
@@ -6295,7 +6528,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "'Brittle bone disease' \u2014 an inherited collagen defect making bones fragile and prone to fracture, with possible dental and joint involvement, from puppyhood."
+   "description": "'Brittle bone disease' \u2014 an inherited collagen defect making bones fragile and prone to fracture, with possible dental and joint involvement, from puppyhood.",
+   "category": "disease"
   },
   {
    "gene": "COL4A4",
@@ -6318,7 +6552,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited kidney disease in which the kidney's filtering membranes are structurally weak, leading to protein loss in urine and progressive kidney failure, often at a young age in affected dogs."
+   "description": "An inherited kidney disease in which the kidney's filtering membranes are structurally weak, leading to protein loss in urine and progressive kidney failure, often at a young age in affected dogs.",
+   "category": "disease"
   },
   {
    "variant_id": "1460",
@@ -6353,7 +6588,8 @@
    "variant_breed": "Chihuahua",
    "panel": "OMIA",
    "source": "OMIA+Excel",
-   "pos_end": 30944535
+   "pos_end": 30944535,
+   "category": "disease"
   },
   {
    "gene": "COL6A1",
@@ -6375,7 +6611,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age."
+   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age.",
+   "category": "disease"
   },
   {
    "variant_id": "1625",
@@ -6412,7 +6649,8 @@
    "source": "OMIA+Excel",
    "trait": "Muscular Dystrophy",
    "trait_inherited_from_gene": true,
-   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age."
+   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age.",
+   "category": "disease"
   },
   {
    "gene": "COL6A3",
@@ -6434,7 +6672,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age."
+   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age.",
+   "category": "disease"
   },
   {
    "gene": "COL7A1",
@@ -6456,7 +6695,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited skin-fragility disease: the skin layers separate with minor friction, causing blisters and sores. Severity varies by form."
+   "description": "An inherited skin-fragility disease: the skin layers separate with minor friction, causing blisters and sores. Severity varies by form.",
+   "category": "disease"
   },
   {
    "gene": "COL7A1",
@@ -6479,7 +6719,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited skin-fragility disease: the skin layers separate with minor friction, causing blisters and sores. Severity varies by form."
+   "description": "An inherited skin-fragility disease: the skin layers separate with minor friction, causing blisters and sores. Severity varies by form.",
+   "category": "disease"
   },
   {
    "gene": "COL9A3",
@@ -6501,7 +6742,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited syndrome combining dwarfism with serious eye abnormalities including retinal detachment. Recessive."
+   "description": "An inherited syndrome combining dwarfism with serious eye abnormalities including retinal detachment. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "CTSD",
@@ -6523,7 +6765,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy."
+   "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy.",
+   "category": "disease"
   },
   {
    "gene": "CYP27B1",
@@ -6545,7 +6788,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited inability to activate vitamin D, causing soft bones in puppies; treatable with the active vitamin form."
+   "description": "An inherited inability to activate vitamin D, causing soft bones in puppies; treatable with the active vitamin form.",
+   "category": "disease"
   },
   {
    "variant_id": "562",
@@ -6582,7 +6826,8 @@
    "source": "OMIA+Excel",
    "trait": "Muscular Dystrophy",
    "trait_inherited_from_gene": true,
-   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age."
+   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age.",
+   "category": "disease"
   },
   {
    "variant_id": "542",
@@ -6619,7 +6864,8 @@
    "source": "OMIA+Excel",
    "trait": "Muscular Dystrophy",
    "trait_inherited_from_gene": true,
-   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age."
+   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age.",
+   "category": "disease"
   },
   {
    "gene": "DMD",
@@ -6641,7 +6887,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age."
+   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age.",
+   "category": "disease"
   },
   {
    "gene": "DMD",
@@ -6664,7 +6911,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age."
+   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age.",
+   "category": "disease"
   },
   {
    "variant_id": "1056",
@@ -6698,7 +6946,8 @@
    },
    "variant_breed": "Boston Terrier, Bulldog, French Bulldog",
    "panel": "OMIA",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "gene": "EDA",
@@ -6720,7 +6969,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited developmental condition of skin, hair and teeth \u2014 affected dogs can have sparse hair, missing teeth, or fragile skin depending on the form."
+   "description": "An inherited developmental condition of skin, hair and teeth \u2014 affected dogs can have sparse hair, missing teeth, or fragile skin depending on the form.",
+   "category": "disease"
   },
   {
    "gene": "EXT2",
@@ -6743,7 +6993,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited tendency to form multiple bony outgrowths during growth, which can press on nearby structures; usually stabilizes at maturity."
+   "description": "An inherited tendency to form multiple bony outgrowths during growth, which can press on nearby structures; usually stabilizes at maturity.",
+   "category": "disease"
   },
   {
    "variant_id": "1655",
@@ -6775,7 +7026,8 @@
     "affected": false,
     "call_confidence": "low"
    },
-   "source": "OMIA"
+   "source": "OMIA",
+   "category": "disease"
   },
   {
    "gene": "FAM134B",
@@ -6797,7 +7049,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited degeneration of sensory nerves causing loss of sensation, incoordination and self-injury in young dogs."
+   "description": "An inherited degeneration of sensory nerves causing loss of sensation, incoordination and self-injury in young dogs.",
+   "category": "disease"
   },
   {
    "variant_id": "102",
@@ -6832,7 +7085,8 @@
    "source": "OMIA",
    "trait": "Dental Hypomineralization",
    "trait_inherited_from_gene": true,
-   "description": "An inherited enamel-mineralization defect making teeth wear quickly and appear discolored; managed with dental care."
+   "description": "An inherited enamel-mineralization defect making teeth wear quickly and appear discolored; managed with dental care.",
+   "category": "disease"
   },
   {
    "variant_id": "460",
@@ -6866,7 +7120,8 @@
    },
    "variant_breed": "Cavalier King Charles Spaniel",
    "panel": "Embark",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "gene": "FGF5",
@@ -6897,7 +7152,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "A coat-trait variant, not a disease: this change in the FGF5 gene region is one of several that produce a long coat when a dog carries two long-coat copies in total."
+   "description": "A coat-trait variant, not a disease: this change in the FGF5 gene region is one of several that produce a long coat when a dog carries two long-coat copies in total.",
+   "category": "trait"
   },
   {
    "gene": "FLCN",
@@ -6919,7 +7175,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited cancer-predisposition syndrome of German Shepherds combining kidney tumors with characteristic skin nodules; dominant, so one copy matters \u2014 surveillance imaging is recommended."
+   "description": "An inherited cancer-predisposition syndrome of German Shepherds combining kidney tumors with characteristic skin nodules; dominant, so one copy matters \u2014 surveillance imaging is recommended.",
+   "category": "disease"
   },
   {
    "variant_id": "531",
@@ -6953,7 +7210,8 @@
    },
    "variant_breed": "Weimaraner",
    "panel": "Embark, Wisdom",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "gene": "FVIII",
@@ -6976,7 +7234,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited deficiency of one of the blood-clotting factors, causing prolonged bleeding after injury or surgery \u2014 severity ranges from mild to serious depending on the factor and variant. Worth telling your vet before any procedure."
+   "description": "An inherited deficiency of one of the blood-clotting factors, causing prolonged bleeding after injury or surgery \u2014 severity ranges from mild to serious depending on the factor and variant. Worth telling your vet before any procedure.",
+   "category": "disease"
   },
   {
    "gene": "FVIII",
@@ -6999,7 +7258,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited deficiency of one of the blood-clotting factors, causing prolonged bleeding after injury or surgery \u2014 severity ranges from mild to serious depending on the factor and variant. Worth telling your vet before any procedure."
+   "description": "An inherited deficiency of one of the blood-clotting factors, causing prolonged bleeding after injury or surgery \u2014 severity ranges from mild to serious depending on the factor and variant. Worth telling your vet before any procedure.",
+   "category": "disease"
   },
   {
    "gene": "GALC",
@@ -7022,7 +7282,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "A severe inherited disease of nerve insulation (myelin), causing progressive weakness and neurological decline in young dogs. Recessive."
+   "description": "A severe inherited disease of nerve insulation (myelin), causing progressive weakness and neurological decline in young dogs. Recessive.",
+   "category": "disease"
   },
   {
    "variant_id": "1150",
@@ -7062,7 +7323,8 @@
     ],
     "confidence_source": "bam+glimpse2_discordant"
    },
-   "source": "OMIA"
+   "source": "OMIA",
+   "category": "disease"
   },
   {
    "gene": "GFAP",
@@ -7084,7 +7346,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "A rare inherited brain disease in which a structural protein misbehaves in support cells, causing progressive neurological decline in young dogs."
+   "description": "A rare inherited brain disease in which a structural protein misbehaves in support cells, causing progressive neurological decline in young dogs.",
+   "category": "disease"
   },
   {
    "variant_id": "794",
@@ -7118,7 +7381,8 @@
    },
    "variant_breed": "Leonberger",
    "panel": "OMIA",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "variant_id": "1097",
@@ -7153,7 +7417,8 @@
    "variant_breed": "Cocker Spaniel",
    "panel": "Wisdom",
    "source": "OMIA+Excel",
-   "pos_end": 3055914
+   "pos_end": 3055914,
+   "category": "disease"
   },
   {
    "gene": "GUSB",
@@ -7176,7 +7441,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited storage disease in which the body cannot fully break down certain complex sugars, which accumulate and affect bones, joints, eyes and organs. Recessive \u2014 two copies are needed."
+   "description": "An inherited storage disease in which the body cannot fully break down certain complex sugars, which accumulate and affect bones, joints, eyes and organs. Recessive \u2014 two copies are needed.",
+   "category": "disease"
   },
   {
    "variant_id": "1421",
@@ -7210,7 +7476,8 @@
    },
    "variant_breed": "Norwegian Elkhound",
    "panel": "OMIA",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "gene": "HCRTR2",
@@ -7232,7 +7499,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited sleep-switch defect: affected dogs collapse suddenly into sleep during excitement (classically at mealtimes). Not painful and not progressive. Recessive."
+   "description": "An inherited sleep-switch defect: affected dogs collapse suddenly into sleep during excitement (classically at mealtimes). Not painful and not progressive. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "HPS3",
@@ -7254,7 +7522,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "A coat-color variant, not a disease: the HPS3 'cocoa' allele of French Bulldogs darkens brown pigment distinctly from the TYRP1 browns."
+   "description": "A coat-color variant, not a disease: the HPS3 'cocoa' allele of French Bulldogs darkens brown pigment distinctly from the TYRP1 browns.",
+   "category": "coat"
   },
   {
    "variant_id": "1095",
@@ -7288,7 +7557,8 @@
    },
    "variant_breed": "Dachshund",
    "panel": "OMIA",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "variant_id": "1604",
@@ -7322,7 +7592,8 @@
    },
    "variant_breed": "Nederlandse Kooikerhondje",
    "panel": "OMIA",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "variant_id": "1190",
@@ -7359,7 +7630,8 @@
    "source": "OMIA+Excel",
    "trait": "Mucopolysaccharidosis Type I",
    "trait_inherited_from_gene": true,
-   "description": "An inherited storage disease in which the body cannot fully break down certain complex sugars, which accumulate and affect bones, joints, eyes and organs. Recessive \u2014 two copies are needed."
+   "description": "An inherited storage disease in which the body cannot fully break down certain complex sugars, which accumulate and affect bones, joints, eyes and organs. Recessive \u2014 two copies are needed.",
+   "category": "disease"
   },
   {
    "gene": "IDUA",
@@ -7381,7 +7653,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited storage disease in which the body cannot fully break down certain complex sugars, which accumulate and affect bones, joints, eyes and organs. Recessive \u2014 two copies are needed."
+   "description": "An inherited storage disease in which the body cannot fully break down certain complex sugars, which accumulate and affect bones, joints, eyes and organs. Recessive \u2014 two copies are needed.",
+   "category": "disease"
   },
   {
    "gene": "IFT122",
@@ -7403,7 +7676,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years."
+   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years.",
+   "category": "disease"
   },
   {
    "variant_id": "584",
@@ -7442,7 +7716,8 @@
    "variant_type": "ins",
    "variant_breed": "Cardigan Welsh Corgi",
    "panel": "Embark, Wisdom",
-   "reference": "https://doi.org/10.1016/0165-2427(94)05400-M"
+   "reference": "https://doi.org/10.1016/0165-2427(94)05400-M",
+   "category": "disease"
   },
   {
    "variant_id": "606",
@@ -7480,7 +7755,8 @@
    "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years.",
    "variant_type": "ins",
    "panel": "Embark, Wisdom",
-   "reference": "https://doi.org/10.1167/iovs.13-12915"
+   "reference": "https://doi.org/10.1167/iovs.13-12915",
+   "category": "disease"
   },
   {
    "variant_id": "739",
@@ -7512,7 +7788,8 @@
     "affected": false,
     "call_confidence": "low"
    },
-   "source": "OMIA"
+   "source": "OMIA",
+   "category": "disease"
   },
   {
    "variant_id": "570",
@@ -7546,7 +7823,8 @@
    },
    "variant_breed": "German Shepherd Dog",
    "panel": "UCDavis",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "variant_id": "459",
@@ -7581,7 +7859,8 @@
    "variant_breed": "Weimaraner",
    "panel": "OMIA",
    "source": "OMIA+Excel",
-   "pos_end": 47941197
+   "pos_end": 47941197,
+   "category": "disease"
   },
   {
    "gene": "KRT16",
@@ -7604,7 +7883,8 @@
    },
    "source": "Excel",
    "description": "An inherited thickening of paw-pad skin and nails causing discomfort on hard ground.",
-   "pos_end": 21046483
+   "pos_end": 21046483,
+   "category": "disease"
   },
   {
    "variant_id": "1043",
@@ -7637,7 +7917,8 @@
     "call_confidence": "low"
    },
    "source": "OMIA",
-   "pos_end": 44109050
+   "pos_end": 44109050,
+   "category": "disease"
   },
   {
    "gene": "KRT71",
@@ -7660,7 +7941,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "A coat-texture variant, not a disease: KRT71 curl alleles produce a wavy to curly coat, as in Poodles and doodle mixes."
+   "description": "A coat-texture variant, not a disease: KRT71 curl alleles produce a wavy to curly coat, as in Poodles and doodle mixes.",
+   "category": "trait"
   },
   {
    "variant_id": "735",
@@ -7700,7 +7982,8 @@
    "variant_breed": "Staffordshire Bull Terrier",
    "panel": "Embark, Wisdom",
    "reference": "https://doi.org/10.1136/jmg.2006.042507",
-   "strand_fixed": true
+   "strand_fixed": true,
+   "category": "disease"
   },
   {
    "gene": "L2HGDH",
@@ -7722,7 +8005,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited metabolic disorder in which an acid accumulates in the brain, causing seizures, wobbliness and behavioral change from adolescence. Recessive, best known in Staffordshire Bull Terriers."
+   "description": "An inherited metabolic disorder in which an acid accumulates in the brain, causing seizures, wobbliness and behavioral change from adolescence. Recessive, best known in Staffordshire Bull Terriers.",
+   "category": "disease"
   },
   {
    "gene": "LAMA2",
@@ -7744,7 +8028,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited muscle disease evident from puppyhood, causing weakness and poor growth."
+   "description": "An inherited muscle disease evident from puppyhood, causing weakness and poor growth.",
+   "category": "disease"
   },
   {
    "variant_id": "1324",
@@ -7778,7 +8063,8 @@
    },
    "variant_breed": "mixed breed",
    "panel": "Wisdom",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "gene": "LAMP3",
@@ -7800,7 +8086,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited lung-development defect causing respiratory distress in newborn puppies."
+   "description": "An inherited lung-development defect causing respiratory distress in newborn puppies.",
+   "category": "disease"
   },
   {
    "gene": "LARGE",
@@ -7822,7 +8109,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age."
+   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age.",
+   "category": "disease"
   },
   {
    "gene": "MC1R",
@@ -7844,7 +8132,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "A coat-color variant, not a disease: with two recessive-red copies at MC1R, the coat grows only yellow-to-red pigment regardless of most other color genes."
+   "description": "A coat-color variant, not a disease: with two recessive-red copies at MC1R, the coat grows only yellow-to-red pigment regardless of most other color genes.",
+   "category": "coat"
   },
   {
    "gene": "MC5R",
@@ -7875,7 +8164,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "A coat trait, not a disease: MC5R 'shedding' variants influence how heavily a dog sheds, interacting with furnishings."
+   "description": "A coat trait, not a disease: MC5R 'shedding' variants influence how heavily a dog sheds, interacting with furnishings.",
+   "category": "trait"
   },
   {
    "variant_id": "472",
@@ -7915,7 +8205,8 @@
    "reference": "https://doi.org/10.1007/s10048-011-0285-6",
    "coordinate_lifted": "OMIA CanFam3.1 g.84289962_84289964del (E539del) lifted via 801bp flank bwa MAPQ60, 2026-08-29",
    "description": "An inherited degeneration of nerve fibers in the brain and spinal cord causing progressive incoordination and neurological decline, usually starting young. Recessive.",
-   "pos_end": 83765725
+   "pos_end": 83765725,
+   "category": "disease"
   },
   {
    "variant_id": "1374",
@@ -7949,7 +8240,8 @@
    },
    "variant_breed": "Cane Corso",
    "panel": "Wisdom",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "variant_id": "1085",
@@ -7992,7 +8284,8 @@
    "source": "OMIA",
    "trait": "Ventricular arrhythmias and sudden death",
    "trait_inherited_from_gene": true,
-   "description": "An inherited heart-rhythm disorder that can cause fainting or sudden death in young dogs; cardiology screening is advised for at-risk dogs."
+   "description": "An inherited heart-rhythm disorder that can cause fainting or sudden death in young dogs; cardiology screening is advised for at-risk dogs.",
+   "category": "disease"
   },
   {
    "gene": "MICOS13",
@@ -8015,7 +8308,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited heart-rhythm disorder that can cause fainting or sudden death in young dogs; cardiology screening is advised for at-risk dogs."
+   "description": "An inherited heart-rhythm disorder that can cause fainting or sudden death in young dogs; cardiology screening is advised for at-risk dogs.",
+   "category": "disease"
   },
   {
    "variant_id": "1355",
@@ -8052,7 +8346,8 @@
    "source": "OMIA+Excel",
    "trait": "Xanthinuria type II",
    "trait_inherited_from_gene": true,
-   "description": "An inherited defect of purine metabolism causing xanthine bladder/kidney stones; managed with diet and hydration."
+   "description": "An inherited defect of purine metabolism causing xanthine bladder/kidney stones; managed with diet and hydration.",
+   "category": "disease"
   },
   {
    "gene": "MOCOS",
@@ -8074,7 +8369,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited defect of purine metabolism causing xanthine bladder/kidney stones; managed with diet and hydration."
+   "description": "An inherited defect of purine metabolism causing xanthine bladder/kidney stones; managed with diet and hydration.",
+   "category": "disease"
   },
   {
    "gene": "MTBP",
@@ -8096,7 +8392,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "The Shar-Pei autoinflammatory syndrome: recurrent unexplained fevers and swollen hocks, related to the same biology as the breed's skin folds; managed medically."
+   "description": "The Shar-Pei autoinflammatory syndrome: recurrent unexplained fevers and swollen hocks, related to the same biology as the breed's skin folds; managed medically.",
+   "category": "disease"
   },
   {
    "gene": "MYH9",
@@ -8118,7 +8415,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "A benign inherited platelet/white-cell anomaly that can make platelet counts look low without a true bleeding problem."
+   "description": "A benign inherited platelet/white-cell anomaly that can make platelet counts look low without a true bleeding problem.",
+   "category": "disease"
   },
   {
    "gene": "MYO7A",
@@ -8149,7 +8447,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited syndrome combining deafness with balance problems, appearing in puppies. Recessive."
+   "description": "An inherited syndrome combining deafness with balance problems, appearing in puppies. Recessive.",
+   "category": "disease"
   },
   {
    "variant_id": "1315",
@@ -8183,7 +8482,8 @@
    },
    "variant_breed": "English Cocker Spaniel",
    "panel": "OMIA",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "gene": "NDRG1",
@@ -8206,7 +8506,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited degeneration of peripheral nerves causing progressive weakness and incoordination beginning in young dogs."
+   "description": "An inherited degeneration of peripheral nerves causing progressive weakness and incoordination beginning in young dogs.",
+   "category": "disease"
   },
   {
    "variant_id": "961",
@@ -8239,7 +8540,8 @@
     "call_confidence": "low"
    },
    "panel": "Wisdom",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "variant_id": "632",
@@ -8273,7 +8575,8 @@
    },
    "panel": "Embark",
    "source": "OMIA+Excel",
-   "pos_end": 25581807
+   "pos_end": 25581807,
+   "category": "disease"
   },
   {
    "variant_id": "1268",
@@ -8312,7 +8615,8 @@
    "trait_inherited_from_gene": true,
    "description": "An inherited localized skin overgrowth producing wart-like, pigmented plaques.",
    "variant_type": "G>A",
-   "pos_end": 122058757
+   "pos_end": 122058757,
+   "category": "disease"
   },
   {
    "gene": "OCA2",
@@ -8335,7 +8639,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited pigment deficiency affecting coat, skin and eyes, giving very pale coloring and light-sensitive eyes. A pigmentation trait, recessive."
+   "description": "An inherited pigment deficiency affecting coat, skin and eyes, giving very pale coloring and light-sensitive eyes. A pigmentation trait, recessive.",
+   "category": "coat"
   },
   {
    "variant_id": "454",
@@ -8370,7 +8675,8 @@
    "variant_breed": "Greater Swiss Mountain Dog",
    "panel": "Embark, Wisdom",
    "source": "OMIA+Excel",
-   "pos_end": 46454859
+   "pos_end": 46454859,
+   "category": "disease"
   },
   {
    "gene": "PDP1",
@@ -8400,7 +8706,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "An inherited energy-metabolism defect causing exercise intolerance and metabolic acidosis."
+   "description": "An inherited energy-metabolism defect causing exercise intolerance and metabolic acidosis.",
+   "category": "disease"
   },
   {
    "gene": "PFKM",
@@ -8422,7 +8729,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited inability to store or release glycogen (the body's sugar reserve) properly, typically causing low blood sugar, exercise intolerance and organ enlargement. Recessive."
+   "description": "An inherited inability to store or release glycogen (the body's sugar reserve) properly, typically causing low blood sugar, exercise intolerance and organ enlargement. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "PIGN",
@@ -8444,7 +8752,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited episodic movement disorder: bouts of cramping or abnormal movements with normal consciousness, often triggered by excitement; not epilepsy."
+   "description": "An inherited episodic movement disorder: bouts of cramping or abnormal movements with normal consciousness, often triggered by excitement; not epilepsy.",
+   "category": "disease"
   },
   {
    "gene": "PKLR",
@@ -8466,7 +8775,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited red-blood-cell enzyme deficiency causing chronic anemia and, over time, bone and liver changes. Recessive."
+   "description": "An inherited red-blood-cell enzyme deficiency causing chronic anemia and, over time, bone and liver changes. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "PKP1",
@@ -8488,7 +8798,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited developmental condition of skin, hair and teeth \u2014 affected dogs can have sparse hair, missing teeth, or fragile skin depending on the form."
+   "description": "An inherited developmental condition of skin, hair and teeth \u2014 affected dogs can have sparse hair, missing teeth, or fragile skin depending on the form.",
+   "category": "disease"
   },
   {
    "gene": "PLA2G6",
@@ -8510,7 +8821,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited degeneration of nerve fibers in the brain and spinal cord causing progressive incoordination and neurological decline, usually starting young. Recessive."
+   "description": "An inherited degeneration of nerve fibers in the brain and spinal cord causing progressive incoordination and neurological decline, usually starting young. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "PLN",
@@ -8533,7 +8845,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited heart-muscle weakness in which the heart enlarges and pumps poorly, potentially leading to heart failure; onset is typically in adulthood and regular cardiac checks help at-risk dogs."
+   "description": "An inherited heart-muscle weakness in which the heart enlarges and pumps poorly, potentially leading to heart failure; onset is typically in adulthood and regular cardiac checks help at-risk dogs.",
+   "category": "disease"
   },
   {
    "gene": "POU1F1",
@@ -8555,7 +8868,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited pituitary hormone deficiency causing proportionate dwarfism and coat abnormalities; treatable when identified young."
+   "description": "An inherited pituitary hormone deficiency causing proportionate dwarfism and coat abnormalities; treatable when identified young.",
+   "category": "disease"
   },
   {
    "variant_id": "579",
@@ -8594,7 +8908,8 @@
    "trait_inherited_from_gene": true,
    "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy.",
    "variant_type": "ins",
-   "reference": "https://doi.org/10.1016/j.ymgme.2012.11.008"
+   "reference": "https://doi.org/10.1016/j.ymgme.2012.11.008",
+   "category": "disease"
   },
   {
    "gene": "PRKDC",
@@ -8617,7 +8932,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "A severe inherited failure of the immune system: affected puppies cannot fight infections and rarely survive without extreme measures. Carriers are completely healthy."
+   "description": "A severe inherited failure of the immune system: affected puppies cannot fight infections and rarely survive without extreme measures. Carriers are completely healthy.",
+   "category": "disease"
   },
   {
    "gene": "PRKG2",
@@ -8640,7 +8956,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited skeletal dysplasia producing short limbs relative to body size."
+   "description": "An inherited skeletal dysplasia producing short limbs relative to body size.",
+   "category": "disease"
   },
   {
    "gene": "PSMB7",
@@ -8670,7 +8987,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "A coat-pattern modifier of merle in Great Danes: with merle, one copy produces the white-with-black-patches harlequin pattern. Two copies are not viable, so harlequins are always carriers."
+   "description": "A coat-pattern modifier of merle in Great Danes: with merle, one copy produces the white-with-black-patches harlequin pattern. Two copies are not viable, so harlequins are always carriers.",
+   "category": "coat"
   },
   {
    "gene": "RAB24",
@@ -8692,7 +9010,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited condition of the cerebellum, the brain's balance-and-coordination center, producing an unsteady, uncoordinated gait. Recessive forms are typical \u2014 carriers are healthy."
+   "description": "An inherited condition of the cerebellum, the brain's balance-and-coordination center, producing an unsteady, uncoordinated gait. Recessive forms are typical \u2014 carriers are healthy.",
+   "category": "disease"
   },
   {
    "gene": "RASGRP2",
@@ -8714,7 +9033,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited platelet-function defect causing easy bruising, gum bleeds and prolonged bleeding after procedures. Tell your vet before surgery."
+   "description": "An inherited platelet-function defect causing easy bruising, gum bleeds and prolonged bleeding after procedures. Tell your vet before surgery.",
+   "category": "disease"
   },
   {
    "variant_id": "468",
@@ -8749,7 +9069,8 @@
    "variant_breed": "Briard",
    "panel": "Embark, Wisdom",
    "source": "OMIA+Excel",
-   "pos_end": 77428114
+   "pos_end": 77428114,
+   "category": "disease"
   },
   {
    "gene": "RYR1",
@@ -8771,7 +9092,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited reaction to certain anesthetic gases: affected dogs can develop runaway muscle rigidity and body temperature under anesthesia. Dominant \u2014 one copy matters, and your vet/anesthetist should know before any procedure."
+   "description": "An inherited reaction to certain anesthetic gases: affected dogs can develop runaway muscle rigidity and body temperature under anesthesia. Dominant \u2014 one copy matters, and your vet/anesthetist should know before any procedure.",
+   "category": "disease"
   },
   {
    "gene": "SAG",
@@ -8793,7 +9115,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years."
+   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years.",
+   "category": "disease"
   },
   {
    "variant_id": "1233",
@@ -8827,7 +9150,8 @@
    },
    "variant_breed": "Miniature Schnauzer",
    "panel": "Wisdom",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "gene": "SDR9C7",
@@ -8849,7 +9173,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited skin condition in which the outer skin layer does not form normally, causing flaking, scaling and a rough or darkened skin surface. Usually recessive; severity varies widely and management is topical."
+   "description": "An inherited skin condition in which the outer skin layer does not form normally, causing flaking, scaling and a rough or darkened skin surface. Usually recessive; severity varies widely and management is topical.",
+   "category": "disease"
   },
   {
    "gene": "SERPINH1",
@@ -8872,7 +9197,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "'Brittle bone disease' \u2014 an inherited collagen defect making bones fragile and prone to fracture, with possible dental and joint involvement, from puppyhood."
+   "description": "'Brittle bone disease' \u2014 an inherited collagen defect making bones fragile and prone to fracture, with possible dental and joint involvement, from puppyhood.",
+   "category": "disease"
   },
   {
    "gene": "SGCA",
@@ -8894,7 +9220,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited muscle disease causing progressive weakness of the shoulder and hip muscles. Recessive."
+   "description": "An inherited muscle disease causing progressive weakness of the shoulder and hip muscles. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "SIX6",
@@ -8916,7 +9243,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "Inherited structural eye abnormalities present from birth, ranging from small eyes to internal malformations affecting vision."
+   "description": "Inherited structural eye abnormalities present from birth, ranging from small eyes to internal malformations affecting vision.",
+   "category": "disease"
   },
   {
    "variant_id": "1218",
@@ -8951,7 +9279,8 @@
    "variant_breed": "Belgian Malinois",
    "panel": "Wisdom",
    "source": "OMIA+Excel",
-   "pos_end": 1045149
+   "pos_end": 1045149,
+   "category": "disease"
   },
   {
    "variant_id": "1250",
@@ -8989,7 +9318,8 @@
    "trait": "Subacute Necrotizing Encephalomyelopathy",
    "trait_inherited_from_gene": true,
    "description": "The dog analog of Leigh syndrome: an inherited energy-metabolism defect of the brain causing progressive neurological decline in young dogs. Recessive.",
-   "pos_end": 40615755
+   "pos_end": 40615755,
+   "category": "disease"
   },
   {
    "gene": "SLC19A3",
@@ -9012,7 +9342,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "The dog analog of Leigh syndrome: an inherited energy-metabolism defect of the brain causing progressive neurological decline in young dogs. Recessive."
+   "description": "The dog analog of Leigh syndrome: an inherited energy-metabolism defect of the brain causing progressive neurological decline in young dogs. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "SLC25A12",
@@ -9034,7 +9365,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited condition of the cerebellum, the brain's balance-and-coordination center, producing an unsteady, uncoordinated gait. Recessive forms are typical \u2014 carriers are healthy."
+   "description": "An inherited condition of the cerebellum, the brain's balance-and-coordination center, producing an unsteady, uncoordinated gait. Recessive forms are typical \u2014 carriers are healthy.",
+   "category": "disease"
   },
   {
    "gene": "SLC25A12",
@@ -9056,7 +9388,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited immune-mediated muscle inflammation causing progressive weakness and muscle loss in young dogs."
+   "description": "An inherited immune-mediated muscle inflammation causing progressive weakness and muscle loss in young dogs.",
+   "category": "disease"
   },
   {
    "variant_id": "937",
@@ -9090,7 +9423,8 @@
    },
    "variant_breed": "Great Dane",
    "panel": "Embark, Wisdom",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "variant_id": "411",
@@ -9135,7 +9469,8 @@
    "source": "OMIA+Excel",
    "trait": "Craniomandibular Osteopathy",
    "trait_inherited_from_gene": true,
-   "description": "An inherited bone overgrowth of the jaw and skull in growing puppies, painful during flare-ups but typically self-limiting as growth ends."
+   "description": "An inherited bone overgrowth of the jaw and skull in growing puppies, painful during flare-ups but typically self-limiting as growth ends.",
+   "category": "disease"
   },
   {
    "gene": "SLC37A2",
@@ -9157,7 +9492,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited bone overgrowth of the jaw and skull in growing puppies, painful during flare-ups but typically self-limiting as growth ends."
+   "description": "An inherited bone overgrowth of the jaw and skull in growing puppies, painful during flare-ups but typically self-limiting as growth ends.",
+   "category": "disease"
   },
   {
    "variant_id": "526",
@@ -9191,7 +9527,8 @@
    },
    "variant_breed": "Labrador Retriever",
    "panel": "OMIA",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "gene": "SLC5A5",
@@ -9214,7 +9551,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited inability to make thyroid hormone, causing stunted growth and an enlarged thyroid in puppies; treatable with thyroid supplementation when caught early."
+   "description": "An inherited inability to make thyroid hormone, causing stunted growth and an enlarged thyroid in puppies; treatable with thyroid supplementation when caught early.",
+   "category": "disease"
   },
   {
    "gene": "SLC6A3",
@@ -9236,7 +9574,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited condition of the cerebellum, the brain's balance-and-coordination center, producing an unsteady, uncoordinated gait. Recessive forms are typical \u2014 carriers are healthy."
+   "description": "An inherited condition of the cerebellum, the brain's balance-and-coordination center, producing an unsteady, uncoordinated gait. Recessive forms are typical \u2014 carriers are healthy.",
+   "category": "disease"
   },
   {
    "gene": "SLC7A9",
@@ -9258,7 +9597,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited kidney transport defect in which the amino acid cystine leaks into urine and can form bladder or kidney stones, more often in males. Management focuses on diet and urinary monitoring."
+   "description": "An inherited kidney transport defect in which the amino acid cystine leaks into urine and can form bladder or kidney stones, more often in males. Management focuses on diet and urinary monitoring.",
+   "category": "disease"
   },
   {
    "variant_id": "415",
@@ -9292,7 +9632,8 @@
    },
    "variant_breed": "Vizsla",
    "panel": "Wisdom",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "variant_id": "37",
@@ -9325,7 +9666,8 @@
     "call_confidence": "low"
    },
    "panel": "Embark, Wisdom",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "variant_id": "457",
@@ -9360,7 +9702,8 @@
    "variant_breed": "Beagle",
    "panel": "Embark, Wisdom",
    "source": "OMIA+Excel",
-   "pos_end": 51168612
+   "pos_end": 51168612,
+   "category": "disease"
   },
   {
    "gene": "STK36",
@@ -9383,7 +9726,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited defect of the microscopic 'brushes' that clear airways, causing chronic nasal discharge, cough and recurrent respiratory infections from early life."
+   "description": "An inherited defect of the microscopic 'brushes' that clear airways, causing chronic nasal discharge, cough and recurrent respiratory infections from early life.",
+   "category": "disease"
   },
   {
    "gene": "TECPR2",
@@ -9405,7 +9749,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited degeneration of nerve fibers in the brain and spinal cord causing progressive incoordination and neurological decline, usually starting young. Recessive."
+   "description": "An inherited degeneration of nerve fibers in the brain and spinal cord causing progressive incoordination and neurological decline, usually starting young. Recessive.",
+   "category": "disease"
   },
   {
    "variant_id": "425",
@@ -9442,7 +9787,8 @@
    "source": "OMIA+Excel",
    "trait": "Congenital Hypothyroidism",
    "trait_inherited_from_gene": true,
-   "description": "An inherited thyroid hormone deficiency from birth, causing disproportionate dwarfism and lethargy; treatable with hormone replacement when identified early."
+   "description": "An inherited thyroid hormone deficiency from birth, causing disproportionate dwarfism and lethargy; treatable with hormone replacement when identified early.",
+   "category": "disease"
   },
   {
    "gene": "TPO",
@@ -9464,7 +9810,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited thyroid hormone deficiency from birth, causing disproportionate dwarfism and lethargy; treatable with hormone replacement when identified early."
+   "description": "An inherited thyroid hormone deficiency from birth, causing disproportionate dwarfism and lethargy; treatable with hormone replacement when identified early.",
+   "category": "disease"
   },
   {
    "gene": "TPO",
@@ -9486,7 +9833,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited thyroid hormone deficiency from birth, causing disproportionate dwarfism and lethargy; treatable with hormone replacement when identified early."
+   "description": "An inherited thyroid hormone deficiency from birth, causing disproportionate dwarfism and lethargy; treatable with hormone replacement when identified early.",
+   "category": "disease"
   },
   {
    "variant_id": "473",
@@ -9520,7 +9868,8 @@
    },
    "variant_breed": "Dachshund",
    "panel": "Embark",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "variant_id": "949",
@@ -9559,7 +9908,8 @@
    "variant_type": "del",
    "variant_breed": "Golden Retriever",
    "panel": "Embark, Wisdom",
-   "reference": "https://doi.org/10.1186/2052-6687-1-4"
+   "reference": "https://doi.org/10.1186/2052-6687-1-4",
+   "category": "disease"
   },
   {
    "gene": "TYPR1",
@@ -9590,7 +9940,8 @@
    },
    "source": "Excel",
    "description": "A coat-color variant, not a disease: TYRP1 'brown' alleles turn black pigment to brown/liver (including nose and paw pads) when a dog carries two brown alleles in any combination.",
-   "pos_end": 33385202
+   "pos_end": 33385202,
+   "category": "coat"
   },
   {
    "gene": "TYR",
@@ -9612,7 +9963,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited pigment deficiency affecting coat, skin and eyes, giving very pale coloring and light-sensitive eyes. A pigmentation trait, recessive."
+   "description": "An inherited pigment deficiency affecting coat, skin and eyes, giving very pale coloring and light-sensitive eyes. A pigmentation trait, recessive.",
+   "category": "coat"
   },
   {
    "variant_id": "796",
@@ -9646,7 +9998,8 @@
    },
    "panel": "Wisdom",
    "source": "OMIA+Excel",
-   "pos_end": 33385244
+   "pos_end": 33385244,
+   "category": "disease"
   },
   {
    "gene": "TYRP1",
@@ -9668,7 +10021,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "A coat-color variant, not a disease: TYRP1 'brown' alleles turn black pigment to brown/liver (including nose and paw pads) when a dog carries two brown alleles in any combination."
+   "description": "A coat-color variant, not a disease: TYRP1 'brown' alleles turn black pigment to brown/liver (including nose and paw pads) when a dog carries two brown alleles in any combination.",
+   "category": "coat"
   },
   {
    "gene": "TYRP1",
@@ -9698,7 +10052,8 @@
     "confidence_source": "glimpse2_v2"
    },
    "source": "Excel",
-   "description": "A coat-color variant, not a disease: TYRP1 'brown' alleles turn black pigment to brown/liver (including nose and paw pads) when a dog carries two brown alleles in any combination."
+   "description": "A coat-color variant, not a disease: TYRP1 'brown' alleles turn black pigment to brown/liver (including nose and paw pads) when a dog carries two brown alleles in any combination.",
+   "category": "coat"
   },
   {
    "gene": "TYRP1",
@@ -9720,7 +10075,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "A coat-color variant, not a disease: TYRP1 'brown' alleles turn black pigment to brown/liver (including nose and paw pads) when a dog carries two brown alleles in any combination."
+   "description": "A coat-color variant, not a disease: TYRP1 'brown' alleles turn black pigment to brown/liver (including nose and paw pads) when a dog carries two brown alleles in any combination.",
+   "category": "coat"
   },
   {
    "gene": "UNC93B1",
@@ -9742,7 +10098,8 @@
     "call_confidence": "low"
    },
    "source": "Excel",
-   "description": "An inherited autoimmune skin disease causing scaling and hair loss, typically starting in young adulthood."
+   "description": "An inherited autoimmune skin disease causing scaling and hair loss, typically starting in young adulthood.",
+   "category": "disease"
   },
   {
    "variant_id": "479",
@@ -9776,7 +10133,8 @@
    },
    "variant_breed": "Scottish Terrier",
    "panel": "Embark, Wisdom",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "gene": "VWF",
@@ -9799,7 +10157,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "The most common inherited bleeding disorder of dogs: a shortage or defect of von Willebrand factor, a protein needed for blood clotting. Affected dogs may bruise easily or bleed longer after injury or surgery; severity varies by type. Mostly recessive, and worth mentioning to your vet before any surgery."
+   "description": "The most common inherited bleeding disorder of dogs: a shortage or defect of von Willebrand factor, a protein needed for blood clotting. Affected dogs may bruise easily or bleed longer after injury or surgery; severity varies by type. Mostly recessive, and worth mentioning to your vet before any surgery.",
+   "category": "disease"
   },
   {
    "variant_id": "1084",
@@ -9841,7 +10200,8 @@
    },
    "variant_breed": "Norwich Terrier",
    "panel": "OMIA",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "gene": "ALPL",
@@ -9863,7 +10223,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited enzyme deficiency affecting bone mineralization, causing soft bones and dental problems in puppies."
+   "description": "An inherited enzyme deficiency affecting bone mineralization, causing soft bones and dental problems in puppies.",
+   "category": "disease"
   },
   {
    "gene": "ARSB",
@@ -9885,7 +10246,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited storage disease in which the body cannot fully break down certain complex sugars, which accumulate and affect bones, joints, eyes and organs. Recessive \u2014 two copies are needed."
+   "description": "An inherited storage disease in which the body cannot fully break down certain complex sugars, which accumulate and affect bones, joints, eyes and organs. Recessive \u2014 two copies are needed.",
+   "category": "disease"
   },
   {
    "variant_id": "1386",
@@ -9920,7 +10282,8 @@
    "source": "OMIA",
    "trait": "Recessive Black (a)",
    "trait_inherited_from_gene": true,
-   "description": "A coat-color variant, not a disease: two copies of the recessive ASIP 'a' allele make a solid black coat, common in shepherd breeds."
+   "description": "A coat-color variant, not a disease: two copies of the recessive ASIP 'a' allele make a solid black coat, common in shepherd breeds.",
+   "category": "coat"
   },
   {
    "gene": "ASPRV1",
@@ -9942,7 +10305,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited skin condition in which the outer skin layer does not form normally, causing flaking, scaling and a rough or darkened skin surface. Usually recessive; severity varies widely and management is topical."
+   "description": "An inherited skin condition in which the outer skin layer does not form normally, causing flaking, scaling and a rough or darkened skin surface. Usually recessive; severity varies widely and management is topical.",
+   "category": "disease"
   },
   {
    "gene": "ATF2",
@@ -9965,7 +10329,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "A severe inherited brain disorder of newborn puppies causing weakness, tremors and seizures. Recessive, seen in Standard Poodle lines."
+   "description": "A severe inherited brain disorder of newborn puppies causing weakness, tremors and seizures. Recessive, seen in Standard Poodle lines.",
+   "category": "disease"
   },
   {
    "gene": "ATG4D",
@@ -9988,7 +10353,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited storage disease of Lagotto Romagnolos causing progressive incoordination and eye-movement abnormalities in young dogs. Recessive."
+   "description": "An inherited storage disease of Lagotto Romagnolos causing progressive incoordination and eye-movement abnormalities in young dogs. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "BBS2",
@@ -10010,7 +10376,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years."
+   "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years.",
+   "category": "disease"
   },
   {
    "variant_id": "737",
@@ -10042,7 +10409,8 @@
     "affected": false,
     "call_confidence": "no_coverage"
    },
-   "source": "OMIA"
+   "source": "OMIA",
+   "category": "disease"
   },
   {
    "gene": "BEST1",
@@ -10065,7 +10433,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited retinal condition producing localized areas of retinal detachment visible on eye exams; vision is usually only mildly affected and lesions can partially resolve. Recessive."
+   "description": "An inherited retinal condition producing localized areas of retinal detachment visible on eye exams; vision is usually only mildly affected and lesions can partially resolve. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "CLN6",
@@ -10087,7 +10456,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy."
+   "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy.",
+   "category": "disease"
   },
   {
    "gene": "CNGA3",
@@ -10110,7 +10480,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited loss of the retina's cone cells, causing day blindness and complete color-vision loss while night vision is preserved. Recessive."
+   "description": "An inherited loss of the retina's cone cells, causing day blindness and complete color-vision loss while night vision is preserved. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "COL11A2",
@@ -10142,7 +10513,8 @@
    "source": "Excel",
    "strand_fixed": true,
    "palindromic_fix": true,
-   "description": "An inherited mild dwarfism: affected dogs have shortened legs relative to their body without other health problems. Recessive."
+   "description": "An inherited mild dwarfism: affected dogs have shortened legs relative to their body without other health problems. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "COL1A2",
@@ -10164,7 +10536,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "'Brittle bone disease' \u2014 an inherited collagen defect making bones fragile and prone to fracture, with possible dental and joint involvement, from puppyhood."
+   "description": "'Brittle bone disease' \u2014 an inherited collagen defect making bones fragile and prone to fracture, with possible dental and joint involvement, from puppyhood.",
+   "category": "disease"
   },
   {
    "gene": "COL4A4",
@@ -10188,7 +10561,8 @@
    "source": "Excel",
    "strand_fixed": true,
    "palindromic_fix": true,
-   "description": "An inherited kidney disease in which the kidney's filtering membranes are structurally weak, leading to protein loss in urine and progressive kidney failure, often at a young age in affected dogs."
+   "description": "An inherited kidney disease in which the kidney's filtering membranes are structurally weak, leading to protein loss in urine and progressive kidney failure, often at a young age in affected dogs.",
+   "category": "disease"
   },
   {
    "gene": "COL4A5",
@@ -10210,7 +10584,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited kidney disease in which the kidney's filtering membranes are structurally weak, leading to protein loss in urine and progressive kidney failure, often at a young age in affected dogs."
+   "description": "An inherited kidney disease in which the kidney's filtering membranes are structurally weak, leading to protein loss in urine and progressive kidney failure, often at a young age in affected dogs.",
+   "category": "disease"
   },
   {
    "gene": "COL6A3",
@@ -10232,7 +10607,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age."
+   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age.",
+   "category": "disease"
   },
   {
    "variant_id": "581",
@@ -10269,7 +10645,8 @@
    "source": "OMIA+Excel",
    "trait": "Oculoskeletal dysplasia I",
    "trait_inherited_from_gene": true,
-   "description": "An inherited syndrome combining dwarfism with serious eye abnormalities including retinal detachment. Recessive."
+   "description": "An inherited syndrome combining dwarfism with serious eye abnormalities including retinal detachment. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "COLQ",
@@ -10291,7 +10668,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited fault at the nerve-muscle junction, causing weakness that worsens with exercise in puppies. Recessive."
+   "description": "An inherited fault at the nerve-muscle junction, causing weakness that worsens with exercise in puppies. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "COLQ",
@@ -10313,7 +10691,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited fault at the nerve-muscle junction, causing weakness that worsens with exercise in puppies. Recessive."
+   "description": "An inherited fault at the nerve-muscle junction, causing weakness that worsens with exercise in puppies. Recessive.",
+   "category": "disease"
   },
   {
    "variant_id": "565",
@@ -10353,7 +10732,8 @@
    "variant_breed": "Rhodesian Ridgeback",
    "panel": "Wisdom",
    "reference": "https://doi.org/10.1073/pnas.1614478114",
-   "pos_end": 56946250
+   "pos_end": 56946250,
+   "category": "disease"
   },
   {
    "variant_id": "1249",
@@ -10390,7 +10770,8 @@
    "source": "OMIA+Excel",
    "trait": "Muscular Dystrophy",
    "trait_inherited_from_gene": true,
-   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age."
+   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age.",
+   "category": "disease"
   },
   {
    "variant_id": "1235",
@@ -10427,7 +10808,8 @@
    "source": "OMIA+Excel",
    "trait": "Muscular Dystrophy",
    "trait_inherited_from_gene": true,
-   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age."
+   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age.",
+   "category": "disease"
   },
   {
    "gene": "DMD",
@@ -10450,7 +10832,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age."
+   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age.",
+   "category": "disease"
   },
   {
    "gene": "DMD",
@@ -10472,7 +10855,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age."
+   "description": "An inherited muscle-wasting disease in which muscle fibers progressively weaken and are replaced by scar tissue, causing weakness and exercise intolerance from a young age.",
+   "category": "disease"
   },
   {
    "variant_id": "1017",
@@ -10509,7 +10893,8 @@
    "source": "OMIA+Excel",
    "trait": "Ectodermal Dysplasia, X-linked, Anhidrotic Ectodermal Dysplasia (XHED)",
    "trait_inherited_from_gene": true,
-   "description": "An inherited developmental condition of skin, hair and teeth \u2014 affected dogs can have sparse hair, missing teeth, or fragile skin depending on the form."
+   "description": "An inherited developmental condition of skin, hair and teeth \u2014 affected dogs can have sparse hair, missing teeth, or fragile skin depending on the form.",
+   "category": "disease"
   },
   {
    "variant_id": "1039",
@@ -10543,7 +10928,8 @@
    },
    "variant_breed": "Hovawart",
    "panel": "OMIA",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "variant_id": "467",
@@ -10578,7 +10964,8 @@
    "variant_breed": "Lhasa Apso",
    "panel": "Wisdom",
    "source": "OMIA+Excel",
-   "pos_end": 110505886
+   "pos_end": 110505886,
+   "category": "disease"
   },
   {
    "variant_id": "1363",
@@ -10612,7 +10999,8 @@
    },
    "variant_breed": "Newfoundland x Standard Poodle",
    "panel": "OMIA",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "gene": "FAM20C",
@@ -10635,7 +11023,8 @@
    },
    "source": "Excel",
    "coordinate_lifted": "canFam3.1->canFam4 via 801bp flank bwa (MAPQ60 unique), 2026-08-29",
-   "description": "An inherited enamel-mineralization defect making teeth wear quickly and appear discolored; managed with dental care."
+   "description": "An inherited enamel-mineralization defect making teeth wear quickly and appear discolored; managed with dental care.",
+   "category": "disease"
   },
   {
    "variant_id": "576",
@@ -10674,7 +11063,8 @@
    "variant_type": "ins",
    "variant_breed": "German Shepherd Dog",
    "panel": "Embark, Wisdom",
-   "reference": "https://doi.org/10.1111/avj.12206"
+   "reference": "https://doi.org/10.1111/avj.12206",
+   "category": "disease"
   },
   {
    "gene": "FIX",
@@ -10696,7 +11086,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited deficiency of one of the blood-clotting factors, causing prolonged bleeding after injury or surgery \u2014 severity ranges from mild to serious depending on the factor and variant. Worth telling your vet before any procedure."
+   "description": "An inherited deficiency of one of the blood-clotting factors, causing prolonged bleeding after injury or surgery \u2014 severity ranges from mild to serious depending on the factor and variant. Worth telling your vet before any procedure.",
+   "category": "disease"
   },
   {
    "gene": "FVII",
@@ -10726,7 +11117,8 @@
     "confidence_source": "bam+glimpse2"
    },
    "source": "Excel",
-   "description": "An inherited deficiency of one of the blood-clotting factors, causing prolonged bleeding after injury or surgery \u2014 severity ranges from mild to serious depending on the factor and variant. Worth telling your vet before any procedure."
+   "description": "An inherited deficiency of one of the blood-clotting factors, causing prolonged bleeding after injury or surgery \u2014 severity ranges from mild to serious depending on the factor and variant. Worth telling your vet before any procedure.",
+   "category": "disease"
   },
   {
    "gene": "FVIII ",
@@ -10749,7 +11141,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited deficiency of one of the blood-clotting factors, causing prolonged bleeding after injury or surgery \u2014 severity ranges from mild to serious depending on the factor and variant. Worth telling your vet before any procedure."
+   "description": "An inherited deficiency of one of the blood-clotting factors, causing prolonged bleeding after injury or surgery \u2014 severity ranges from mild to serious depending on the factor and variant. Worth telling your vet before any procedure.",
+   "category": "disease"
   },
   {
    "gene": "GAA",
@@ -10771,7 +11164,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited inability to store or release glycogen (the body's sugar reserve) properly, typically causing low blood sugar, exercise intolerance and organ enlargement. Recessive."
+   "description": "An inherited inability to store or release glycogen (the body's sugar reserve) properly, typically causing low blood sugar, exercise intolerance and organ enlargement. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "GLB1",
@@ -10793,7 +11187,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "A severe inherited storage disease of nerve cells causing progressive neurological decline in puppies. Recessive \u2014 carriers are healthy."
+   "description": "A severe inherited storage disease of nerve cells causing progressive neurological decline in puppies. Recessive \u2014 carriers are healthy.",
+   "category": "disease"
   },
   {
    "gene": "HCRTR2",
@@ -10815,7 +11210,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited sleep-switch defect: affected dogs collapse suddenly into sleep during excitement (classically at mealtimes). Not painful and not progressive. Recessive."
+   "description": "An inherited sleep-switch defect: affected dogs collapse suddenly into sleep during excitement (classically at mealtimes). Not painful and not progressive. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "HEXA",
@@ -10838,7 +11234,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "A severe inherited storage disease of nerve cells (the canine analog of Tay-Sachs) causing progressive neurological decline in puppies. Recessive."
+   "description": "A severe inherited storage disease of nerve cells (the canine analog of Tay-Sachs) causing progressive neurological decline in puppies. Recessive.",
+   "category": "disease"
   },
   {
    "variant_id": "1237",
@@ -10876,7 +11273,8 @@
    "trait": "Mucopolysaccharidosis Type I",
    "trait_inherited_from_gene": true,
    "description": "An inherited storage disease in which the body cannot fully break down certain complex sugars, which accumulate and affect bones, joints, eyes and organs. Recessive \u2014 two copies are needed.",
-   "pos_end": 92132047
+   "pos_end": 92132047,
+   "category": "disease"
   },
   {
    "variant_id": "1422",
@@ -10916,7 +11314,8 @@
     ],
     "confidence_source": "bam+glimpse2_discordant"
    },
-   "source": "OMIA"
+   "source": "OMIA",
+   "category": "disease"
   },
   {
    "variant_id": "476",
@@ -10954,7 +11353,8 @@
    "trait": "Severe Combined Immunodeficiency, X-linked",
    "trait_inherited_from_gene": true,
    "description": "A severe inherited failure of the immune system: affected puppies cannot fight infections and rarely survive without extreme measures. Carriers are completely healthy.",
-   "pos_end": 55680375
+   "pos_end": 55680375,
+   "category": "disease"
   },
   {
    "gene": "INPP5E",
@@ -10976,7 +11376,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited developmental disorder of kidneys and liver causing cysts and scarring in young dogs."
+   "description": "An inherited developmental disorder of kidneys and liver causing cysts and scarring in young dogs.",
+   "category": "disease"
   },
   {
    "gene": "ITGA2B",
@@ -10999,7 +11400,8 @@
    },
    "source": "Excel",
    "coordinate_lifted": "OMIA CanFam3.1 g.19054488G>C (Otterhound c.1192G>C) lifted via 801bp flank bwa MAPQ60, 2026-08-29",
-   "description": "An inherited platelet-function defect: platelets cannot clump properly, causing gum bleeds, nosebleeds and prolonged bleeding after procedures. Recessive."
+   "description": "An inherited platelet-function defect: platelets cannot clump properly, causing gum bleeds, nosebleeds and prolonged bleeding after procedures. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "ITGA2B",
@@ -11021,7 +11423,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited platelet-function defect: platelets cannot clump properly, causing gum bleeds, nosebleeds and prolonged bleeding after procedures. Recessive."
+   "description": "An inherited platelet-function defect: platelets cannot clump properly, causing gum bleeds, nosebleeds and prolonged bleeding after procedures. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "KCNQ1",
@@ -11043,7 +11446,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited heart-rhythm disorder that can cause fainting or sudden death; identified dogs benefit from cardiology guidance and avoiding certain drugs."
+   "description": "An inherited heart-rhythm disorder that can cause fainting or sudden death; identified dogs benefit from cardiology guidance and avoiding certain drugs.",
+   "category": "disease"
   },
   {
    "gene": "KRT10",
@@ -11065,7 +11469,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited skin condition in which the outer skin layer does not form normally, causing flaking, scaling and a rough or darkened skin surface. Usually recessive; severity varies widely and management is topical."
+   "description": "An inherited skin condition in which the outer skin layer does not form normally, causing flaking, scaling and a rough or darkened skin surface. Usually recessive; severity varies widely and management is topical.",
+   "category": "disease"
   },
   {
    "gene": "KRT10",
@@ -11095,7 +11500,8 @@
     "confidence_source": "bam+glimpse2_discordant"
    },
    "source": "Excel",
-   "description": "An inherited skin condition in which the outer skin layer does not form normally, causing flaking, scaling and a rough or darkened skin surface. Usually recessive; severity varies widely and management is topical."
+   "description": "An inherited skin condition in which the outer skin layer does not form normally, causing flaking, scaling and a rough or darkened skin surface. Usually recessive; severity varies widely and management is topical.",
+   "category": "disease"
   },
   {
    "gene": "KRT5",
@@ -11117,7 +11523,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited skin-fragility disease: the skin layers separate with minor friction, causing blisters and sores."
+   "description": "An inherited skin-fragility disease: the skin layers separate with minor friction, causing blisters and sores.",
+   "category": "disease"
   },
   {
    "variant_id": "1399",
@@ -11155,7 +11562,8 @@
    "trait": "Congenital Muscular Dystrophy",
    "trait_inherited_from_gene": true,
    "description": "An inherited muscle disease evident from puppyhood, causing weakness and poor growth.",
-   "pos_end": 68295150
+   "pos_end": 68295150,
+   "category": "disease"
   },
   {
    "gene": "LAMB3",
@@ -11177,7 +11585,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited skin-fragility disease: the skin layers separate with minor friction, causing blisters and sores. Severity varies by form."
+   "description": "An inherited skin-fragility disease: the skin layers separate with minor friction, causing blisters and sores. Severity varies by form.",
+   "category": "disease"
   },
   {
    "variant_id": "943",
@@ -11212,7 +11621,8 @@
    "variant_breed": "Miniature Dachshund",
    "panel": "OMIA",
    "source": "OMIA+Excel",
-   "pos_end": 53311108
+   "pos_end": 53311108,
+   "category": "disease"
   },
   {
    "gene": "MC1R",
@@ -11242,7 +11652,8 @@
     "confidence_source": "bam+glimpse2_discordant"
    },
    "source": "Excel",
-   "description": "A coat-color variant, not a disease: an ancient MC1R allele producing red/yellow coats in some breeds and village-dog lineages."
+   "description": "A coat-color variant, not a disease: an ancient MC1R allele producing red/yellow coats in some breeds and village-dog lineages.",
+   "category": "coat"
   },
   {
    "gene": "MC1R",
@@ -11264,7 +11675,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "A coat-pattern variant, not a disease: the MC1R 'grizzle/domino' allele produces the shaded facial patterns of Salukis and Afghan Hounds."
+   "description": "A coat-pattern variant, not a disease: the MC1R 'grizzle/domino' allele produces the shaded facial patterns of Salukis and Afghan Hounds.",
+   "category": "coat"
   },
   {
    "gene": "MC1R",
@@ -11286,7 +11698,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "A coat-color variant, not a disease: with two recessive-red copies at MC1R, the coat grows only yellow-to-red pigment regardless of most other color genes."
+   "description": "A coat-color variant, not a disease: with two recessive-red copies at MC1R, the coat grows only yellow-to-red pigment regardless of most other color genes.",
+   "category": "coat"
   },
   {
    "gene": "MFSD12",
@@ -11316,7 +11729,8 @@
     "confidence_source": "bam+glimpse2_discordant"
    },
    "source": "Excel",
-   "description": "A coat-color modifier, not a disease: intensity variants dial red/yellow pigment from deep red to cream."
+   "description": "A coat-color modifier, not a disease: intensity variants dial red/yellow pigment from deep red to cream.",
+   "category": "coat"
   },
   {
    "gene": "MOP",
@@ -11339,7 +11753,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited deficiency of a white-blood-cell enzyme, mildly reducing bacterial killing; usually without obvious illness."
+   "description": "An inherited deficiency of a white-blood-cell enzyme, mildly reducing bacterial killing; usually without obvious illness.",
+   "category": "disease"
   },
   {
    "variant_id": "1459",
@@ -11376,7 +11791,8 @@
    "source": "OMIA+Excel",
    "trait": "Myotubular Myopathy 1, X-linked Myotubular Myopathy (XL-MTM)",
    "trait_inherited_from_gene": true,
-   "description": "A severe X-linked muscle disease of male puppies causing rapidly progressive weakness. Females are typically healthy carriers."
+   "description": "A severe X-linked muscle disease of male puppies causing rapidly progressive weakness. Females are typically healthy carriers.",
+   "category": "disease"
   },
   {
    "gene": "MTM1",
@@ -11398,7 +11814,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "A severe X-linked muscle disease of male puppies causing rapidly progressive weakness. Females are typically healthy carriers."
+   "description": "A severe X-linked muscle disease of male puppies causing rapidly progressive weakness. Females are typically healthy carriers.",
+   "category": "disease"
   },
   {
    "gene": "MTM1",
@@ -11420,7 +11837,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "A severe X-linked muscle disease of male puppies causing rapidly progressive weakness. Females are typically healthy carriers."
+   "description": "A severe X-linked muscle disease of male puppies causing rapidly progressive weakness. Females are typically healthy carriers.",
+   "category": "disease"
   },
   {
    "variant_id": "563",
@@ -11455,7 +11873,8 @@
    "source": "OMIA",
    "trait": "Ichthyosis",
    "trait_inherited_from_gene": true,
-   "description": "An inherited skin condition in which the outer skin layer does not form normally, causing flaking, scaling and a rough or darkened skin surface. Usually recessive; severity varies widely and management is topical."
+   "description": "An inherited skin condition in which the outer skin layer does not form normally, causing flaking, scaling and a rough or darkened skin surface. Usually recessive; severity varies widely and management is topical.",
+   "category": "disease"
   },
   {
    "variant_id": "790",
@@ -11493,7 +11912,8 @@
    "trait": "Verrucous Epidermal Keratinocytic Nevi",
    "trait_inherited_from_gene": true,
    "description": "An inherited localized skin overgrowth producing wart-like, pigmented plaques.",
-   "pos_end": 122069844
+   "pos_end": 122069844,
+   "category": "disease"
   },
   {
    "variant_id": "583",
@@ -11527,7 +11947,8 @@
    },
    "variant_breed": "Gordon Setter, Irish Setter, Poodle, Polish Lowland Sheepdog, Polish Tatra, Tibetan Terrier",
    "panel": "OMIA",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "variant_id": "1230",
@@ -11565,7 +11986,8 @@
    "trait": "Progressive Retinal Atrophy (CRD1)",
    "trait_inherited_from_gene": true,
    "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years.",
-   "pos_end": 92358240
+   "pos_end": 92358240,
+   "category": "disease"
   },
   {
    "variant_id": "72",
@@ -11602,7 +12024,8 @@
    "source": "OMIA+Excel",
    "trait": "Polycystic Kidney Disease",
    "trait_inherited_from_gene": true,
-   "description": "An inherited condition in which fluid-filled cysts form in the kidneys and can progressively reduce kidney function; monitored with imaging and kidney values."
+   "description": "An inherited condition in which fluid-filled cysts form in the kidneys and can progressively reduce kidney function; monitored with imaging and kidney values.",
+   "category": "disease"
   },
   {
    "gene": "PLP1",
@@ -11624,7 +12047,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An X-linked myelin deficiency causing dramatic whole-body tremors in male puppies; carrier females are usually normal."
+   "description": "An X-linked myelin deficiency causing dramatic whole-body tremors in male puppies; carrier females are usually normal.",
+   "category": "disease"
   },
   {
    "variant_id": "809",
@@ -11659,7 +12083,8 @@
    "variant_breed": "Labrador Retriever",
    "panel": "Embark, Wisdom",
    "source": "OMIA+Excel",
-   "pos_end": 19497267
+   "pos_end": 19497267,
+   "category": "disease"
   },
   {
    "gene": "PPT1",
@@ -11681,7 +12106,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy."
+   "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy.",
+   "category": "disease"
   },
   {
    "variant_id": "546",
@@ -11713,7 +12139,8 @@
     "affected": false,
     "call_confidence": "no_coverage"
    },
-   "source": "OMIA"
+   "source": "OMIA",
+   "category": "disease"
   },
   {
    "gene": "RAG1",
@@ -11736,7 +12163,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "A severe inherited failure of the immune system: affected puppies cannot fight infections and rarely survive without extreme measures. Carriers are completely healthy."
+   "description": "A severe inherited failure of the immune system: affected puppies cannot fight infections and rarely survive without extreme measures. Carriers are completely healthy.",
+   "category": "disease"
   },
   {
    "variant_id": "993",
@@ -11776,7 +12204,8 @@
    "variant_breed": "Soft-Coated Wheaten Terrier",
    "panel": "Wisdom",
    "reference": "https://doi.org/10.1016/j.celrep.2018.04.118",
-   "pos_end": 8009405
+   "pos_end": 8009405,
+   "category": "disease"
   },
   {
    "gene": "SCN9A",
@@ -11798,7 +12227,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited nerve defect in which affected dogs cannot feel pain normally, typically leading to self-injury of paws; appears in puppies. Recessive."
+   "description": "An inherited nerve defect in which affected dogs cannot feel pain normally, typically leading to self-injury of paws; appears in puppies. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "SEL1L",
@@ -11821,7 +12251,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited degeneration of the cerebellum, the balance-and-coordination center of the brain, causing a wobbly gait that typically worsens over time. Recessive \u2014 carriers are unaffected."
+   "description": "An inherited degeneration of the cerebellum, the balance-and-coordination center of the brain, causing a wobbly gait that typically worsens over time. Recessive \u2014 carriers are unaffected.",
+   "category": "disease"
   },
   {
    "variant_id": "1334",
@@ -11856,7 +12287,8 @@
    "variant_breed": "Belgian Shepherd",
    "panel": "Wisdom",
    "source": "OMIA+Excel",
-   "pos_end": 67883364
+   "pos_end": 67883364,
+   "category": "disease"
   },
   {
    "variant_id": "802",
@@ -11893,7 +12325,8 @@
    "source": "OMIA+Excel",
    "trait": "Limb-girdle muscular dystrophy",
    "trait_inherited_from_gene": true,
-   "description": "An inherited muscle disease causing progressive weakness of the shoulder and hip muscles. Recessive."
+   "description": "An inherited muscle disease causing progressive weakness of the shoulder and hip muscles. Recessive.",
+   "category": "disease"
   },
   {
    "gene": "SGCD",
@@ -11915,7 +12348,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited muscle disease causing progressive weakness of the shoulder and hip muscles. Recessive."
+   "description": "An inherited muscle disease causing progressive weakness of the shoulder and hip muscles. Recessive.",
+   "category": "disease"
   },
   {
    "variant_id": "1063",
@@ -11949,7 +12383,8 @@
    },
    "variant_breed": "Scottish Deerhound",
    "panel": "Wisdom",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "variant_id": "564",
@@ -11984,7 +12419,8 @@
    "variant_breed": "American Hairless Terrier",
    "panel": "Wisdom",
    "source": "OMIA+Excel",
-   "pos_end": 16835130
+   "pos_end": 16835130,
+   "category": "disease"
   },
   {
    "variant_id": "1444",
@@ -12026,7 +12462,8 @@
    },
    "variant_breed": "Western breeds",
    "panel": "OMIA",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "variant_id": "1445",
@@ -12068,7 +12505,8 @@
    },
    "variant_breed": "Eastern breeds",
    "panel": "OMIA",
-   "source": "OMIA+Excel"
+   "source": "OMIA+Excel",
+   "category": "disease"
   },
   {
    "gene": "SLC3A1",
@@ -12098,7 +12536,8 @@
     "confidence_source": "bam+glimpse2_discordant"
    },
    "source": "Excel",
-   "description": "An inherited kidney transport defect in which the amino acid cystine leaks into urine and can form bladder or kidney stones, more often in males. Management focuses on diet and urinary monitoring."
+   "description": "An inherited kidney transport defect in which the amino acid cystine leaks into urine and can form bladder or kidney stones, more often in males. Management focuses on diet and urinary monitoring.",
+   "category": "disease"
   },
   {
    "variant_id": "970",
@@ -12138,7 +12577,8 @@
    "description": "An inherited nose-surface disorder: the nose leather becomes dry, crusted and discolored. Cosmetic-to-uncomfortable; managed with topical care. Recessive, best known in Labradors.",
    "variant_type": "A>C",
    "reference": "https://doi.org/10.1371/journal.pgen.1003848",
-   "pos_end": 20695180
+   "pos_end": 20695180,
+   "category": "disease"
   },
   {
    "gene": "T-box",
@@ -12168,7 +12608,8 @@
     "confidence_source": "bam+glimpse2_discordant"
    },
    "source": "Excel",
-   "description": "A tail-length trait, not a disease: the T-box natural bobtail variant. One copy shortens the tail; two copies are not viable, so bobtails are always carriers."
+   "description": "A tail-length trait, not a disease: the T-box natural bobtail variant. One copy shortens the tail; two copies are not viable, so bobtails are always carriers.",
+   "category": "trait"
   },
   {
    "gene": "TSEN54",
@@ -12190,7 +12631,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "An inherited disorder of the brain's white matter causing progressive neurological decline in young dogs."
+   "description": "An inherited disorder of the brain's white matter causing progressive neurological decline in young dogs.",
+   "category": "disease"
   },
   {
    "gene": "TUBB1",
@@ -12212,7 +12654,8 @@
     "call_confidence": "no_coverage"
    },
    "source": "Excel",
-   "description": "A benign inherited platelet trait: platelets are fewer but larger, and lab counts look low without a true bleeding problem \u2014 worth knowing so it is not mistaken for disease."
+   "description": "A benign inherited platelet trait: platelets are fewer but larger, and lab counts look low without a true bleeding problem \u2014 worth knowing so it is not mistaken for disease.",
+   "category": "disease"
   },
   {
    "gene": "VPS11",
@@ -12235,7 +12678,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "An inherited degeneration of nerve fibers in the brain and spinal cord causing progressive incoordination and neurological decline, usually starting young. Recessive."
+   "description": "An inherited degeneration of nerve fibers in the brain and spinal cord causing progressive incoordination and neurological decline, usually starting young. Recessive.",
+   "category": "disease"
   },
   {
    "variant_id": "478",
@@ -12270,7 +12714,8 @@
    "variant_breed": "Border Collie",
    "panel": "Embark, Wisdom",
    "source": "OMIA+Excel",
-   "pos_end": 1522618
+   "pos_end": 1522618,
+   "category": "disease"
   },
   {
    "gene": "VWF",
@@ -12301,7 +12746,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "The most common inherited bleeding disorder of dogs: a shortage or defect of von Willebrand factor, a protein needed for blood clotting. Affected dogs may bruise easily or bleed longer after injury or surgery; severity varies by type. Mostly recessive, and worth mentioning to your vet before any surgery."
+   "description": "The most common inherited bleeding disorder of dogs: a shortage or defect of von Willebrand factor, a protein needed for blood clotting. Affected dogs may bruise easily or bleed longer after injury or surgery; severity varies by type. Mostly recessive, and worth mentioning to your vet before any surgery.",
+   "category": "disease"
   },
   {
    "gene": "VWF",
@@ -12332,7 +12778,8 @@
    },
    "source": "Excel",
    "strand_fixed": true,
-   "description": "The most common inherited bleeding disorder of dogs: a shortage or defect of von Willebrand factor, a protein needed for blood clotting. Affected dogs may bruise easily or bleed longer after injury or surgery; severity varies by type. Mostly recessive, and worth mentioning to your vet before any surgery."
+   "description": "The most common inherited bleeding disorder of dogs: a shortage or defect of von Willebrand factor, a protein needed for blood clotting. Affected dogs may bruise easily or bleed longer after injury or surgery; severity varies by type. Mostly recessive, and worth mentioning to your vet before any surgery.",
+   "category": "disease"
   },
   {
    "gene": "KLKB1",
@@ -12364,7 +12811,8 @@
    "source": "Excel",
    "strand_fixed": true,
    "palindromic_fix": true,
-   "description": "An inherited clotting-cascade quirk that prolongs one lab clotting test but rarely causes real-world bleeding; good for your vet to know before surgery."
+   "description": "An inherited clotting-cascade quirk that prolongs one lab clotting test but rarely causes real-world bleeding; good for your vet to know before surgery.",
+   "category": "disease"
   }
  ]
 }
