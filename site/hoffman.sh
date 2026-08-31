@@ -67,3 +67,8 @@ LOCAL_SCRATCH_ROOT="${LOCAL_SCRATCH_ROOT:-$D/scratch}"
 # staging results locally. Publish afterwards from a login node:
 #     bash cluster/publish-pending.sh
 PUBLISH_RESULTS="${PUBLISH_RESULTS:-0}"
+
+# Kept BAMs go to the archive filesystem: the per-user quota on
+# /u/project/pellegrini is nearly consumed by unrelated data (batch went Eqw
+# on quota); pellegrini_archive has ample headroom. FINAL_OUT gets a symlink.
+BAM_ARCHIVE_DIR="${BAM_ARCHIVE_DIR:-/u/project/pellegrini_archive/data/dogs_bams}"

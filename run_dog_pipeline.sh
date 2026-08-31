@@ -328,16 +328,29 @@ _keep_from_scratch() {
   [[ -n "$FINAL_OUT" && -d "$OUT" ]] || return 0
   mkdir -p "$FINAL_OUT"
   local f
-  # markdup.bam is KEPT while the pipeline is still being iterated on: at ~4GB
-  # per 2x dog the full cohort is ~5TB against 23TB free, and deleting it has
-  # already forced three realignment campaigns (stage-8/13 reruns, sites.bam,
-  # 50kb grid). Revisit — delete or convert to CRAM — once the callers settle.
+  # markdup.bam is KEPT while the pipeline is still being iterated on —
+  # deleting it forced three realignment campaigns (stage-8/13 reruns,
+  # sites.bam, 50kb grid). BUT the per-user quota on the project filesystem
+  # is nearly consumed by unrelated data (batch 14583198 went Eqw on 'Disk
+  # quota exceeded'), so when BAM_ARCHIVE_DIR is set (site profile) the BAM
+  # lands there — the archive filesystem has two orders of magnitude more
+  # headroom — with a symlink in FINAL_OUT so stage 8/13 fallback still
+  # resolves. Revisit (delete or CRAM) once the callers settle.
   for f in pipeline.log pipeline.done fastp.json fastp.html \
            coverage_1mb.tsv coverage_cnv.tsv coverage_50kb.tsv.gz \
-           markdup.bam markdup.bam.bai markdup.bam.csi \
            sites.bam sites.bam.bai sites.bam.csi sites.bed \
            "${DOG_LOWER}_metaphlan.txt" "${DOG_LOWER}_metaphlan.mapout.bz2"; do
     [[ -e "$OUT/$f" ]] && cp -p "$OUT/$f" "$FINAL_OUT/$f" 2>/dev/null || true
+  done
+  local bam
+  for bam in markdup.bam markdup.bam.bai markdup.bam.csi; do
+    [[ -e "$OUT/$bam" ]] || continue
+    if [[ -n "${BAM_ARCHIVE_DIR:-}" ]] && mkdir -p "$BAM_ARCHIVE_DIR" 2>/dev/null; then
+      cp -p "$OUT/$bam" "$BAM_ARCHIVE_DIR/${DOG_LOWER}.$bam" 2>/dev/null \
+        && ln -sf "$BAM_ARCHIVE_DIR/${DOG_LOWER}.$bam" "$FINAL_OUT/$bam" 2>/dev/null || true
+    else
+      cp -p "$OUT/$bam" "$FINAL_OUT/$bam" 2>/dev/null || true
+    fi
   done
   # The imputed BCF too. It was deliberately left out as an intermediate, but
   # that made stages 8-13 unrepeatable: re-scoring 96 dogs against a revised
