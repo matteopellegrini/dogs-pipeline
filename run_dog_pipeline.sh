@@ -2395,9 +2395,11 @@ for j in np.argsort(phi)[::-1]:
     if cat is None or len(matches) >= 10:
         break
     s = meta['samples'][j]
-    # Reference dogs that ARE this sample (cohort dogs re-run through the
-    # pipeline) are not a finding — skip the self row, keep true duplicates.
-    if s['id'].lower() == sample_name:
+    # Reference dogs that ARE this sample are not a finding — skip the self
+    # row by id, AND (user decision 2026-09-01) skip anything at self-level
+    # kinship: a duplicate kit of the same dog listed as a "relative" is
+    # confusing, and phi >= 0.45 is genetically the same dog regardless of id.
+    if s['id'].lower() == sample_name or cat == 'same_dog':
         continue
     # Privacy: reference-dog identifiers never reach the report — only breed,
     # source and relationship tier. Panel dogs are public research data.
