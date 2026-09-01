@@ -41,7 +41,19 @@ TO_STAGE=8  PUBLISH_RESULTS=0 bash run_dog_pipeline.sh "$SHEET" "$ROW" 8 \
 TO_STAGE=13 PUBLISH_RESULTS=0 bash run_dog_pipeline.sh "$SHEET" "$ROW" 13 \
   || { echo "ERROR: stage 13 failed for $sample"; exit 1; }
 
-# Policy change 2026-08-30: BAMs are KEPT while the pipeline is still being
-# iterated on (~4GB/dog vs 23TB free) — deleting them forced repeated
-# realignment campaigns. sites.bam stays as the durable extract regardless.
+# BAMs are KEPT, but on the ARCHIVE filesystem: /u/project/pellegrini has a
+# per-USER 30TB quota that is nearly consumed by unrelated data (the batch
+# went Eqw on it 2026-08-31); pellegrini_archive has 100TB. Move + symlink so
+# the pipeline's fallback path still resolves.
+A="${BAM_ARCHIVE_DIR:-/u/project/pellegrini_archive/data/dogs_bams}"
+mkdir -p "$A"
+low=$(echo "$sample" | tr 'A-Z' 'a-z')
+if [[ -f "$outdir/markdup.bam" && ! -L "$outdir/markdup.bam" ]]; then
+  mv "$outdir/markdup.bam" "$A/$low.markdup.bam" && ln -s "$A/$low.markdup.bam" "$outdir/markdup.bam"
+  for ext in csi bai; do
+    [[ -f "$outdir/markdup.bam.$ext" && ! -L "$outdir/markdup.bam.$ext" ]] \
+      && mv "$outdir/markdup.bam.$ext" "$A/$low.markdup.bam.$ext" \
+      && ln -s "$A/$low.markdup.bam.$ext" "$outdir/markdup.bam.$ext" || true
+  done
+fi
 echo "REBUILD-DONE $sample"
