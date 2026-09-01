@@ -398,7 +398,10 @@ _finish() {
   local h=$(( elapsed / 3600 ))
   local m=$(( (elapsed % 3600) / 60 ))
   local s=$(( elapsed % 60 ))
+  # An existing-but-empty peak file made $peak_kb empty, and the awk below then
+  # parsed "/1048576" as a regex — failing the exit trap after a successful run.
   local peak_kb=$(cat "$PEAK_MEM_FILE" 2>/dev/null || echo 0)
+  peak_kb=${peak_kb:-0}
   local peak_mb=$(( peak_kb / 1024 ))
   local peak_gb
   peak_gb=$(awk "BEGIN{printf \"%.1f\", $peak_kb/1048576}")
