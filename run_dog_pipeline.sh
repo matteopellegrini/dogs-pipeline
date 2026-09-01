@@ -4475,7 +4475,12 @@ matched_features = [f for f in sp_filtered if f in kiki_species]
 print(f"Matched features: {len(matched_features)}")
 
 # ── 4. Age prediction (RidgeCV on the cohort) ──────────────
-aged = [d for d in panel_dogs if d.get('age') is not None and len([v for v in d['species'].values() if v]) >= 5]
+# Panel v2 contains this cohort's own dogs: never train on the sample being
+# scored (self-inclusion leaks the label and flatters the prediction).
+aged = [d for d in panel_dogs
+        if d.get('age') is not None
+        and len([v for v in d['species'].values() if v]) >= 5
+        and str(d.get('sample', '')).lower() != DOG_LOWER.lower()]
 # Two conditions under which the prediction must not be made.
 #
 # Too few aged dogs: the model is fiction.
