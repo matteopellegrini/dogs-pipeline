@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Microbiome panel v2: the 96 study dogs + 1,167 ProsperKits dogs, pooled.
 
-Age labels: 643 dogs (96 cohort + 547 prosper with customer-reported ages at
-collection). Validation (2026-09-01, clade-keyed features, 5-fold CV):
-  ElasticNet(log10, prevalence>=10%): MAE 2.12y, r 0.67  (old 96-dog Ridge:
-  held-out MAE 2.54y, r 0.55 on 555 prosper dogs).
+Age labels: 1,248 dogs (96 cohort + 1,152 prosper — the full prosperKitAgeInfo
+parse incl. months/weeks/fraction formats the sheet-builder had dropped).
+Validation (2026-09-01, clade-keyed features, 5-fold CV, n=1,235):
+  ElasticNet(log10, prevalence>=10%): MAE 1.62y, r 0.75 (puppies <1y: 0.85y;
+  seniors 12y+: 6.4y — clock saturates; old 96-dog Ridge: 2.54y, r 0.55).
 Read length is NOT a batch effect within Illumina (train-151 -> test-101:
 MAE 2.06, bias +0.07); the earlier "cross-platform failure" was a feature-key
 mismatch in the test harness. The MGI/DNBSEQ gate remains (chemistry shift).
@@ -20,9 +21,12 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 PANEL = os.path.join(ROOT, 'reference_panel', 'microbiome_panel.json')
 TABLE = os.path.join(ROOT, 'analysis', 'microbiome_training_table_clade.json.gz')
 
-v1 = json.load(open(PANEL))
+# Always build from the immutable v1 backup — building from the current panel
+# double-appends the prosper dogs on a second run.
 if not os.path.exists(PANEL + '.v1'):
     shutil.copy(PANEL, PANEL + '.v1')
+v1 = json.load(open(PANEL + '.v1'))
+assert v1['meta'].get('version') is None, 'backup is not the original v1 panel'
 pathobionts = v1['meta']['pathobionts']
 
 def stats(abund):
