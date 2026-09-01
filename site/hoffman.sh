@@ -61,7 +61,11 @@ USE_LOCAL_SCRATCH="${USE_LOCAL_SCRATCH:-1}"
 #
 # The pipeline removes its working directory on success, so usage is bounded by
 # CONCURRENT tasks (~15-20GB each), not by the total number of samples.
-LOCAL_SCRATCH_ROOT="${LOCAL_SCRATCH_ROOT:-$D/scratch}"
+# Global scratch, NOT $D/scratch: /u/project/pellegrini has a per-user 30TB
+# quota that is nearly full with unrelated data — transients there took the
+# whole queue down twice (2026-08-31, 09-01). /u/scratch has its own 2TB user
+# quota and auto-purges after 14 days, which is exactly what transients want.
+LOCAL_SCRATCH_ROOT="${LOCAL_SCRATCH_ROOT:-/u/scratch/g/gkislik/dogs}"
 
 # Compute nodes generally have no outbound internet, so the pipeline stops after
 # staging results locally. Publish afterwards from a login node:
