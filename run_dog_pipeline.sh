@@ -4523,7 +4523,10 @@ else:
     # 2.12y r 0.67 vs Ridge 2.30y r 0.61); RidgeCV kept for small panels
     # where ElasticNet's sparsity is unstable.
     if len(aged) >= 100:
-        model = ElasticNetCV(l1_ratio=[.1, .5, .9], n_alphas=20, max_iter=5000, cv=5)
+        try:
+            model = ElasticNetCV(l1_ratio=[.1, .5, .9], n_alphas=20, max_iter=5000, cv=5)
+        except TypeError:  # sklearn >=1.9 renamed n_alphas -> alphas=<int>
+            model = ElasticNetCV(l1_ratio=[.1, .5, .9], alphas=20, max_iter=5000, cv=5)
         model_name = 'ElasticNetCV (log10, prevalence>10%, pooled panel)'
     else:
         model = RidgeCV(alphas=[0.01,0.1,1,10,100], cv=5)
