@@ -19,6 +19,13 @@ PIPELINE_DIR="${SGE_O_WORKDIR:?}"
 SHEET="${1:?usage: qsub -t 1-N cluster/rebuild-sites-bam.sh <sheet> <rows-file>}"
 ROWS="${2:?rows file required}"
 cd "$PIPELINE_DIR"
+# Run a SNAPSHOT of the pipeline script: bash reads scripts incrementally, so
+# a git pull mid-task poisons running invocations (four tasks died between
+# stages on 2026-09-01 exactly when a pull landed). The snapshot lives in the
+# job TMPDIR; run_dog_pipeline.sh resolves its own repo paths from $PWD, so
+# invoking the copy from the repo root behaves identically.
+RDP_SNAPSHOT="${TMPDIR:-/tmp}/rdp.$JOB_ID.$SGE_TASK_ID.sh"
+cp run_dog_pipeline.sh "$RDP_SNAPSHOT"
 ROW=$(awk -v i="${SGE_TASK_ID:?}" 'NR==i{print; exit}' "$ROWS")
 [[ -n "$ROW" ]] || { echo "no row for task $SGE_TASK_ID"; exit 1; }
 sample=$(awk -F'\t' -v r="$ROW" 'NR==r{print $4}' "$SHEET")
@@ -29,14 +36,14 @@ outdir=$(awk -F'\t' -v r="$ROW" 'NR==r{print $5}' "$SHEET")
 # the project filesystem blew the per-user quota twice); the keep-list copies
 # sites.bam + grids back and archives markdup.bam to BAM_ARCHIVE_DIR with a
 # symlink in the work dir, which stages 8/13 then resolve.
-TO_STAGE=5 PUBLISH_RESULTS=0 bash run_dog_pipeline.sh "$SHEET" "$ROW" 1 \
+TO_STAGE=5 PUBLISH_RESULTS=0 bash "$RDP_SNAPSHOT" "$SHEET" "$ROW" 1 \
   || { echo "ERROR: stages 1-5 failed for $sample"; exit 1; }
 [[ -f "$outdir/sites.bam" ]] || { echo "ERROR: sites.bam missing for $sample"; exit 1; }
 
 # Read-dependent report stages against the fresh BAM.
-TO_STAGE=8  PUBLISH_RESULTS=0 bash run_dog_pipeline.sh "$SHEET" "$ROW" 8 \
+TO_STAGE=8  PUBLISH_RESULTS=0 bash "$RDP_SNAPSHOT" "$SHEET" "$ROW" 8 \
   || { echo "ERROR: stage 8 failed for $sample"; exit 1; }
-TO_STAGE=13 PUBLISH_RESULTS=0 bash run_dog_pipeline.sh "$SHEET" "$ROW" 13 \
+TO_STAGE=13 PUBLISH_RESULTS=0 bash "$RDP_SNAPSHOT" "$SHEET" "$ROW" 13 \
   || { echo "ERROR: stage 13 failed for $sample"; exit 1; }
 
 # BAMs are KEPT, but on the ARCHIVE filesystem: /u/project/pellegrini has a
