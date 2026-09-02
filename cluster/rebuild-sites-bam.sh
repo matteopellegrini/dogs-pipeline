@@ -24,8 +24,11 @@ cd "$PIPELINE_DIR"
 # stages on 2026-09-01 exactly when a pull landed). The snapshot lives in the
 # job TMPDIR; run_dog_pipeline.sh resolves its own repo paths from $PWD, so
 # invoking the copy from the repo root behaves identically.
-RDP_SNAPSHOT="${TMPDIR:-/tmp}/rdp.$JOB_ID.$SGE_TASK_ID.sh"
+# The snapshot must live IN the repo root: the pipeline resolves PIPELINE_DIR
+# from its own BASH_SOURCE dirname, so a copy elsewhere breaks path lookup.
+RDP_SNAPSHOT="$PIPELINE_DIR/.rdp.$JOB_ID.$SGE_TASK_ID.sh"
 cp run_dog_pipeline.sh "$RDP_SNAPSHOT"
+trap "rm -f \"$RDP_SNAPSHOT\"" EXIT
 ROW=$(awk -v i="${SGE_TASK_ID:?}" 'NR==i{print; exit}' "$ROWS")
 [[ -n "$ROW" ]] || { echo "no row for task $SGE_TASK_ID"; exit 1; }
 sample=$(awk -F'\t' -v r="$ROW" 'NR==r{print $4}' "$SHEET")
