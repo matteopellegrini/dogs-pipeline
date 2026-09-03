@@ -222,7 +222,10 @@ def main():
     if '--exclude' in args:
         exclude = {x.strip() for x in args[args.index('--exclude') + 1].split(',') if x.strip()}
 
-    dirs = sorted(glob.glob(pattern))
+    # Comma-separated globs: the panel now spans the study cohort AND the
+    # ProsperKits cohort (same Illumina low-pass platform; UCLA MGI dogs are
+    # deliberately not included — cross-platform panels mis-score everything).
+    dirs = sorted(d for pat in pattern.split(',') for d in glob.glob(pat))
     print(f"{len(dirs)} sample directories"
           + (f", excluding {len(exclude)}: {', '.join(sorted(exclude))}" if exclude else "")
           + "\n")
