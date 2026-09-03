@@ -211,6 +211,7 @@ preflight() {
            "$REF_JSON/darwins_ark_size_prs.tsv.gz" "$REF_JSON/darwins_ark_blend.json" \
            "$REF_JSON/darwins_ark/manifest.json.gz" "$REF_JSON/darwins_ark/wts_biddability.tsv.gz" \
            "$REF_JSON/mito_haplogroups.json.gz" "$REF_JSON/ortho_risk.json" \
+           "$D/reference_panel/coverage_50kb_panel.npz" \
            "$D/relatives_ref/geno.npy" "$D/relatives_ref/meta.json.gz" "$D/relatives_ref/keys.tsv" \
            "$D/COSMO/glimpse2_dog10k/het_out/dog10k_het.het" \
            "$D/COSMO/glimpse2_dog10k/het_out/panel_af.tsv.gz"; do
@@ -1454,6 +1455,74 @@ with open(pub + '/mito_result.json', 'w', encoding='utf-8') as f:
     json.dump(out, f, indent=2)
 print('mito_result.json: haplogroup {} ({}), dist {}, margin {}, depth {}x, screen {}'.format(
     group, hap0, d0, margin, depth, ['%s=%s' % (e['gene'], e['detected']) for e in screen]))
+PYEOF
+
+# ── Stage 6e: Unified 50kb CNV / aneuploidy (segmentation vs panel-of-normals)
+# One framework across scales, replacing the dual 1Mb/adaptive analysis in the
+# report. Requires the fixed 50kb grid (stage 5c) — absent on legacy runs, in
+# which case a null result is written and the report falls back gracefully.
+log "  Unified 50kb CNV segmentation…"
+"$DATA_PYTHON" - << PYEOF
+import gzip, json, os, sys
+import numpy as np
+sys.path.insert(0, "$D/analysis/cnv")
+from segment_caller import call_sample
+
+pub = "$PUB"
+cov_path = "$OUT/coverage_50kb.tsv.gz"
+panel_path = "$D/reference_panel/coverage_50kb_panel.npz"
+out_path = pub + "/cnv50_result.json"
+if not os.path.exists(cov_path):
+    json.dump(None, open(out_path, "w"))
+    print("cnv50_result.json: null (no 50kb grid for this run)")
+else:
+    panel = dict(np.load(panel_path, allow_pickle=True))
+    counts = []
+    with gzip.open(cov_path, "rt") as f:
+        for l in f:
+            counts.append(float(l.rstrip("\n").split("\t")[3]))
+    v = np.array(counts, dtype=np.float64)
+    chrom = panel["chrom"]
+    auto = chrom != "chrX"
+    med = np.median(v[auto][v[auto] > 0])
+    v = v / med
+    sex = "F" if float(np.median(v[~auto])) > 0.75 else "M"
+    r = call_sample(v, sex, panel)
+
+    # Gene overlap for reported segments (reference gene table; chrom keys
+    # are bare numbers, X included).
+    # Genome-wide gene spans (built once from the snpEff GTF — the per-sample
+    # cnv_genes.json copies only cover chromosomes the legacy caller touched).
+    gene_map = {}
+    try:
+        gene_map = json.load(open("$REF_JSON/genes_canFam4.json"))
+    except Exception:
+        pass
+    for g in r["segments"]:
+        c = g["chrom"].replace("chr", "")
+        hits = [e["name"] for e in gene_map.get(c, [])
+                if e.get("name") and e["start"] < g["end"] and e["end"] > g["start"]]
+        g["genes"] = hits[:12]
+        g["n_genes"] = len(hits)
+    rare = [g for g in r["segments"] if not g.get("common_variant")]
+    result = {
+        "sex_inferred": sex,
+        "confidence": r.get("confidence"),
+        "sigma": r["sigma"],
+        "aneuploidies": r["aneuploidies"],
+        "segments": r["segments"],
+        "n_rare": len(rare),
+        "n_common": len(r["segments"]) - len(rare),
+        "n_reference_dogs": 1257,
+        "method": ("50kb-window coverage vs a 1,257-dog panel of normals; "
+                   "recursive segmentation; chromosome-level shifts reported as "
+                   "aneuploidy; events shared by >=5% of dogs marked as common "
+                   "copy-number polymorphisms."),
+    }
+    if r.get("note"):
+        result["note"] = r["note"]
+    json.dump(result, open(out_path, "w"), indent=2)
+    print(f"cnv50_result.json: conf={r.get('confidence')} aneuploidies={len(r['aneuploidies'])} rare={len(rare)} common={result['n_common']}")
 PYEOF
 fi # end stage 6
 
