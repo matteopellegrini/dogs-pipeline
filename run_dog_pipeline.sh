@@ -1502,7 +1502,10 @@ else:
         c = g["chrom"].replace("chr", "")
         hits = [e["name"] for e in gene_map.get(c, [])
                 if e.get("name") and e["start"] < g["end"] and e["end"] > g["start"]]
-        g["genes"] = hits[:12]
+        # Store the full overlap list (the report renders it behind an
+        # expander); 100 is a safety valve, not a display cap — aneuploidy is
+        # excluded from segments, so real segments rarely exceed a few Mb.
+        g["genes"] = hits[:100]
         g["n_genes"] = len(hits)
     rare = [g for g in r["segments"] if not g.get("common_variant")]
     result = {
