@@ -4750,7 +4750,51 @@ if [[ -n "$QC_DEPTH" ]] && python3 -c "exit(0 if float('$QC_DEPTH') < float('$QC
 fi
 if (( QC_HOLD )); then
     log "  QC HOLD: mean depth ${QC_DEPTH}x < ${QC_PUBLISH_MIN}x — NOT queued for publish (operator review)"
-    printf '%s\tdepth=%s\tthreshold=%s\n' "$DOG_NAME" "$QC_DEPTH" "$QC_PUBLISH_MIN" > "$PUB/.qc-hold"
+    # Triage for the operator's lab conversation: plain low depth means a
+    # top-up run of the same library fixes it; high duplication or heavy
+    # adapter trimming (short fragments) means the library itself is the
+    # problem and resequencing deeper won't help.
+    PUB="$PUB" OUT="$OUT" SAMPLE="$DOG_NAME" QC_MIN="$QC_PUBLISH_MIN" PYTHONIOENCODING=utf-8 python3 - <<'QCEOF' || true
+import json, os, math
+pub, out, sample = os.environ['PUB'], os.environ['OUT'], os.environ['SAMPLE']
+thr = float(os.environ['QC_MIN'])
+q = json.load(open(f'{pub}/qc_result.json'))
+depth = float(q['genome_mean_depth'])
+dup = float(q.get('duplication_rate_pct') or 0)
+rl_raw = float(q.get('read_length_bp') or 0)
+rl_trim = float(q.get('read_length_after_trimming_bp') or rl_raw)
+reads = float(q.get('total_reads_after_qc') or 0)
+mapped = float(q.get('reads_mapped') or 0)
+mapfrac = mapped / reads if reads else None
+problems = []
+if dup > 30:
+    problems.append(f'HIGH DUPLICATION ({dup:.0f}%) — low library complexity; deeper sequencing of this library gives diminishing returns. Recommend a new library (or new swab).')
+if rl_raw and rl_trim < 0.6 * rl_raw:
+    problems.append(f'SHORT FRAGMENTS (reads trim from {rl_raw:.0f} to {rl_trim:.0f} bp) — degraded input DNA; resequencing will not fix this. Recommend a new swab.')
+if mapfrac is not None and mapfrac < 0.6:
+    problems.append(f'LOW DOG FRACTION ({100*mapfrac:.0f}% of reads map to the dog genome) — bacteria-heavy swab; a top-up works but inefficiently.')
+if problems:
+    verdict = 'LIBRARY PROBLEM'
+    recommendation = ' '.join(problems)
+elif depth <= 0.05:
+    verdict = 'NO USABLE DATA'
+    recommendation = (f'Essentially no dog genome coverage ({depth}x) despite normal-looking library metrics — '
+                      'wrong sample type or failed run. Investigate before asking for a top-up.')
+else:
+    factor = math.ceil(thr / depth)
+    verdict = 'UNDER-SEQUENCED'
+    recommendation = (f'Library metrics look healthy (dup {dup:.0f}%, read length {rl_trim:.0f}bp'
+                      + (f', {100*mapfrac:.0f}% dog reads' if mapfrac is not None else '') + '). '
+                      f'Ask the lab for a top-up run of the SAME library: roughly {factor}x the current reads reaches {thr}x.')
+hold = {'sample': sample, 'barcode': sample.upper(), 'mean_depth_x': depth, 'threshold_x': thr,
+        'duplication_pct': dup, 'read_length_raw_bp': rl_raw, 'read_length_trimmed_bp': rl_trim,
+        'total_reads': int(reads), 'dog_mapped_fraction': round(mapfrac, 3) if mapfrac is not None else None,
+        'verdict': verdict, 'recommendation': recommendation}
+json.dump(hold, open(f'{pub}/.qc-hold.json', 'w'), indent=1)
+with open(f'{pub}/.qc-hold', 'w') as f:
+    f.write(f"{sample}\tdepth={depth}\t{verdict}\n")
+print(f'QC triage: {verdict} — {recommendation[:120]}')
+QCEOF
     rm -f "$PUB/.pending-publish"
 elif (( PUBLISH_RESULTS )); then
     log "  Publishing $DOG_NAME to Blob storage"

@@ -39,6 +39,58 @@ if (( ${#holds[@]} > 0 )); then
   for h in "${holds[@]}"; do printf '    %s  (%s)\n' "$(cat "$h")" "$(dirname "$h")"; done
   echo "  Review each: publish manually with publish-results.mjs, or resequence."
   echo "=========================================================="
+
+  # Email the operator a triage report for each NEW hold, once. Only holds
+  # with a .qc-hold.json (written by the pipeline's triage step) qualify;
+  # a .qc-hold-notified sibling marks it as already reported. Bulk/backfill
+  # runs must set SKIP_QC_EMAILS=1 so old batches never flood the inbox —
+  # this notification path is for the ongoing new-customer flow.
+  if [[ "${SKIP_QC_EMAILS:-0}" != "1" ]]; then
+    QC_EMAIL_TO="${QC_EMAIL_TO:-matteope@gmail.com}"
+    API_KEY="$(grep -m1 '^PIPELINE_API_KEY=' "$APP/.env.local" 2>/dev/null | cut -d= -f2- | tr -d '"' || true)"
+    if [[ -z "$API_KEY" ]]; then
+      echo "  (QC emails skipped: PIPELINE_API_KEY not found in $APP/.env.local)"
+    else
+      for h in "${holds[@]}"; do
+        hd="$(dirname "$h")"
+        hj="$hd/.qc-hold.json"
+        smp="$(cut -f1 "$h" | head -1)"
+        [[ -f "$hj" && ! -f "$hd/.qc-hold-notified" ]] || continue
+        payload="$(python3 - "$hj" "$QC_EMAIL_TO" <<'PYEOF'
+import json, sys
+j = json.load(open(sys.argv[1]))
+mf = j.get('dog_mapped_fraction')
+body = f"""Sample {j['sample']} failed sequencing QC and was NOT published.
+
+Verdict: {j['verdict']}
+Mean depth: {j['mean_depth_x']}x (threshold {j['threshold_x']}x)
+Duplication: {j['duplication_pct']:.1f}%
+Read length: {j['read_length_raw_bp']:.0f} bp raw -> {j['read_length_trimmed_bp']:.0f} bp after trimming
+Reads after QC: {j['total_reads']:,}""" + (f"\nDog-mapped fraction: {100*mf:.0f}%" if mf is not None else "") + f"""
+
+Recommendation: {j['recommendation']}
+
+The report is held on the cluster. To publish anyway:
+  cd $D/dogs-app && node scripts/publish-results.mjs {j['barcode']} <results-dir>
+"""
+print(json.dumps({'to': sys.argv[2],
+                  'subject': f"QC hold: {j['sample']} — {j['verdict']} ({j['mean_depth_x']}x)",
+                  'text': body}))
+PYEOF
+)" || { echo "  (QC email compose failed for $hd)"; continue; }
+        if [[ -n "$DRY" ]]; then
+          echo "  [dry-run] would email QC hold for $smp"
+        elif curl -sf -X POST "https://my.prosperk9.com/api/admin/send-email" \
+               -H "x-api-key: $API_KEY" -H 'Content-Type: application/json' \
+               -d "$payload" >/dev/null; then
+          touch "$hd/.qc-hold-notified"
+          echo "  QC email sent for $smp"
+        else
+          echo "  QC email FAILED for $smp (will retry next run)"
+        fi
+      done
+    fi
+  fi
 fi
 
 mapfile -t markers < <(find "$D" -maxdepth 4 -name .pending-publish -type f 2>/dev/null)
