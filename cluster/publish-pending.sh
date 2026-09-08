@@ -29,6 +29,18 @@ command -v node >/dev/null || { echo "ERROR: node not found"; exit 1; }
 
 # Results may be staged anywhere under $D (the cluster keeps them outside the app
 # checkout, unlike the Mac), so search rather than assuming one layout.
+# QC holds first: samples the pipeline refused to queue (mean depth below
+# QC_PUBLISH_MIN). They need an operator decision — resequence, or publish
+# deliberately with: node scripts/publish-results.mjs <BARCODE> <dir>
+mapfile -t holds < <(find "$D" -maxdepth 4 -name .qc-hold -type f 2>/dev/null)
+if (( ${#holds[@]} > 0 )); then
+  echo "=========================================================="
+  echo "  QC HOLDS — ${#holds[@]} sample(s) NOT queued for publish:"
+  for h in "${holds[@]}"; do printf '    %s  (%s)\n' "$(cat "$h")" "$(dirname "$h")"; done
+  echo "  Review each: publish manually with publish-results.mjs, or resequence."
+  echo "=========================================================="
+fi
+
 mapfile -t markers < <(find "$D" -maxdepth 4 -name .pending-publish -type f 2>/dev/null)
 if (( ${#markers[@]} == 0 )); then
   echo "Nothing pending — no .pending-publish markers found."

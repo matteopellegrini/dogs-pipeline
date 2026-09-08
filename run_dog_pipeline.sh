@@ -4735,7 +4735,24 @@ log "=== Stage 17: Publish results ==="
 # by the kit barcode, and the kit is flipped to complete. No git, no site
 # rebuild, and the genomic data is never world-readable. The barcode is the
 # sample's output_name upper-cased, so the sample sheet needs no extra column.
-if (( PUBLISH_RESULTS )); then
+# QC publish gate. Below QC_PUBLISH_MIN mean depth the sample is HELD for
+# operator review instead of queued for publishing — in the registered-first
+# relaunch flow, publishing auto-emails the customer, so a bad sample must
+# never reach that step unreviewed. Dial via env; cohort context: batch 1+2
+# median is 0.8x, so 1.0 holds roughly the lower half — intended as a strict
+# starting point for the relaunch while the new lab's depth profile is
+# unknown, to be lowered with evidence.
+QC_PUBLISH_MIN="${QC_PUBLISH_MIN:-1.0}"
+QC_DEPTH=$(python3 -c "import json;print(json.load(open('$PUB/qc_result.json'))['genome_mean_depth'])" 2>/dev/null || echo "")
+QC_HOLD=0
+if [[ -n "$QC_DEPTH" ]] && python3 -c "exit(0 if float('$QC_DEPTH') < float('$QC_PUBLISH_MIN') else 1)"; then
+    QC_HOLD=1
+fi
+if (( QC_HOLD )); then
+    log "  QC HOLD: mean depth ${QC_DEPTH}x < ${QC_PUBLISH_MIN}x — NOT queued for publish (operator review)"
+    printf '%s\tdepth=%s\tthreshold=%s\n' "$DOG_NAME" "$QC_DEPTH" "$QC_PUBLISH_MIN" > "$PUB/.qc-hold"
+    rm -f "$PUB/.pending-publish"
+elif (( PUBLISH_RESULTS )); then
     log "  Publishing $DOG_NAME to Blob storage"
     ( cd "$D/dogs-app" && node scripts/publish-results.mjs "$DOG_NAME" "$PUB" ) \
         || die "Publishing results for $DOG_NAME failed"
