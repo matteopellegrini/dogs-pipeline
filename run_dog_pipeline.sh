@@ -3803,6 +3803,20 @@ KNOWN_VARIANTS = [
     # S locus: MITF (chr20) — piebald spotting
     dict(locus='S', chrom='chr20', pos=5711695, exp_ref=None, exp_alt=None,
          allele='sp', inheritance='recessive', effect='MITF — piebald white spotting'),
+
+    # H locus: PSMB7 (chr9) — harlequin, a modifier of merle.
+    # Clark et al. 2011 (Genomics 97:244-8) mapped harlequin to a PSMB7 exon-2
+    # missense, p.Val49Gly = chr9:58614853 T>G in canFam4 (verified: ref base is
+    # T inside the GTG Val codon at 58614852-4, directly upstream of the exon-2
+    # splice donor; T>G makes GGG Gly). Dominant, but expressed ONLY on a merle
+    # background; H/H is embryonic lethal, so every harlequin is H/h.
+    # The allele runs at AF~0.0003 in the Dog10K panel (nearly private to Great
+    # Danes), so GLIMPSE2 imputes 0|0 with GP 1.0 even for a true carrier
+    # (confirmed on a known harlequin) — the call MUST come from direct reads;
+    # the imputed genotype is kept only as display context.
+    dict(locus='H', chrom='chr9', pos=58614853, exp_ref='T', exp_alt='G',
+         allele='H', inheritance='dominant', min_reads=1,
+         effect='PSMB7 p.Val49Gly (chr9:58614853 T>G) — harlequin merle-modifier; imputation blind at this allele frequency, called from reads'),
     # M (PMEL SINE insertion) and W (KIT structural) not callable from SNP imputation
 ]
 
@@ -3819,6 +3833,9 @@ ALLELES_REFERENCE = {
     'B': {'B': 'Black eumelanin (dominant)', 'b': 'Brown/liver eumelanin — two copies needed'},
     'D': {'D': 'Full pigment (dominant)', 'd': 'Dilute/blue — two copies needed'},
     'M': {'M': 'Merle (dominant, PMEL SINE insertion — detected from reads at the insertion site)', 'm': 'Non-merle'},
+    'H': {'H':  'Harlequin (dominant, PSMB7 V49G) — on a merle coat, turns the diluted merle areas white, leaving torn black patches; H/H is embryonic lethal so harlequins are always H/h',
+          'H?': 'Possible harlequin — read evidence suggestive but not conclusive',
+          'h':  'Non-harlequin'},
     'S': {'S': 'Solid / minimal white', 'sp': 'Piebald spotting (recessive)', 'sw': 'Extreme white (recessive)'},
     'W': {'w': 'Non-white', 'W': 'Extreme white (dominant, KIT structural — not detectable from SNP data)'},
 }
@@ -3842,6 +3859,9 @@ LOCUS_INFO = {
     'M': dict(gene='PMEL',  chrom='chr10', name='Merle locus',
               role='SINE insertion causes mosaic pigment dilution producing merle pattern',
               phenotype_contribution='Detected from sequencing reads at the PMEL insertion site; the merle class (cryptic to harlequin) needs a specialized length test'),
+    'H': dict(gene='PSMB7', chrom='chr9',  name='Harlequin locus',
+              role='Modifier of merle: one H copy on a merle background whitens the diluted merle areas, leaving full-pigment patches (the harlequin pattern of Great Danes)',
+              phenotype_contribution='Expressed only together with a merle (M) allele — no visible effect on non-merle coats. Called from direct reads: the allele is too rare for panel imputation, and merle itself is often unassessable at low depth'),
     'S': dict(gene='MITF',  chrom='chr20', name='Spotting locus',
               role='Controls melanocyte migration extent → white spotting area',
               phenotype_contribution='sp/sp → piebald; limited resolution from single SNP'),
@@ -3903,14 +3923,16 @@ for v in KNOWN_VARIANTS:
     key = (v['chrom'], v['pos'])
     hit = bcf_hits.get(key)
     if hit and hit['max_gp'] >= MIN_GP:
-        ref, alt, n_alt = hit['ref'], hit['alt'], hit['n_alt']
-        # Flip n_alt if BCF orientation is swapped vs expectation
+        ref, alt, n_alt, raf = hit['ref'], hit['alt'], hit['n_alt'], hit['raf']
+        # Flip n_alt (and the ALT frequency) if BCF orientation is swapped vs expectation
         if v['exp_ref'] and v['exp_alt'] and ref == v['exp_alt'] and alt == v['exp_ref']:
             n_alt = 2 - n_alt
             ref, alt = v['exp_ref'], v['exp_alt']
+            if raf is not None:
+                raf = 1 - raf
         variant_calls.append({**v, 'found': True, 'source': 'Dog10K imputed',
             'n_alt': n_alt, 'ref': ref, 'alt': alt, 'gt': hit['gt'],
-            'gp': hit['gp'], 'max_gp': hit['max_gp'], 'raf': hit['raf'],
+            'gp': hit['gp'], 'max_gp': hit['max_gp'], 'raf': raf,
             'conf': 'high' if hit['max_gp'] >= 0.90 else 'medium'})
     elif hit:
         variant_calls.append({**v, 'found': True, 'source': 'Dog10K imputed (low GP)',
@@ -3977,6 +3999,12 @@ def detect_merle_sine():
     return {'n_clip': n_clip, 'n_span': n_span}
 
 MERLE_EVIDENCE = detect_merle_sine()
+
+# Harlequin needs its own read evidence even though the site IS in the Dog10K
+# panel: at panel AF ~0.0003 GLIMPSE2 returns 0|0/GP 1.0 for true carriers, so
+# the per-variant loop's "imputed hit wins" routing is exactly wrong here.
+H_CHROM, H_POS, H_REF, H_ALT = 'chr9', 58614853, 'T', 'G'
+H_EVIDENCE = bam_pileup(H_CHROM, H_POS, min_reads=1)
 
 def call_locus(locus, calls):
     """Returns (allele1, allele2, confidence, interpretation)."""
@@ -4130,6 +4158,63 @@ def call_locus(locus, calls):
                 'could be missed at this depth.').format(ns)
         return 'm', '?', 'low', 'Too few reads at the PMEL junction to assess merle at this sequencing depth.'
 
+    elif locus == 'H':
+        # Report harlequin only alongside merle status: H is invisible without
+        # a merle allele, and merle itself is often unassessable at low depth.
+        ev = MERLE_EVIDENCE
+        if ev and ev['n_clip'] >= 2:
+            merle_note = (' This dog also carries a merle-family allele, so the harlequin '
+                          'pattern would be expressed.')
+        elif ev and ev['n_clip'] == 0 and ev['n_span'] >= 5:
+            merle_note = (' This dog shows no merle allele, so harlequin would not be visible — '
+                          'a carrier only, relevant when breeding to merles.')
+        else:
+            merle_note = (' Merle is not assessable at this sequencing depth, so whether the '
+                          'pattern would show cannot be determined from this data alone.')
+        counts = H_EVIDENCE or {}
+        n_ref, n_alt = counts.get(H_REF, 0), counts.get(H_ALT, 0)
+        total = n_ref + n_alt
+        # Imputed genotype at the site — display context and weak corroboration
+        # only (a 0|0 here proves nothing; see H_EVIDENCE comment).
+        imp = next((c for c in calls if c['locus'] == 'H' and c['found']
+                    and c.get('n_alt') is not None), None)
+        imp_alt = imp['n_alt'] if imp else 0
+        if n_alt >= 2 or (n_alt == 1 and imp_alt >= 1):
+            return ('H', 'h', 'medium' if n_alt >= 3 else 'low',
+                f'Harlequin allele detected: {n_alt} of {total} reads carry PSMB7 p.Val49Gly. '
+                f'Harlequin is dominant but only visible on a merle coat, and H/H is embryonic '
+                f'lethal, so harlequins are always H/h.' + merle_note)
+        if n_alt == 1:
+            return ('H?', 'h', 'low',
+                f'One of {total} reads carries the harlequin PSMB7 p.Val49Gly allele — suggestive '
+                f'but not conclusive at this depth; a targeted harlequin test would resolve it.'
+                + merle_note)
+        if imp_alt >= 1:
+            return ('H?', 'h', 'low',
+                'Imputation suggests a harlequin (PSMB7 V49G) allele but no sequencing read '
+                'confirms it — treat as unconfirmed; a targeted harlequin test would resolve it.'
+                + merle_note)
+        # No ALT evidence anywhere. Confidence in h/h comes from read depth
+        # alone — the imputed 0|0 is uninformative for an allele this rare.
+        if n_ref >= 5:
+            return ('h', 'h', 'medium',
+                f'No harlequin allele in {n_ref} reads at the PSMB7 p.49 site (h/h).')
+        if n_ref >= 2:
+            return ('h', 'h', 'low',
+                f'No harlequin allele in the {n_ref} reads covering the PSMB7 p.49 site (h/h), '
+                f'but at this depth one chromosome copy can be missed. Harlequin is essentially '
+                f'confined to Great Danes and their crosses; for other breeds h/h is the safe call.')
+        if n_ref == 1:
+            return ('h', '?', 'low',
+                'Only one read covers the PSMB7 harlequin site and it shows the non-harlequin '
+                'allele — the second chromosome copy is unsampled, so a harlequin (H) allele '
+                'cannot be excluded at this sequencing depth. The Dog10K imputation cannot help: '
+                'the allele is too rare for the panel (AF ~0.03%). For a dog with harlequin-like '
+                'patching, a targeted H-locus test is the definitive answer.' + merle_note)
+        return ('?', '?', 'low',
+            'No reads cover the PSMB7 harlequin site and the allele is too rare for panel '
+            'imputation — H locus not assessable at this sequencing depth.' + merle_note)
+
     elif locus == 'S':
         n_sp = n_copies('S', 'sp', calls)
         if not any_found('S', calls):
@@ -4146,7 +4231,7 @@ def call_locus(locus, calls):
     return '?', '?', 'low', 'Unknown locus'
 
 loci_gt = {}
-for locus in ['E', 'K', 'A', 'B', 'D', 'M', 'S', 'W']:
+for locus in ['E', 'K', 'A', 'B', 'D', 'M', 'H', 'S', 'W']:
     a1, a2, conf, interp = call_locus(locus, variant_calls)
     loci_gt[locus] = dict(allele1=a1, allele2=a2, confidence=conf, interpretation=interp)
 
@@ -4319,7 +4404,7 @@ validation_warning = None
 
 # ── Build per-locus output ────────────────────────────────────────────────
 loci_result = {}
-for locus in ['E', 'K', 'A', 'B', 'D', 'M', 'S', 'W']:
+for locus in ['E', 'K', 'A', 'B', 'D', 'M', 'H', 'S', 'W']:
     info = LOCUS_INFO[locus]
     g    = loci_gt[locus]
     obs  = []
@@ -4332,8 +4417,10 @@ for locus in ['E', 'K', 'A', 'B', 'D', 'M', 'S', 'W']:
         if vc.get('gp'):
             ov['gp'] = [round(x,3) for x in vc['gp']]
             ov['max_gp'] = round(vc['max_gp'], 3)
+        # GLIMPSE2's INFO/RAF is the ALT allele frequency in the reference
+        # panel (per its own header), not the REF frequency — no 1-x flip.
         if vc.get('raf') is not None:
-            ov['af'] = round(1 - vc['raf'], 4)
+            ov['af'] = round(vc['raf'], 4)
         if vc.get('bam_counts'):
             ov['bam_counts'] = vc['bam_counts']
             ov['depth'] = vc['total_reads']
@@ -4360,18 +4447,22 @@ coat = {
         'predicted_dilution': dilution,
         'predicted_white': 'Not detectable from SNP data (S locus limited; W requires structural variant)',
         'predicted_merle': loci_gt['M']['interpretation'],
+        'predicted_harlequin': loci_gt['H']['interpretation'],
         'overall_confidence': overall_conf,
         **({'validation_warning': validation_warning} if validation_warning else {}),
         'caveat': ('E, K, B, D loci called from Dog10K GLIMPSE2 imputed BCF (causal SNPs). '
                    'A locus sable (ay/aw) requires structural variant analysis not available here. '
                    'Merle (M) is screened from reads at the PMEL insertion site (the exact merle class needs a length test); extreme white (W) requires PCR or long-read. '
+                   'Harlequin (H, PSMB7 V49G) is called from direct reads — the allele is too rare for panel imputation — and is only expressed on a merle background. '
                    'Commercial tests (Embark, Wisdom Panel) cover additional alleles.'),
         'irf4_note': irf4_note,
     },
     'loci': loci_result,
     'method': (f'Coat color genotyping from GLIMPSE2 Dog10K imputed BCF (min GP={MIN_GP}). '
                'Causal SNPs queried at known canFam4 positions; BAM pileup fallback for sites not in panel. '
-               'Compound heterozygosity handled for B (b1/b2) and D (d1/d2) loci.'),
+               'Compound heterozygosity handled for B (b1/b2) and D (d1/d2) loci. '
+               'Harlequin (H, PSMB7 p.V49G chr9:58614853 T>G, Clark et al. 2011) called from BAM reads: '
+               'the allele is near-absent from the Dog10K panel (AF~0.0003), so imputation returns ref/ref even for true carriers.'),
 }
 with open(f'{PUB}/coat_color.json', 'w') as f:
     json.dump(coat, f, indent=2)
