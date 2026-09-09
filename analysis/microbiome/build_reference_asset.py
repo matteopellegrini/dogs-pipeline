@@ -60,8 +60,14 @@ for c, cnt in clades.items():
                 'rho': round(rho, 3),
                 'prev': round(prev, 3)}
 
+# Prevalence for EVERY species ever seen in the panel (no floor) — the
+# rare-species card needs "seen in 0.3% of dogs" for taxa far below the
+# 2% quantile floor; species absent even from this map were never seen in
+# any panel dog. Tiny: one rounded float per clade.
+prev_all = {c: round(cnt / n, 4) for c, cnt in clades.items()}
+
 json.dump({'meta': {'n_dogs': n, 'n_aged': int(aged.sum()),
                     'n_species': len(asset), 'min_prevalence': MIN_PREV,
                     'built': p['meta'].get('built'), 'source_version': p['meta'].get('version')},
-           'species': asset}, open(OUT, 'w'))
-print(f'{len(asset)} species -> {OUT}')
+           'species': asset, 'prev_all': prev_all}, open(OUT, 'w'))
+print(f'{len(asset)} species (+{len(prev_all)} prevalence-only) -> {OUT}')

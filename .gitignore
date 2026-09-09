@@ -66,3 +66,5 @@ reference_panel/coverage_cnv_panel.json
 # synced by scp. See the note above.
 reference_panel/microbiome_panel.json
 relatives_ref/
+invites_*.tsv
+kit_map_96.tsv
