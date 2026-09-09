@@ -1670,6 +1670,18 @@ QC_JSON   = "$PUB/qc_result.json"
 PUB       = "$PUB"
 DOG       = "$DOG_LOWER"
 GP_HIGH   = 0.90   # minimum max(GP) to report a GLIMPSE2 call
+# Panel ALT frequency below which an imputed ref/ref means nothing: GLIMPSE2
+# genotypes by copying reference haplotypes, so an allele carried by fewer than
+# ~20 of the panel's ~4,000 haplotypes (0.5%) is effectively invisible to it —
+# the copying prior overwhelms low-pass read evidence and returns 0|0 with
+# GP 1.0 even for true carriers. Confirmed case: harlequin PSMB7 chr9:58614853
+# T>G (panel AF 0.0003) imputed "ref/ref, high confidence" for a customer's
+# known harlequin dog. 0.5% is also where low-pass imputation r2 collapses in
+# general, so ref/ref below it must be corroborated by direct reads (the
+# stage-13 H-locus read-first pattern). ALT-POSITIVE imputed calls are not
+# touched: an imputed het/alt at a rare allele went AGAINST the prior and is
+# if anything under-called.
+RARE_AF   = 0.005
 with open(QC_JSON) as f:
     mean_depth = json.load(f)['genome_mean_depth']
 # The BAM fallback used to be gated on WHOLE-GENOME depth >= 10x, which turned
@@ -1711,6 +1723,26 @@ def query_glimpse2(chrom, pos, ref, alt):
     return None, None, None, False  # not in Dog10K panel
 
 _fasta = pysam.FastaFile("$FASTA")
+def pileup_counts(chrom, pos, min_bq=20, min_mq=20):
+    """Base counts at pos from the BAM, with the same read filters as
+    gt_from_bam. Returns {} on any failure — callers treat that as no
+    coverage."""
+    counts = {}
+    try:
+        bam_fh = pysam.AlignmentFile(BAM, 'rb')
+        for col in bam_fh.pileup(chrom, pos-1, pos, truncate=True,
+                                  min_base_quality=min_bq, min_mapping_quality=min_mq,
+                                  ignore_overlaps=True, ignore_orphans=True):
+            if col.reference_pos != pos-1: continue
+            for r in col.pileups:
+                if not r.is_del and not r.is_refskip:
+                    b = r.alignment.query_sequence[r.query_position].upper()
+                    counts[b] = counts.get(b, 0) + 1
+        bam_fh.close()
+    except Exception:
+        pass
+    return counts
+
 def gt_from_bam(chrom, pos, ref, alt, min_bq=20, min_mq=20):
     # Refuse to call unless the assembly base at this position IS the variant's
     # stated reference allele. The OMIA catalogue mixes strands and assembly
@@ -1731,20 +1763,7 @@ def gt_from_bam(chrom, pos, ref, alt, min_bq=20, min_mq=20):
                 'note': (f'OMIA ref {ref} does not match canFam4 base {base} at this '
                          f'position (strand or assembly-version discrepancy); '
                          f'cannot be genotyped from reads')}
-    counts = {}
-    try:
-        bam_fh = pysam.AlignmentFile(BAM, 'rb')
-        for col in bam_fh.pileup(chrom, pos-1, pos, truncate=True,
-                                  min_base_quality=min_bq, min_mapping_quality=min_mq,
-                                  ignore_overlaps=True, ignore_orphans=True):
-            if col.reference_pos != pos-1: continue
-            for r in col.pileups:
-                if not r.is_del and not r.is_refskip:
-                    b = r.alignment.query_sequence[r.query_position].upper()
-                    counts[b] = counts.get(b, 0) + 1
-        bam_fh.close()
-    except Exception:
-        pass
+    counts = pileup_counts(chrom, pos, min_bq=min_bq, min_mq=min_mq)
     total = sum(counts.values())
     n_ref = counts.get(ref.upper(), 0)
     n_alt = counts.get(alt.upper(), 0)
@@ -1881,6 +1900,7 @@ def gt_sv_from_bam(chrom, pos, svtype='', pos_end=None, bnd_window=15, min_mq=20
 
 variants = []
 n_panel = 0; n_bam = 0; n_indel = 0; n_not_callable = 0
+n_rare_bam = 0; n_rare_lowdepth = 0
 
 for v in omia_ref.get('variants', []):
     chrom = v.get('chrom') or ''
@@ -1935,6 +1955,40 @@ for v in omia_ref.get('variants', []):
                                     'confirm with a targeted DNA test before acting on this.').format(max_gp)
                 if af is not None:
                     call['af_dog10k'] = round(af, 4)
+                # Rare-allele guard (stage 13's H-locus read-first pattern):
+                # an imputed ref/ref at a site whose ALT is rarer than RARE_AF
+                # in the panel is re-called from the reads, keeping the
+                # GLIMPSE2 fields as display context. Alt-positive imputed
+                # calls are deliberately left alone.
+                if call['zygosity'] == 'ref/ref' and af is not None and af < RARE_AF:
+                    bam_call = gt_from_bam(chrom, int(pos), ref, alt)
+                    if bam_call and bam_call.get('source') == 'bam_direct':
+                        bam_call['source'] = 'bam_direct_rare_allele'
+                        bam_call['glimpse2_gt'] = gt
+                        bam_call['glimpse2_gp'] = gp
+                        bam_call['af_dog10k'] = round(af, 4)
+                        n_inf = bam_call['ref_count'] + bam_call['alt_count']
+                        if bam_call['zygosity'] == 'ref/ref' and bam_call['call_confidence'] != 'high':
+                            bam_call['note'] = (
+                                'This allele is nearly absent from the Dog10K panel '
+                                '(AF {:.2%}), so imputation cannot detect a carrier; '
+                                'ref/ref rests on the {} reads covering this position, '
+                                'which cannot fully exclude one copy at this '
+                                'depth.').format(af, n_inf)
+                        call = bam_call
+                        n_rare_bam += 1
+                    else:
+                        counts = pileup_counts(chrom, int(pos))
+                        n_inf = counts.get(ref.upper(), 0) + counts.get(alt.upper(), 0)
+                        call['call_confidence'] = 'low'
+                        call['site_read_depth'] = n_inf
+                        call['note'] = (
+                            'This allele is nearly absent from the Dog10K panel '
+                            '(AF {:.2%}), so imputation reports ref/ref even for true '
+                            'carriers, and only {} usable read(s) cover the position — '
+                            'a carrier cannot be excluded. A targeted DNA test is the '
+                            'only way to rule this allele out.').format(af, n_inf)
+                        n_rare_lowdepth += 1
             else:
                 call = {'zygosity': 'low_gp_no_call', 'affected': False,
                         'call_confidence': 'low', 'glimpse2_gt': gt,
@@ -1978,6 +2032,8 @@ result = {
         'in_dog10k_panel': n_panel,
         'called_from_bam': n_bam,
         'not_callable': n_not_callable,
+        'rare_allele_read_recalled': n_rare_bam,
+        'rare_allele_low_depth': n_rare_lowdepth,
         'mean_depth': mean_depth,
         'bam_fallback_used': True,
     },
@@ -1985,13 +2041,17 @@ result = {
         f'Primary: GLIMPSE2 Dog10K imputed panel (30.4M SNPs); high-confidence calls require max GP ≥ {GP_HIGH}. '
         f'SNVs not in the panel are read directly from the aligned reads at that position '
         f'(minimum 5 reads; confidence graded per site by depth — these calls may be lower '
-        f'confidence than imputed ones).'
+        f'confidence than imputed ones). '
+        f'Imputed ref/ref at sites whose ALT allele is rarer than {RARE_AF:.1%} in the panel is '
+        f'never trusted on the GLIMPSE2 posterior alone — imputation cannot detect an allele that '
+        f'rare — and is re-called from the reads; where reads are too few, the call is reported at '
+        f'low confidence with an explicit caveat.'
     ),
     'variants': variants,
 }
 with open(f'{PUB}/omia_result.json', 'w') as f:
     json.dump(result, f, indent=2)
-print(f"omia_result.json: {len(variants)} variants | panel={n_panel} bam={n_bam} not_callable={n_not_callable} indels={n_indel}")
+print(f"omia_result.json: {len(variants)} variants | panel={n_panel} bam={n_bam} not_callable={n_not_callable} indels={n_indel} | rare-allele ref/ref: {n_rare_bam} re-called from reads, {n_rare_lowdepth} low-depth caveat")
 print(f"  affected SNVs: {affected_snv} ({high_conf} high confidence)")
 PYEOF
 fi # end stage 8
