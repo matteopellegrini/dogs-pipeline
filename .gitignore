@@ -68,3 +68,4 @@ reference_panel/microbiome_panel.json
 relatives_ref/
 invites_*.tsv
 kit_map_96.tsv
+do_not_contact.tsv
