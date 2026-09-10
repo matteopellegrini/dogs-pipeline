@@ -4152,29 +4152,50 @@ def call_locus(locus, calls):
             return 'b', 'b', 'high', 'Brown/liver eumelanin (b/b) — black pigment becomes brown; nose and pads liver/brown'
         het = [c for c in b_calls if c['n_alt'] == 1]
         if len(het) >= 2:
-            # Two different brown variants, each heterozygous. Phase decides:
-            # on OPPOSITE haplotypes (trans) both gene copies are broken and
-            # the dog is brown; on the SAME haplotype (cis) one copy is intact
-            # and the dog is a black-nosed carrier. GLIMPSE genotypes are
-            # phased, so read the haplotype side of each ALT.
-            sides = set()
-            phased = True
+            # Two different brown variants, each heterozygous. Two DISTINCT
+            # TYRP1 brown alleles are independent mutations that essentially
+            # never sit on one haplotype in the population, so the population
+            # prior is trans (compound heterozygote, b/b). The GLIMPSE2 phase
+            # across the ~25 kb between the sites is NOT reliable at low-pass
+            # depth: kit pk-31240510809865 (1.2x) was imputed 0|1 / 0|1 and
+            # reported as a black-nosed B/b-cis carrier, but the dog has a
+            # brown nose, pink pads and amber eyes (unambiguous liver). So the
+            # imputed phase is no longer used to call cis. A cis call would need
+            # direct reads spanning both sites, which short reads cannot do at
+            # this distance — effectively never.
+            #
+            # The one thing reads CAN do is refute an imputed het: if a site is
+            # covered by >=5 reads that are all reference, that variant is not
+            # present and the dog falls back to the single-variant rule.
+            supported = []
+            refuted = []
             for c in het:
-                gt = str(c.get('gt', ''))
-                if '|' not in gt:
-                    phased = False
-                    break
-                sides.add(gt.split('|').index('1'))
-            if phased and len(sides) > 1:
-                return 'b', 'b', 'medium', ('Brown/liver eumelanin — two different brown variants on opposite '
-                    'chromosome copies (compound heterozygous). Phasing is statistical at low pass, so treat '
-                    'with moderate confidence.')
-            if phased:
-                return 'B', 'b', 'medium', ('Carrier (B/b): two brown variants detected but on the SAME '
-                    'chromosome copy, so one intact copy remains — black pigment, black nose. '
-                    'Puppies may inherit the brown haplotype.')
-            return 'b', '?', 'low', ('Two brown variants detected but phase is unavailable; genotype is '
-                'B/b (carrier, black nose) or b/b (brown) — a DNA test with parental phasing would resolve it.')
+                counts = None
+                if c.get('source', '').startswith('Dog10K'):
+                    counts = bam_pileup(c['chrom'], c['pos'], min_reads=5)
+                if counts:
+                    n_ref = counts.get(str(c.get('ref', '')).upper(), 0)
+                    n_alt = counts.get(str(c.get('alt', '')).upper(), 0)
+                    if n_alt == 0 and n_ref >= 5:
+                        refuted.append((c, n_ref))
+                        continue
+                supported.append(c)
+            if len(supported) >= 2:
+                return 'b', 'b', 'medium', ('Brown/liver eumelanin (b/b): two different brown variants detected, '
+                    'each in one copy. Distinct brown alleles arise as separate mutations and are not found '
+                    'together on one chromosome copy, so they are inferred on opposite copies (compound '
+                    'heterozygous) — both TYRP1 copies affected, black pigment becomes brown; nose and pads '
+                    'liver/brown. Called from imputed genotypes at low-pass depth, so moderate confidence.')
+            ref_note = ''.join(
+                f' The imputed {c["effect"].split(" — ")[0]} variant was not supported by direct reads '
+                f'({n} reference reads, none variant), so it is disregarded.'
+                for c, n in refuted)
+            if len(supported) == 1:
+                return 'B', 'b', 'medium', ('Carrier (B/b): one brown allele detected. Pigment stays black '
+                    '(black nose and pads); puppies may inherit brown if the other parent also carries it.'
+                    + ref_note)
+            return 'B', 'B', 'medium', ('No brown alleles supported by reads (B/B) — black eumelanin, black nose '
+                'and pads.' + ref_note)
         if len(het) == 1:
             return 'B', 'b', 'medium', ('Carrier (B/b): one brown allele detected. Pigment stays black '
                 '(black nose and pads); puppies may inherit brown if the other parent also carries it. '
@@ -4520,7 +4541,10 @@ coat = {
     'loci': loci_result,
     'method': (f'Coat color genotyping from GLIMPSE2 Dog10K imputed BCF (min GP={MIN_GP}). '
                'Causal SNPs queried at known canFam4 positions; BAM pileup fallback for sites not in panel. '
-               'Compound heterozygosity handled for B (b1/b2) and D (d1/d2) loci. '
+               'Compound heterozygosity handled for B (b1/bc) and D (d1/d2) loci: two distinct heterozygous brown '
+               'alleles are called b/b in trans (distinct TYRP1 brown mutations do not co-occur on one haplotype; '
+               'the imputed phase across ~25 kb is unreliable at low pass and is not used), unless direct reads '
+               '(>=5, all reference) refute one of the imputed hets. '
                'Harlequin (H, PSMB7 p.V49G chr9:58614853 T>G, Clark et al. 2011) called from BAM reads: '
                'the allele is near-absent from the Dog10K panel (AF~0.0003), so imputation returns ref/ref even for true carriers.'),
 }
