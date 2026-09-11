@@ -3318,14 +3318,34 @@ if not np.isnan(z_w):
     }
     print(f"  Weight: {pred_w:.1f}kg / {pred_w*2.205:.1f}lbs (z={z_w:.3f}, pct={pct_w:.1f})")
 
-# ── Weight blend: dense breed-level pred + Darwin's Ark individual size PRS ──
-# The two components err in OPPOSITE directions on chondrodysplastic breeds
-# (dense +4.3 kg — FGF4 diluted across 131k SNPs; Darwin's Ark −4.3 kg), so a
-# 2-coefficient blend cancels the bias. Validated 2026-08-18 on 94 cohort dogs
-# with owner-reported weights: blend r=0.92 / MAE 5.1 kg vs 0.91/5.7 dense
-# alone; dwarf-breed MAE 6.6 -> 3.8 kg. Coefficients fit on that cohort and
-# stored with provenance in darwins_ark_blend.json; the raw Darwin's Ark PRS
-# scale is platform-stable because unimputed sites fall back to beta*2af.
+# ── Weight: breed-composition model x Darwin's Ark size PRS ─────────────────
+# History. The dense LMM pred blended with the Darwin's Ark size PRS
+# (darwins_ark_blend.json, fit on 94 cohort dogs, claimed r=0.92 / MAE 5.1 kg)
+# was re-validated 2026-09-10 on 878 ProsperK9 customers with self-reported
+# weights: r=0.63, MAE 8.2 kg, bias +4.1 kg. A third of those dogs were
+# puppies weighed at swab time; on the 577 adults (>=1 y) the blend is
+# r=0.73, MAE 6.5 kg, bias +0.4 kg, with toy purebreds sometimes floored at
+# 1 kg because the DA PRS term is linear in kg.
+#
+# Current model (analysis/weight_model/fit_weight_model.py, 5x5-fold CV on the
+# 577 adults, never in-sample; full comparison table in the model JSON):
+#   breed_pred = exp(sum_b p_b * log W_b) over breed_composition_raw, where W_b
+#     is a per-breed adult weight fit by box-constrained ridge in log space
+#     (each W_b within 1.5x of its prior: AKC breed-standard weight where the
+#     label joins, proportion-weighted marginal mean otherwise);
+#   pred_kg = exp(a + b*log(breed_pred) + c*da_size_prs), Huber fit (label
+#     noise: 65-77 kg "pit mixes"), so the PRS acts multiplicatively.
+# CV: r=0.73, MAE 5.7 kg, bias -1.4 kg (median-type predictor) vs the blend's
+# 0.73 / 6.5 / +0.4 on the same dogs (paired-bootstrap MAE gain 0.76 kg,
+# 95% CI 0.49-1.04). Bias by actual weight: <8 kg +31%, 8-15 +11%, 15-25 +10%,
+# 25-40 -10%, >40 kg -40% (blend: +7/+18/+24/+1/-34%); by predicted weight the
+# model is within +-6% below 15 kg and -13/-4/+19% above. The residual
+# regression-to-the-mean is what r=0.73 implies; the >40 kg shortfall is
+# dominated by self-reported 65-77 kg dogs whose ancestry predicts ~28 kg.
+# Adding the LMM prs_z, dense pred or height as extra covariates added no
+# skill (MAE within 0.1 kg of the recalibrated blend); the breed model alone
+# (no PRS) is MAE 5.9 kg. Falls back to the old blend if the model JSON or
+# breed_result.json is unavailable.
 if 'weight_kg' in phys_traits:
     with open("$REF_JSON/darwins_ark_blend.json") as _f:
         _DAB = json.load(_f)
@@ -3367,17 +3387,64 @@ if 'weight_kg' in phys_traits:
                               + _DAB['coef_dense_pred_kg'] * _dense_kg
                               + _DAB['coef_da_size_prs'] * _da_prs, 1, 120))
     phys_traits['weight_kg'].update({
-        'pred_kg': round(_blend_kg, 1),
-        'pred_lbs': round(_blend_kg * 2.205, 1),
         'pred_kg_dense': round(float(_dense_kg), 1),
+        'pred_kg_blend': round(_blend_kg, 1),
         'da_size_prs': round(_da_prs, 2),
         'da_sites_matched': f'{_da_matched}/{len(_da_rows)}',
-        'method_note': ('Blend of the breed-level dense LMM prediction with the '
-                        "Darwin's Ark individual-level size PRS (Morrill 2022); "
-                        'validated r=0.92, MAE 5.1 kg on 94 dogs with known weights.'),
     })
-    print(f"  Weight blended: {_blend_kg:.1f}kg (dense {_dense_kg:.1f}kg, "
-          f"DA prs {_da_prs:.1f}, {_da_matched}/{len(_da_rows)} sites)")
+    _wbm, _wcomp = None, []
+    try:
+        with open("$REF_JSON/weight_breed_model.json") as _f:
+            _wbm = json.load(_f)
+        with open(f'{PUB}/breed_result.json') as _f:
+            _brj_w = json.load(_f)
+        _wcomp = [(_r['breed'], float(_r['proportion']))
+                  for _r in (_brj_w.get('breed_composition_raw') or _brj_w.get('breed_composition') or [])]
+    except Exception as _e:
+        print(f"  weight_breed_model unavailable ({_e}); keeping the dense x DA blend")
+    if _wbm and _wcomp and sum(p for _, p in _wcomp) > 0:
+        _wbw = _wbm['breed_weight']
+        _tot = sum(p for _, p in _wcomp)
+        _log_bp = sum(p * np.log(max(_wbw.get(b, _wbm['default_kg']), 0.5)) for b, p in _wcomp) / _tot
+        _breed_kg = float(np.exp(_log_bp))
+        _st = _wbm['stack']
+        _log_pred = (_st['intercept'] + _st['coef_log_breed_pred'] * _log_bp
+                     + _st['covariates'].get('da_size_prs', 0.0) * _da_prs)
+        _final_kg = float(np.clip(np.exp(_log_pred), 1, 120))
+        _cv = _wbm['cv']['summary'][_wbm['model']]
+        phys_traits['weight_kg'].update({
+            'pred_kg': round(_final_kg, 1),
+            'pred_lbs': round(_final_kg * 2.205, 1),
+            'pred_kg_breed': round(_breed_kg, 1),
+            'method_note': (f"Breed-composition adult-weight model (per-breed weights fit to "
+                            f"{_wbm['n_train']} ProsperK9 customer-reported adult weights, "
+                            f"box-constrained to 1.5x the AKC breed-standard prior) combined "
+                            f"multiplicatively with the Darwin's Ark size PRS (Morrill 2022). "
+                            f"Cross-validated on those {_wbm['n_train']} dogs (never in-sample): "
+                            f"r={_cv['r']:.2f}, MAE {_cv['mae']:.1f} kg, bias {_cv['bias']:+.1f} kg; "
+                            f"the prediction is a typical adult weight for this ancestry and "
+                            f"does not see body condition, so individual dogs differ from it by "
+                            f"{_cv['mae']:.0f} kg on average. Self-reported weights; dogs under "
+                            f"1 year were excluded from fitting."),
+            'validation': {'n_dogs': _wbm['n_train'], 'design': _wbm['cv']['design'],
+                           'cv_r': round(_cv['r'], 3), 'cv_mae_kg': round(_cv['mae'], 2),
+                           'cv_bias_kg': round(_cv['bias'], 2),
+                           'previous_blend': {'cv_r': 0.73, 'mae_kg': 6.5, 'bias_kg': 0.4,
+                                              'note': 'same 577 adults; 878 incl. puppies: r 0.63, MAE 8.2, bias +4.1'}},
+        })
+        print(f"  Weight: {_final_kg:.1f}kg (breed model {_breed_kg:.1f}kg, DA prs {_da_prs:.1f}, "
+              f"{_da_matched}/{len(_da_rows)} sites; old blend {_blend_kg:.1f}kg, dense {_dense_kg:.1f}kg)")
+    else:
+        phys_traits['weight_kg'].update({
+            'pred_kg': round(_blend_kg, 1),
+            'pred_lbs': round(_blend_kg * 2.205, 1),
+            'method_note': ('Blend of the breed-level dense LMM prediction with the '
+                            "Darwin's Ark individual-level size PRS (Morrill 2022). "
+                            'Held-out validation on 577 adult customers with self-reported '
+                            'weights: r=0.73, MAE 6.5 kg, bias +0.4 kg.'),
+        })
+        print(f"  Weight blended (fallback): {_blend_kg:.1f}kg (dense {_dense_kg:.1f}kg, "
+              f"DA prs {_da_prs:.1f}, {_da_matched}/{len(_da_rows)} sites)")
 
 # ── Darwin's Ark individual-level traits (behaviour factors + physical) ────
 # Trained on 2,155 dogs with INDIVIDUAL owner-reported phenotypes (Morrill
