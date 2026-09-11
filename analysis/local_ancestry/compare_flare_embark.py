@@ -42,6 +42,11 @@ def load_flare(prefix):
     calls = defaultdict(list)   # chrom -> [(pos, a1, a2)]
     with gzip.open(prefix + '.anc.vcf.gz', 'rt') as f:
         for l in f:
+            if l.startswith('##ANCESTRY'):
+                names = {}
+                for a in l.strip().split('=', 1)[1].strip('<>').split(','):
+                    k, v = a.strip().split('='); names[int(v)] = k
+                continue
             if l.startswith('##contig'):
                 cid = l.split('ID=')[1].split(',')[0].split('>')[0]
                 if 'length=' in l: lens[cid] = int(l.split('length=')[1].split('>')[0].split(',')[0])

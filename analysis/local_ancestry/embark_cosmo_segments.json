@@ -1,0 +1,4210 @@
+[
+{
+"chrom": 1,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.2533,
+"breed": "POODLE_SMALL",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 1,
+"start_frac": 0.2533,
+"end_frac": 0.4877,
+"breed": "POODLE_STANDARD",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 1,
+"start_frac": 0.4877,
+"end_frac": 0.8894,
+"breed": "POODLE_SMALL",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 1,
+"start_frac": 0.8894,
+"end_frac": 0.9162,
+"breed": "POODLE_STANDARD",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 1,
+"start_frac": 0.9162,
+"end_frac": 0.9573,
+"breed": "POODLE_SMALL",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 1,
+"start_frac": 0.9573,
+"end_frac": 0.9609,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 1,
+"start_frac": 0.9609,
+"end_frac": 0.9949,
+"breed": "POODLE_SMALL",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 1,
+"start_frac": 0.9949,
+"end_frac": 0.9988,
+"breed": "POODLE_STANDARD",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 1,
+"start_frac": 0.9988,
+"end_frac": 1.0,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.1217,
+"breed": "POODLE_SMALL",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 2,
+"start_frac": 0.1217,
+"end_frac": 0.1325,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 2,
+"start_frac": 0.1325,
+"end_frac": 0.1422,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 2,
+"start_frac": 0.1422,
+"end_frac": 0.1513,
+"breed": "POODLE_STANDARD",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 2,
+"start_frac": 0.1513,
+"end_frac": 0.184,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 2,
+"start_frac": 0.184,
+"end_frac": 0.2482,
+"breed": "POODLE_STANDARD",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 2,
+"start_frac": 0.2482,
+"end_frac": 0.2818,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 2,
+"start_frac": 0.2818,
+"end_frac": 0.2849,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 2,
+"start_frac": 0.2849,
+"end_frac": 0.3278,
+"breed": "POODLE_SMALL",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 2,
+"start_frac": 0.3278,
+"end_frac": 0.3748,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 2,
+"start_frac": 0.3748,
+"end_frac": 0.3866,
+"breed": "POODLE_SMALL",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 2,
+"start_frac": 0.3866,
+"end_frac": 0.4027,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 2,
+"start_frac": 0.4027,
+"end_frac": 0.4364,
+"breed": "POODLE_SMALL",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 2,
+"start_frac": 0.4364,
+"end_frac": 0.4527,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 2,
+"start_frac": 0.4527,
+"end_frac": 0.4775,
+"breed": "POODLE_SMALL",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 2,
+"start_frac": 0.4775,
+"end_frac": 0.4877,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 2,
+"start_frac": 0.4877,
+"end_frac": 0.6053,
+"breed": "POODLE_STANDARD",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 2,
+"start_frac": 0.6053,
+"end_frac": 0.7082,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 2,
+"start_frac": 0.7082,
+"end_frac": 0.7436,
+"breed": "POODLE_SMALL",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 2,
+"start_frac": 0.7436,
+"end_frac": 0.7513,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 2,
+"start_frac": 0.7513,
+"end_frac": 0.9934,
+"breed": "POODLE_SMALL",
+"bar_pt": 72.6
+},
+{
+"chrom": 1,
+"hap": 2,
+"start_frac": 0.9934,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 72.6
+},
+{
+"chrom": 2,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.0347,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 50.6
+},
+{
+"chrom": 2,
+"hap": 1,
+"start_frac": 0.0347,
+"end_frac": 0.3616,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 50.6
+},
+{
+"chrom": 2,
+"hap": 1,
+"start_frac": 0.3616,
+"end_frac": 0.7188,
+"breed": "POODLE_SMALL",
+"bar_pt": 50.6
+},
+{
+"chrom": 2,
+"hap": 1,
+"start_frac": 0.7188,
+"end_frac": 0.7692,
+"breed": "POODLE_STANDARD",
+"bar_pt": 50.6
+},
+{
+"chrom": 2,
+"hap": 1,
+"start_frac": 0.7692,
+"end_frac": 0.8284,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 50.6
+},
+{
+"chrom": 2,
+"hap": 1,
+"start_frac": 0.8284,
+"end_frac": 0.9007,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 50.6
+},
+{
+"chrom": 2,
+"hap": 1,
+"start_frac": 0.9007,
+"end_frac": 0.9647,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 50.6
+},
+{
+"chrom": 2,
+"hap": 1,
+"start_frac": 0.9647,
+"end_frac": 0.9929,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 50.6
+},
+{
+"chrom": 2,
+"hap": 1,
+"start_frac": 0.9929,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 50.6
+},
+{
+"chrom": 2,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.4436,
+"breed": "POODLE_SMALL",
+"bar_pt": 50.6
+},
+{
+"chrom": 2,
+"hap": 2,
+"start_frac": 0.4436,
+"end_frac": 0.6437,
+"breed": "POODLE_STANDARD",
+"bar_pt": 50.6
+},
+{
+"chrom": 2,
+"hap": 2,
+"start_frac": 0.6437,
+"end_frac": 0.6879,
+"breed": "POODLE_SMALL",
+"bar_pt": 50.6
+},
+{
+"chrom": 2,
+"hap": 2,
+"start_frac": 0.6879,
+"end_frac": 0.9297,
+"breed": "POODLE_STANDARD",
+"bar_pt": 50.6
+},
+{
+"chrom": 2,
+"hap": 2,
+"start_frac": 0.9297,
+"end_frac": 0.9442,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 50.6
+},
+{
+"chrom": 2,
+"hap": 2,
+"start_frac": 0.9442,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 50.6
+},
+{
+"chrom": 3,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.4382,
+"breed": "POODLE_STANDARD",
+"bar_pt": 54.5
+},
+{
+"chrom": 3,
+"hap": 1,
+"start_frac": 0.4382,
+"end_frac": 0.5583,
+"breed": "POODLE_SMALL",
+"bar_pt": 54.5
+},
+{
+"chrom": 3,
+"hap": 1,
+"start_frac": 0.5583,
+"end_frac": 0.5671,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 54.5
+},
+{
+"chrom": 3,
+"hap": 1,
+"start_frac": 0.5671,
+"end_frac": 0.9317,
+"breed": "POODLE_SMALL",
+"bar_pt": 54.5
+},
+{
+"chrom": 3,
+"hap": 1,
+"start_frac": 0.9317,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 54.5
+},
+{
+"chrom": 3,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.5012,
+"breed": "POODLE_STANDARD",
+"bar_pt": 54.5
+},
+{
+"chrom": 3,
+"hap": 2,
+"start_frac": 0.5012,
+"end_frac": 0.5106,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 54.5
+},
+{
+"chrom": 3,
+"hap": 2,
+"start_frac": 0.5106,
+"end_frac": 1.0,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 54.5
+},
+{
+"chrom": 4,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.3253,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 52.3
+},
+{
+"chrom": 4,
+"hap": 1,
+"start_frac": 0.3253,
+"end_frac": 0.3606,
+"breed": "POODLE_STANDARD",
+"bar_pt": 52.3
+},
+{
+"chrom": 4,
+"hap": 1,
+"start_frac": 0.3606,
+"end_frac": 0.5743,
+"breed": "POODLE_SMALL",
+"bar_pt": 52.3
+},
+{
+"chrom": 4,
+"hap": 1,
+"start_frac": 0.5743,
+"end_frac": 0.9186,
+"breed": "POODLE_STANDARD",
+"bar_pt": 52.3
+},
+{
+"chrom": 4,
+"hap": 1,
+"start_frac": 0.9186,
+"end_frac": 0.9201,
+"breed": "POODLE_SMALL",
+"bar_pt": 52.3
+},
+{
+"chrom": 4,
+"hap": 1,
+"start_frac": 0.9201,
+"end_frac": 1.0,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 52.3
+},
+{
+"chrom": 4,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.3445,
+"breed": "POODLE_STANDARD",
+"bar_pt": 52.3
+},
+{
+"chrom": 4,
+"hap": 2,
+"start_frac": 0.3445,
+"end_frac": 0.4963,
+"breed": "POODLE_SMALL",
+"bar_pt": 52.3
+},
+{
+"chrom": 4,
+"hap": 2,
+"start_frac": 0.4963,
+"end_frac": 0.6872,
+"breed": "POODLE_STANDARD",
+"bar_pt": 52.3
+},
+{
+"chrom": 4,
+"hap": 2,
+"start_frac": 0.6872,
+"end_frac": 1.0,
+"breed": "POODLE_SMALL",
+"bar_pt": 52.3
+},
+{
+"chrom": 5,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.1031,
+"breed": "POODLE_SMALL",
+"bar_pt": 52.7
+},
+{
+"chrom": 5,
+"hap": 1,
+"start_frac": 0.1031,
+"end_frac": 0.5728,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 52.7
+},
+{
+"chrom": 5,
+"hap": 1,
+"start_frac": 0.5728,
+"end_frac": 0.5779,
+"breed": "POODLE_SMALL",
+"bar_pt": 52.7
+},
+{
+"chrom": 5,
+"hap": 1,
+"start_frac": 0.5779,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 52.7
+},
+{
+"chrom": 5,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.1218,
+"breed": "POODLE_SMALL",
+"bar_pt": 52.7
+},
+{
+"chrom": 5,
+"hap": 2,
+"start_frac": 0.1218,
+"end_frac": 0.3151,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 52.7
+},
+{
+"chrom": 5,
+"hap": 2,
+"start_frac": 0.3151,
+"end_frac": 0.6913,
+"breed": "POODLE_STANDARD",
+"bar_pt": 52.7
+},
+{
+"chrom": 5,
+"hap": 2,
+"start_frac": 0.6913,
+"end_frac": 0.7029,
+"breed": "POODLE_SMALL",
+"bar_pt": 52.7
+},
+{
+"chrom": 5,
+"hap": 2,
+"start_frac": 0.7029,
+"end_frac": 0.7854,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 52.7
+},
+{
+"chrom": 5,
+"hap": 2,
+"start_frac": 0.7854,
+"end_frac": 0.9404,
+"breed": "POODLE_STANDARD",
+"bar_pt": 52.7
+},
+{
+"chrom": 5,
+"hap": 2,
+"start_frac": 0.9404,
+"end_frac": 1.0,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 52.7
+},
+{
+"chrom": 6,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.3103,
+"breed": "POODLE_STANDARD",
+"bar_pt": 45.8
+},
+{
+"chrom": 6,
+"hap": 1,
+"start_frac": 0.3104,
+"end_frac": 0.3187,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 45.8
+},
+{
+"chrom": 6,
+"hap": 1,
+"start_frac": 0.3187,
+"end_frac": 0.9772,
+"breed": "POODLE_STANDARD",
+"bar_pt": 45.8
+},
+{
+"chrom": 6,
+"hap": 1,
+"start_frac": 0.9772,
+"end_frac": 0.9961,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 45.8
+},
+{
+"chrom": 6,
+"hap": 1,
+"start_frac": 0.9961,
+"end_frac": 1.0,
+"breed": "POODLE_SMALL",
+"bar_pt": 45.8
+},
+{
+"chrom": 6,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.1681,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 45.8
+},
+{
+"chrom": 6,
+"hap": 2,
+"start_frac": 0.1681,
+"end_frac": 0.1812,
+"breed": "POODLE_SMALL",
+"bar_pt": 45.8
+},
+{
+"chrom": 6,
+"hap": 2,
+"start_frac": 0.1812,
+"end_frac": 0.8301,
+"breed": "POODLE_STANDARD",
+"bar_pt": 45.8
+},
+{
+"chrom": 6,
+"hap": 2,
+"start_frac": 0.8301,
+"end_frac": 0.8498,
+"breed": "POODLE_SMALL",
+"bar_pt": 45.8
+},
+{
+"chrom": 6,
+"hap": 2,
+"start_frac": 0.8498,
+"end_frac": 0.9074,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 45.8
+},
+{
+"chrom": 6,
+"hap": 2,
+"start_frac": 0.9074,
+"end_frac": 0.9214,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 45.8
+},
+{
+"chrom": 6,
+"hap": 2,
+"start_frac": 0.9214,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 45.8
+},
+{
+"chrom": 7,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.3258,
+"breed": "POODLE_SMALL",
+"bar_pt": 48.0
+},
+{
+"chrom": 7,
+"hap": 1,
+"start_frac": 0.3258,
+"end_frac": 0.3359,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 48.0
+},
+{
+"chrom": 7,
+"hap": 1,
+"start_frac": 0.3359,
+"end_frac": 0.4087,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 48.0
+},
+{
+"chrom": 7,
+"hap": 1,
+"start_frac": 0.4087,
+"end_frac": 0.5783,
+"breed": "POODLE_STANDARD",
+"bar_pt": 48.0
+},
+{
+"chrom": 7,
+"hap": 1,
+"start_frac": 0.5783,
+"end_frac": 0.6078,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 48.0
+},
+{
+"chrom": 7,
+"hap": 1,
+"start_frac": 0.6078,
+"end_frac": 0.6671,
+"breed": "POODLE_SMALL",
+"bar_pt": 48.0
+},
+{
+"chrom": 7,
+"hap": 1,
+"start_frac": 0.6671,
+"end_frac": 0.7262,
+"breed": "POODLE_STANDARD",
+"bar_pt": 48.0
+},
+{
+"chrom": 7,
+"hap": 1,
+"start_frac": 0.7262,
+"end_frac": 0.9302,
+"breed": "POODLE_SMALL",
+"bar_pt": 48.0
+},
+{
+"chrom": 7,
+"hap": 1,
+"start_frac": 0.9302,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 48.0
+},
+{
+"chrom": 7,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.116,
+"breed": "POODLE_STANDARD",
+"bar_pt": 48.0
+},
+{
+"chrom": 7,
+"hap": 2,
+"start_frac": 0.116,
+"end_frac": 0.1226,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 48.0
+},
+{
+"chrom": 7,
+"hap": 2,
+"start_frac": 0.1226,
+"end_frac": 0.3494,
+"breed": "POODLE_SMALL",
+"bar_pt": 48.0
+},
+{
+"chrom": 7,
+"hap": 2,
+"start_frac": 0.3494,
+"end_frac": 0.4424,
+"breed": "POODLE_STANDARD",
+"bar_pt": 48.0
+},
+{
+"chrom": 7,
+"hap": 2,
+"start_frac": 0.4424,
+"end_frac": 0.6907,
+"breed": "POODLE_SMALL",
+"bar_pt": 48.0
+},
+{
+"chrom": 7,
+"hap": 2,
+"start_frac": 0.6907,
+"end_frac": 0.9579,
+"breed": "POODLE_STANDARD",
+"bar_pt": 48.0
+},
+{
+"chrom": 7,
+"hap": 2,
+"start_frac": 0.9579,
+"end_frac": 0.9748,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 48.0
+},
+{
+"chrom": 7,
+"hap": 2,
+"start_frac": 0.9748,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 48.0
+},
+{
+"chrom": 8,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.1706,
+"breed": "POODLE_STANDARD",
+"bar_pt": 44.0
+},
+{
+"chrom": 8,
+"hap": 1,
+"start_frac": 0.1706,
+"end_frac": 0.2753,
+"breed": "POODLE_SMALL",
+"bar_pt": 44.0
+},
+{
+"chrom": 8,
+"hap": 1,
+"start_frac": 0.2753,
+"end_frac": 0.2974,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 44.0
+},
+{
+"chrom": 8,
+"hap": 1,
+"start_frac": 0.2974,
+"end_frac": 0.4112,
+"breed": "POODLE_STANDARD",
+"bar_pt": 44.0
+},
+{
+"chrom": 8,
+"hap": 1,
+"start_frac": 0.4112,
+"end_frac": 0.5962,
+"breed": "POODLE_SMALL",
+"bar_pt": 44.0
+},
+{
+"chrom": 8,
+"hap": 1,
+"start_frac": 0.5962,
+"end_frac": 0.6161,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 44.0
+},
+{
+"chrom": 8,
+"hap": 1,
+"start_frac": 0.6161,
+"end_frac": 0.7632,
+"breed": "POODLE_STANDARD",
+"bar_pt": 44.0
+},
+{
+"chrom": 8,
+"hap": 1,
+"start_frac": 0.7632,
+"end_frac": 1.0,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 44.0
+},
+{
+"chrom": 8,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.1128,
+"breed": "POODLE_SMALL",
+"bar_pt": 44.0
+},
+{
+"chrom": 8,
+"hap": 2,
+"start_frac": 0.1128,
+"end_frac": 0.5173,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 44.0
+},
+{
+"chrom": 8,
+"hap": 2,
+"start_frac": 0.5173,
+"end_frac": 0.5402,
+"breed": "POODLE_STANDARD",
+"bar_pt": 44.0
+},
+{
+"chrom": 8,
+"hap": 2,
+"start_frac": 0.5402,
+"end_frac": 0.5699,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 44.0
+},
+{
+"chrom": 8,
+"hap": 2,
+"start_frac": 0.5699,
+"end_frac": 0.5962,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 44.0
+},
+{
+"chrom": 8,
+"hap": 2,
+"start_frac": 0.5962,
+"end_frac": 0.6081,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 44.0
+},
+{
+"chrom": 8,
+"hap": 2,
+"start_frac": 0.6081,
+"end_frac": 0.6411,
+"breed": "POODLE_STANDARD",
+"bar_pt": 44.0
+},
+{
+"chrom": 8,
+"hap": 2,
+"start_frac": 0.6411,
+"end_frac": 0.7904,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 44.0
+},
+{
+"chrom": 8,
+"hap": 2,
+"start_frac": 0.7904,
+"end_frac": 1.0,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 44.0
+},
+{
+"chrom": 9,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.0452,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 36.2
+},
+{
+"chrom": 9,
+"hap": 1,
+"start_frac": 0.0452,
+"end_frac": 0.3971,
+"breed": "POODLE_SMALL",
+"bar_pt": 36.2
+},
+{
+"chrom": 9,
+"hap": 1,
+"start_frac": 0.3971,
+"end_frac": 0.4063,
+"breed": "POODLE_STANDARD",
+"bar_pt": 36.2
+},
+{
+"chrom": 9,
+"hap": 1,
+"start_frac": 0.4063,
+"end_frac": 0.407,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 36.2
+},
+{
+"chrom": 9,
+"hap": 1,
+"start_frac": 0.407,
+"end_frac": 0.4092,
+"breed": "POODLE_STANDARD",
+"bar_pt": 36.2
+},
+{
+"chrom": 9,
+"hap": 1,
+"start_frac": 0.4092,
+"end_frac": 0.431,
+"breed": "POODLE_SMALL",
+"bar_pt": 36.2
+},
+{
+"chrom": 9,
+"hap": 1,
+"start_frac": 0.431,
+"end_frac": 0.8054,
+"breed": "POODLE_STANDARD",
+"bar_pt": 36.2
+},
+{
+"chrom": 9,
+"hap": 1,
+"start_frac": 0.8054,
+"end_frac": 0.841,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 36.2
+},
+{
+"chrom": 9,
+"hap": 1,
+"start_frac": 0.841,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 36.2
+},
+{
+"chrom": 9,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.3971,
+"breed": "POODLE_STANDARD",
+"bar_pt": 36.2
+},
+{
+"chrom": 9,
+"hap": 2,
+"start_frac": 0.3971,
+"end_frac": 0.4063,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 36.2
+},
+{
+"chrom": 9,
+"hap": 2,
+"start_frac": 0.4063,
+"end_frac": 0.407,
+"breed": "POODLE_STANDARD",
+"bar_pt": 36.2
+},
+{
+"chrom": 9,
+"hap": 2,
+"start_frac": 0.407,
+"end_frac": 0.4092,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 36.2
+},
+{
+"chrom": 9,
+"hap": 2,
+"start_frac": 0.4092,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 36.2
+},
+{
+"chrom": 10,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.39,
+"breed": "POODLE_SMALL",
+"bar_pt": 41.1
+},
+{
+"chrom": 10,
+"hap": 1,
+"start_frac": 0.39,
+"end_frac": 0.3945,
+"breed": "POODLE_STANDARD",
+"bar_pt": 41.1
+},
+{
+"chrom": 10,
+"hap": 1,
+"start_frac": 0.3945,
+"end_frac": 0.7475,
+"breed": "POODLE_SMALL",
+"bar_pt": 41.1
+},
+{
+"chrom": 10,
+"hap": 1,
+"start_frac": 0.7475,
+"end_frac": 0.9651,
+"breed": "POODLE_STANDARD",
+"bar_pt": 41.1
+},
+{
+"chrom": 10,
+"hap": 1,
+"start_frac": 0.9651,
+"end_frac": 1.0,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 41.1
+},
+{
+"chrom": 10,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.1433,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 41.1
+},
+{
+"chrom": 10,
+"hap": 2,
+"start_frac": 0.1433,
+"end_frac": 0.5676,
+"breed": "POODLE_STANDARD",
+"bar_pt": 41.1
+},
+{
+"chrom": 10,
+"hap": 2,
+"start_frac": 0.5676,
+"end_frac": 0.9964,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 41.1
+},
+{
+"chrom": 10,
+"hap": 2,
+"start_frac": 0.9964,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 41.1
+},
+{
+"chrom": 11,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.0498,
+"breed": "POODLE_SMALL",
+"bar_pt": 44.1
+},
+{
+"chrom": 11,
+"hap": 1,
+"start_frac": 0.0498,
+"end_frac": 0.0681,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 44.1
+},
+{
+"chrom": 11,
+"hap": 1,
+"start_frac": 0.0681,
+"end_frac": 0.0804,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 44.1
+},
+{
+"chrom": 11,
+"hap": 1,
+"start_frac": 0.0804,
+"end_frac": 0.1148,
+"breed": "POODLE_SMALL",
+"bar_pt": 44.1
+},
+{
+"chrom": 11,
+"hap": 1,
+"start_frac": 0.1148,
+"end_frac": 0.1999,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 44.1
+},
+{
+"chrom": 11,
+"hap": 1,
+"start_frac": 0.1999,
+"end_frac": 0.2591,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 44.1
+},
+{
+"chrom": 11,
+"hap": 1,
+"start_frac": 0.2591,
+"end_frac": 0.3332,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 44.1
+},
+{
+"chrom": 11,
+"hap": 1,
+"start_frac": 0.3332,
+"end_frac": 0.3675,
+"breed": "POODLE_STANDARD",
+"bar_pt": 44.1
+},
+{
+"chrom": 11,
+"hap": 1,
+"start_frac": 0.3675,
+"end_frac": 0.7817,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 44.1
+},
+{
+"chrom": 11,
+"hap": 1,
+"start_frac": 0.7817,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 44.1
+},
+{
+"chrom": 11,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.3121,
+"breed": "POODLE_STANDARD",
+"bar_pt": 44.1
+},
+{
+"chrom": 11,
+"hap": 2,
+"start_frac": 0.3121,
+"end_frac": 0.316,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 44.1
+},
+{
+"chrom": 11,
+"hap": 2,
+"start_frac": 0.316,
+"end_frac": 0.3168,
+"breed": "POODLE_STANDARD",
+"bar_pt": 44.1
+},
+{
+"chrom": 11,
+"hap": 2,
+"start_frac": 0.3168,
+"end_frac": 0.3186,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 44.1
+},
+{
+"chrom": 11,
+"hap": 2,
+"start_frac": 0.3186,
+"end_frac": 0.9605,
+"breed": "POODLE_SMALL",
+"bar_pt": 44.1
+},
+{
+"chrom": 11,
+"hap": 2,
+"start_frac": 0.9605,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 44.1
+},
+{
+"chrom": 12,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.158,
+"breed": "POODLE_STANDARD",
+"bar_pt": 43.0
+},
+{
+"chrom": 12,
+"hap": 1,
+"start_frac": 0.158,
+"end_frac": 0.2534,
+"breed": "POODLE_SMALL",
+"bar_pt": 43.0
+},
+{
+"chrom": 12,
+"hap": 1,
+"start_frac": 0.2534,
+"end_frac": 0.4643,
+"breed": "POODLE_STANDARD",
+"bar_pt": 43.0
+},
+{
+"chrom": 12,
+"hap": 1,
+"start_frac": 0.4643,
+"end_frac": 0.6658,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 43.0
+},
+{
+"chrom": 12,
+"hap": 1,
+"start_frac": 0.6658,
+"end_frac": 0.944,
+"breed": "POODLE_SMALL",
+"bar_pt": 43.0
+},
+{
+"chrom": 12,
+"hap": 1,
+"start_frac": 0.944,
+"end_frac": 0.9865,
+"breed": "POODLE_STANDARD",
+"bar_pt": 43.0
+},
+{
+"chrom": 12,
+"hap": 1,
+"start_frac": 0.9865,
+"end_frac": 1.0,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 43.0
+},
+{
+"chrom": 12,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.3596,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 43.0
+},
+{
+"chrom": 12,
+"hap": 2,
+"start_frac": 0.3596,
+"end_frac": 0.3718,
+"breed": "POODLE_STANDARD",
+"bar_pt": 43.0
+},
+{
+"chrom": 12,
+"hap": 2,
+"start_frac": 0.3718,
+"end_frac": 1.0,
+"breed": "POODLE_SMALL",
+"bar_pt": 43.0
+},
+{
+"chrom": 13,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.657,
+"breed": "POODLE_SMALL",
+"bar_pt": 37.5
+},
+{
+"chrom": 13,
+"hap": 1,
+"start_frac": 0.657,
+"end_frac": 0.6722,
+"breed": "POODLE_STANDARD",
+"bar_pt": 37.5
+},
+{
+"chrom": 13,
+"hap": 1,
+"start_frac": 0.6722,
+"end_frac": 0.683,
+"breed": "POODLE_SMALL",
+"bar_pt": 37.5
+},
+{
+"chrom": 13,
+"hap": 1,
+"start_frac": 0.683,
+"end_frac": 0.8682,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 37.5
+},
+{
+"chrom": 13,
+"hap": 1,
+"start_frac": 0.8682,
+"end_frac": 0.8692,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 37.5
+},
+{
+"chrom": 13,
+"hap": 1,
+"start_frac": 0.8692,
+"end_frac": 0.8756,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 37.5
+},
+{
+"chrom": 13,
+"hap": 1,
+"start_frac": 0.8756,
+"end_frac": 0.9283,
+"breed": "POODLE_SMALL",
+"bar_pt": 37.5
+},
+{
+"chrom": 13,
+"hap": 1,
+"start_frac": 0.9283,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 37.5
+},
+{
+"chrom": 13,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.7049,
+"breed": "POODLE_SMALL",
+"bar_pt": 37.5
+},
+{
+"chrom": 13,
+"hap": 2,
+"start_frac": 0.7049,
+"end_frac": 0.8682,
+"breed": "POODLE_STANDARD",
+"bar_pt": 37.5
+},
+{
+"chrom": 13,
+"hap": 2,
+"start_frac": 0.8682,
+"end_frac": 0.8692,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 37.5
+},
+{
+"chrom": 13,
+"hap": 2,
+"start_frac": 0.8692,
+"end_frac": 0.8756,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 37.5
+},
+{
+"chrom": 13,
+"hap": 2,
+"start_frac": 0.8756,
+"end_frac": 0.8819,
+"breed": "POODLE_SMALL",
+"bar_pt": 37.5
+},
+{
+"chrom": 13,
+"hap": 2,
+"start_frac": 0.8819,
+"end_frac": 0.8852,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 37.5
+},
+{
+"chrom": 13,
+"hap": 2,
+"start_frac": 0.8852,
+"end_frac": 0.8999,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 37.5
+},
+{
+"chrom": 13,
+"hap": 2,
+"start_frac": 0.8999,
+"end_frac": 0.9037,
+"breed": "POODLE_SMALL",
+"bar_pt": 37.5
+},
+{
+"chrom": 13,
+"hap": 2,
+"start_frac": 0.9037,
+"end_frac": 1.0,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 37.5
+},
+{
+"chrom": 14,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.3554,
+"breed": "POODLE_SMALL",
+"bar_pt": 36.1
+},
+{
+"chrom": 14,
+"hap": 1,
+"start_frac": 0.3554,
+"end_frac": 0.3737,
+"breed": "POODLE_STANDARD",
+"bar_pt": 36.1
+},
+{
+"chrom": 14,
+"hap": 1,
+"start_frac": 0.3737,
+"end_frac": 0.3793,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 36.1
+},
+{
+"chrom": 14,
+"hap": 1,
+"start_frac": 0.3794,
+"end_frac": 0.4294,
+"breed": "POODLE_STANDARD",
+"bar_pt": 36.1
+},
+{
+"chrom": 14,
+"hap": 1,
+"start_frac": 0.4294,
+"end_frac": 0.9772,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 36.1
+},
+{
+"chrom": 14,
+"hap": 1,
+"start_frac": 0.9772,
+"end_frac": 1.0,
+"breed": "POODLE_SMALL",
+"bar_pt": 36.1
+},
+{
+"chrom": 14,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.159,
+"breed": "POODLE_SMALL",
+"bar_pt": 36.1
+},
+{
+"chrom": 14,
+"hap": 2,
+"start_frac": 0.159,
+"end_frac": 0.3793,
+"breed": "POODLE_STANDARD",
+"bar_pt": 36.1
+},
+{
+"chrom": 14,
+"hap": 2,
+"start_frac": 0.3794,
+"end_frac": 0.4294,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 36.1
+},
+{
+"chrom": 14,
+"hap": 2,
+"start_frac": 0.4294,
+"end_frac": 0.6693,
+"breed": "POODLE_STANDARD",
+"bar_pt": 36.1
+},
+{
+"chrom": 14,
+"hap": 2,
+"start_frac": 0.6693,
+"end_frac": 0.7181,
+"breed": "POODLE_SMALL",
+"bar_pt": 36.1
+},
+{
+"chrom": 14,
+"hap": 2,
+"start_frac": 0.7181,
+"end_frac": 0.8148,
+"breed": "POODLE_STANDARD",
+"bar_pt": 36.1
+},
+{
+"chrom": 14,
+"hap": 2,
+"start_frac": 0.8148,
+"end_frac": 1.0,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 36.1
+},
+{
+"chrom": 15,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 38.1
+},
+{
+"chrom": 15,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.4447,
+"breed": "POODLE_STANDARD",
+"bar_pt": 38.1
+},
+{
+"chrom": 15,
+"hap": 2,
+"start_frac": 0.4447,
+"end_frac": 0.4979,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 38.1
+},
+{
+"chrom": 15,
+"hap": 2,
+"start_frac": 0.4979,
+"end_frac": 0.7022,
+"breed": "POODLE_STANDARD",
+"bar_pt": 38.1
+},
+{
+"chrom": 15,
+"hap": 2,
+"start_frac": 0.7021,
+"end_frac": 0.7125,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 38.1
+},
+{
+"chrom": 15,
+"hap": 2,
+"start_frac": 0.7125,
+"end_frac": 0.8293,
+"breed": "POODLE_STANDARD",
+"bar_pt": 38.1
+},
+{
+"chrom": 15,
+"hap": 2,
+"start_frac": 0.8293,
+"end_frac": 0.8367,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 38.1
+},
+{
+"chrom": 15,
+"hap": 2,
+"start_frac": 0.8367,
+"end_frac": 0.8626,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 38.1
+},
+{
+"chrom": 15,
+"hap": 2,
+"start_frac": 0.8626,
+"end_frac": 0.8683,
+"breed": "POODLE_SMALL",
+"bar_pt": 38.1
+},
+{
+"chrom": 15,
+"hap": 2,
+"start_frac": 0.8683,
+"end_frac": 0.8731,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 38.1
+},
+{
+"chrom": 15,
+"hap": 2,
+"start_frac": 0.8731,
+"end_frac": 0.8738,
+"breed": "POODLE_STANDARD",
+"bar_pt": 38.1
+},
+{
+"chrom": 15,
+"hap": 2,
+"start_frac": 0.8738,
+"end_frac": 0.8945,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 38.1
+},
+{
+"chrom": 15,
+"hap": 2,
+"start_frac": 0.8945,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 38.1
+},
+{
+"chrom": 16,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.317,
+"breed": "POODLE_SMALL",
+"bar_pt": 35.2
+},
+{
+"chrom": 16,
+"hap": 1,
+"start_frac": 0.317,
+"end_frac": 0.3455,
+"breed": "POODLE_STANDARD",
+"bar_pt": 35.2
+},
+{
+"chrom": 16,
+"hap": 1,
+"start_frac": 0.3455,
+"end_frac": 0.8218,
+"breed": "POODLE_SMALL",
+"bar_pt": 35.2
+},
+{
+"chrom": 16,
+"hap": 1,
+"start_frac": 0.8218,
+"end_frac": 0.8383,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 35.2
+},
+{
+"chrom": 16,
+"hap": 1,
+"start_frac": 0.8383,
+"end_frac": 0.8659,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 35.2
+},
+{
+"chrom": 16,
+"hap": 1,
+"start_frac": 0.8659,
+"end_frac": 0.8946,
+"breed": "POODLE_STANDARD",
+"bar_pt": 35.2
+},
+{
+"chrom": 16,
+"hap": 1,
+"start_frac": 0.8946,
+"end_frac": 0.912,
+"breed": "POODLE_SMALL",
+"bar_pt": 35.2
+},
+{
+"chrom": 16,
+"hap": 1,
+"start_frac": 0.912,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 35.2
+},
+{
+"chrom": 16,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.6827,
+"breed": "POODLE_SMALL",
+"bar_pt": 35.2
+},
+{
+"chrom": 16,
+"hap": 2,
+"start_frac": 0.6827,
+"end_frac": 0.8444,
+"breed": "POODLE_STANDARD",
+"bar_pt": 35.2
+},
+{
+"chrom": 16,
+"hap": 2,
+"start_frac": 0.8444,
+"end_frac": 0.8501,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 35.2
+},
+{
+"chrom": 16,
+"hap": 2,
+"start_frac": 0.8501,
+"end_frac": 0.879,
+"breed": "POODLE_SMALL",
+"bar_pt": 35.2
+},
+{
+"chrom": 16,
+"hap": 2,
+"start_frac": 0.879,
+"end_frac": 1.0,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 35.2
+},
+{
+"chrom": 17,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.2457,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 38.0
+},
+{
+"chrom": 17,
+"hap": 1,
+"start_frac": 0.2457,
+"end_frac": 0.3092,
+"breed": "POODLE_STANDARD",
+"bar_pt": 38.0
+},
+{
+"chrom": 17,
+"hap": 1,
+"start_frac": 0.3092,
+"end_frac": 0.3318,
+"breed": "POODLE_SMALL",
+"bar_pt": 38.0
+},
+{
+"chrom": 17,
+"hap": 1,
+"start_frac": 0.3318,
+"end_frac": 0.3488,
+"breed": "POODLE_STANDARD",
+"bar_pt": 38.0
+},
+{
+"chrom": 17,
+"hap": 1,
+"start_frac": 0.3488,
+"end_frac": 0.4556,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 38.0
+},
+{
+"chrom": 17,
+"hap": 1,
+"start_frac": 0.4556,
+"end_frac": 0.5864,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 38.0
+},
+{
+"chrom": 17,
+"hap": 1,
+"start_frac": 0.5864,
+"end_frac": 0.6073,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 38.0
+},
+{
+"chrom": 17,
+"hap": 1,
+"start_frac": 0.6073,
+"end_frac": 0.6159,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 38.0
+},
+{
+"chrom": 17,
+"hap": 1,
+"start_frac": 0.6159,
+"end_frac": 0.656,
+"breed": "POODLE_SMALL",
+"bar_pt": 38.0
+},
+{
+"chrom": 17,
+"hap": 1,
+"start_frac": 0.656,
+"end_frac": 0.6838,
+"breed": "POODLE_STANDARD",
+"bar_pt": 38.0
+},
+{
+"chrom": 17,
+"hap": 1,
+"start_frac": 0.6838,
+"end_frac": 0.7086,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 38.0
+},
+{
+"chrom": 17,
+"hap": 1,
+"start_frac": 0.7086,
+"end_frac": 0.7347,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 38.0
+},
+{
+"chrom": 17,
+"hap": 1,
+"start_frac": 0.7347,
+"end_frac": 0.944,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 38.0
+},
+{
+"chrom": 17,
+"hap": 1,
+"start_frac": 0.944,
+"end_frac": 1.0,
+"breed": "POODLE_SMALL",
+"bar_pt": 38.0
+},
+{
+"chrom": 17,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.8311,
+"breed": "POODLE_SMALL",
+"bar_pt": 38.0
+},
+{
+"chrom": 17,
+"hap": 2,
+"start_frac": 0.8311,
+"end_frac": 0.8446,
+"breed": "POODLE_STANDARD",
+"bar_pt": 38.0
+},
+{
+"chrom": 17,
+"hap": 2,
+"start_frac": 0.8446,
+"end_frac": 0.891,
+"breed": "POODLE_SMALL",
+"bar_pt": 38.0
+},
+{
+"chrom": 17,
+"hap": 2,
+"start_frac": 0.891,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 38.0
+},
+{
+"chrom": 18,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.4877,
+"breed": "POODLE_SMALL",
+"bar_pt": 33.1
+},
+{
+"chrom": 18,
+"hap": 1,
+"start_frac": 0.4877,
+"end_frac": 0.5053,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 33.1
+},
+{
+"chrom": 18,
+"hap": 1,
+"start_frac": 0.5053,
+"end_frac": 1.0,
+"breed": "POODLE_SMALL",
+"bar_pt": 33.1
+},
+{
+"chrom": 18,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.4877,
+"breed": "POODLE_STANDARD",
+"bar_pt": 33.1
+},
+{
+"chrom": 18,
+"hap": 2,
+"start_frac": 0.4877,
+"end_frac": 0.5053,
+"breed": "POODLE_SMALL",
+"bar_pt": 33.1
+},
+{
+"chrom": 18,
+"hap": 2,
+"start_frac": 0.5053,
+"end_frac": 0.5102,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 33.1
+},
+{
+"chrom": 18,
+"hap": 2,
+"start_frac": 0.5102,
+"end_frac": 0.5251,
+"breed": "POODLE_SMALL",
+"bar_pt": 33.1
+},
+{
+"chrom": 18,
+"hap": 2,
+"start_frac": 0.5251,
+"end_frac": 0.5792,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 33.1
+},
+{
+"chrom": 18,
+"hap": 2,
+"start_frac": 0.5792,
+"end_frac": 0.5882,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 33.1
+},
+{
+"chrom": 18,
+"hap": 2,
+"start_frac": 0.5882,
+"end_frac": 0.6209,
+"breed": "POODLE_STANDARD",
+"bar_pt": 33.1
+},
+{
+"chrom": 18,
+"hap": 2,
+"start_frac": 0.6209,
+"end_frac": 0.7899,
+"breed": "POODLE_SMALL",
+"bar_pt": 33.1
+},
+{
+"chrom": 18,
+"hap": 2,
+"start_frac": 0.7899,
+"end_frac": 0.8873,
+"breed": "POODLE_STANDARD",
+"bar_pt": 33.1
+},
+{
+"chrom": 18,
+"hap": 2,
+"start_frac": 0.8873,
+"end_frac": 1.0,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 33.1
+},
+{
+"chrom": 19,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.7383,
+"breed": "POODLE_STANDARD",
+"bar_pt": 31.9
+},
+{
+"chrom": 19,
+"hap": 1,
+"start_frac": 0.7383,
+"end_frac": 0.7721,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 31.9
+},
+{
+"chrom": 19,
+"hap": 1,
+"start_frac": 0.7721,
+"end_frac": 0.8745,
+"breed": "POODLE_STANDARD",
+"bar_pt": 31.9
+},
+{
+"chrom": 19,
+"hap": 1,
+"start_frac": 0.8745,
+"end_frac": 1.0,
+"breed": "POODLE_SMALL",
+"bar_pt": 31.9
+},
+{
+"chrom": 19,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.6005,
+"breed": "POODLE_SMALL",
+"bar_pt": 31.9
+},
+{
+"chrom": 19,
+"hap": 2,
+"start_frac": 0.6005,
+"end_frac": 0.7234,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 31.9
+},
+{
+"chrom": 19,
+"hap": 2,
+"start_frac": 0.7234,
+"end_frac": 0.7255,
+"breed": "POODLE_SMALL",
+"bar_pt": 31.9
+},
+{
+"chrom": 19,
+"hap": 2,
+"start_frac": 0.7255,
+"end_frac": 0.726,
+"breed": "POODLE_STANDARD",
+"bar_pt": 31.9
+},
+{
+"chrom": 19,
+"hap": 2,
+"start_frac": 0.726,
+"end_frac": 0.7383,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 31.9
+},
+{
+"chrom": 19,
+"hap": 2,
+"start_frac": 0.7383,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 31.9
+},
+{
+"chrom": 20,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.0539,
+"breed": "POODLE_SMALL",
+"bar_pt": 34.5
+},
+{
+"chrom": 20,
+"hap": 1,
+"start_frac": 0.0539,
+"end_frac": 0.3212,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 34.5
+},
+{
+"chrom": 20,
+"hap": 1,
+"start_frac": 0.3212,
+"end_frac": 0.6991,
+"breed": "POODLE_STANDARD",
+"bar_pt": 34.5
+},
+{
+"chrom": 20,
+"hap": 1,
+"start_frac": 0.6991,
+"end_frac": 0.7228,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 34.5
+},
+{
+"chrom": 20,
+"hap": 1,
+"start_frac": 0.7228,
+"end_frac": 1.0,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 34.5
+},
+{
+"chrom": 20,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.32,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 34.5
+},
+{
+"chrom": 20,
+"hap": 2,
+"start_frac": 0.32,
+"end_frac": 0.3802,
+"breed": "POODLE_STANDARD",
+"bar_pt": 34.5
+},
+{
+"chrom": 20,
+"hap": 2,
+"start_frac": 0.3802,
+"end_frac": 0.3885,
+"breed": "POODLE_SMALL",
+"bar_pt": 34.5
+},
+{
+"chrom": 20,
+"hap": 2,
+"start_frac": 0.3885,
+"end_frac": 0.4024,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 34.5
+},
+{
+"chrom": 20,
+"hap": 2,
+"start_frac": 0.4024,
+"end_frac": 0.4256,
+"breed": "POODLE_STANDARD",
+"bar_pt": 34.5
+},
+{
+"chrom": 20,
+"hap": 2,
+"start_frac": 0.4256,
+"end_frac": 0.4509,
+"breed": "POODLE_SMALL",
+"bar_pt": 34.5
+},
+{
+"chrom": 20,
+"hap": 2,
+"start_frac": 0.4509,
+"end_frac": 0.4612,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 34.5
+},
+{
+"chrom": 20,
+"hap": 2,
+"start_frac": 0.4612,
+"end_frac": 0.4736,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 34.5
+},
+{
+"chrom": 20,
+"hap": 2,
+"start_frac": 0.4736,
+"end_frac": 0.944,
+"breed": "POODLE_STANDARD",
+"bar_pt": 34.5
+},
+{
+"chrom": 20,
+"hap": 2,
+"start_frac": 0.944,
+"end_frac": 1.0,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 34.5
+},
+{
+"chrom": 21,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.0357,
+"breed": "POODLE_SMALL",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 1,
+"start_frac": 0.0357,
+"end_frac": 0.3483,
+"breed": "POODLE_STANDARD",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 1,
+"start_frac": 0.3483,
+"end_frac": 0.3666,
+"breed": "POODLE_SMALL",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 1,
+"start_frac": 0.3666,
+"end_frac": 0.8148,
+"breed": "POODLE_STANDARD",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 1,
+"start_frac": 0.8148,
+"end_frac": 0.8173,
+"breed": "POODLE_SMALL",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 1,
+"start_frac": 0.8173,
+"end_frac": 0.8209,
+"breed": "POODLE_STANDARD",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 1,
+"start_frac": 0.8209,
+"end_frac": 0.8242,
+"breed": "POODLE_SMALL",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 1,
+"start_frac": 0.8242,
+"end_frac": 0.8363,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 1,
+"start_frac": 0.8363,
+"end_frac": 0.8846,
+"breed": "POODLE_SMALL",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 1,
+"start_frac": 0.8846,
+"end_frac": 0.8971,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 1,
+"start_frac": 0.8971,
+"end_frac": 0.8994,
+"breed": "POODLE_SMALL",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 1,
+"start_frac": 0.8994,
+"end_frac": 0.9689,
+"breed": "POODLE_STANDARD",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 1,
+"start_frac": 0.9689,
+"end_frac": 0.9897,
+"breed": "POODLE_SMALL",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 1,
+"start_frac": 0.9897,
+"end_frac": 1.0,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.6887,
+"breed": "POODLE_SMALL",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 2,
+"start_frac": 0.6887,
+"end_frac": 0.6944,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 2,
+"start_frac": 0.6944,
+"end_frac": 0.7647,
+"breed": "POODLE_SMALL",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 2,
+"start_frac": 0.7647,
+"end_frac": 0.8136,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 2,
+"start_frac": 0.8136,
+"end_frac": 0.8148,
+"breed": "POODLE_SMALL",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 2,
+"start_frac": 0.8148,
+"end_frac": 0.8173,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 2,
+"start_frac": 0.8173,
+"end_frac": 0.8209,
+"breed": "POODLE_SMALL",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 2,
+"start_frac": 0.8209,
+"end_frac": 0.8242,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 2,
+"start_frac": 0.8242,
+"end_frac": 0.8399,
+"breed": "POODLE_SMALL",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 2,
+"start_frac": 0.8399,
+"end_frac": 0.8464,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 2,
+"start_frac": 0.8464,
+"end_frac": 0.8823,
+"breed": "POODLE_SMALL",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 2,
+"start_frac": 0.8823,
+"end_frac": 0.8846,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 2,
+"start_frac": 0.8846,
+"end_frac": 0.8971,
+"breed": "POODLE_SMALL",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 2,
+"start_frac": 0.8971,
+"end_frac": 0.8994,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 2,
+"start_frac": 0.8994,
+"end_frac": 0.9054,
+"breed": "POODLE_SMALL",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 2,
+"start_frac": 0.9054,
+"end_frac": 0.9174,
+"breed": "POODLE_STANDARD",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 2,
+"start_frac": 0.9174,
+"end_frac": 0.9344,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 2,
+"start_frac": 0.9344,
+"end_frac": 0.9501,
+"breed": "POODLE_SMALL",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 2,
+"start_frac": 0.9501,
+"end_frac": 0.9857,
+"breed": "POODLE_STANDARD",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 2,
+"start_frac": 0.9857,
+"end_frac": 0.9876,
+"breed": "POODLE_SMALL",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 2,
+"start_frac": 0.9876,
+"end_frac": 0.9897,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 30.1
+},
+{
+"chrom": 21,
+"hap": 2,
+"start_frac": 0.9897,
+"end_frac": 1.0,
+"breed": "POODLE_SMALL",
+"bar_pt": 30.1
+},
+{
+"chrom": 22,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.9076,
+"breed": "POODLE_STANDARD",
+"bar_pt": 36.3
+},
+{
+"chrom": 22,
+"hap": 1,
+"start_frac": 0.9076,
+"end_frac": 0.9438,
+"breed": "POODLE_SMALL",
+"bar_pt": 36.3
+},
+{
+"chrom": 22,
+"hap": 1,
+"start_frac": 0.9438,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 36.3
+},
+{
+"chrom": 22,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.2292,
+"breed": "POODLE_SMALL",
+"bar_pt": 36.3
+},
+{
+"chrom": 22,
+"hap": 2,
+"start_frac": 0.2292,
+"end_frac": 0.313,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 36.3
+},
+{
+"chrom": 22,
+"hap": 2,
+"start_frac": 0.313,
+"end_frac": 0.3303,
+"breed": "POODLE_SMALL",
+"bar_pt": 36.3
+},
+{
+"chrom": 22,
+"hap": 2,
+"start_frac": 0.3303,
+"end_frac": 0.8512,
+"breed": "POODLE_STANDARD",
+"bar_pt": 36.3
+},
+{
+"chrom": 22,
+"hap": 2,
+"start_frac": 0.8512,
+"end_frac": 0.9784,
+"breed": "POODLE_SMALL",
+"bar_pt": 36.3
+},
+{
+"chrom": 22,
+"hap": 2,
+"start_frac": 0.9784,
+"end_frac": 0.9863,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 36.3
+},
+{
+"chrom": 22,
+"hap": 2,
+"start_frac": 0.9863,
+"end_frac": 1.0,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 36.3
+},
+{
+"chrom": 23,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.294,
+"breed": "POODLE_SMALL",
+"bar_pt": 31.0
+},
+{
+"chrom": 23,
+"hap": 1,
+"start_frac": 0.294,
+"end_frac": 0.3204,
+"breed": "POODLE_STANDARD",
+"bar_pt": 31.0
+},
+{
+"chrom": 23,
+"hap": 1,
+"start_frac": 0.3204,
+"end_frac": 0.3767,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 31.0
+},
+{
+"chrom": 23,
+"hap": 1,
+"start_frac": 0.3767,
+"end_frac": 0.4303,
+"breed": "POODLE_STANDARD",
+"bar_pt": 31.0
+},
+{
+"chrom": 23,
+"hap": 1,
+"start_frac": 0.4302,
+"end_frac": 0.4606,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 31.0
+},
+{
+"chrom": 23,
+"hap": 1,
+"start_frac": 0.4606,
+"end_frac": 0.5256,
+"breed": "POODLE_SMALL",
+"bar_pt": 31.0
+},
+{
+"chrom": 23,
+"hap": 1,
+"start_frac": 0.5256,
+"end_frac": 0.6416,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 31.0
+},
+{
+"chrom": 23,
+"hap": 1,
+"start_frac": 0.6416,
+"end_frac": 0.6883,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 31.0
+},
+{
+"chrom": 23,
+"hap": 1,
+"start_frac": 0.6883,
+"end_frac": 0.7142,
+"breed": "POODLE_STANDARD",
+"bar_pt": 31.0
+},
+{
+"chrom": 23,
+"hap": 1,
+"start_frac": 0.7142,
+"end_frac": 0.9952,
+"breed": "POODLE_SMALL",
+"bar_pt": 31.0
+},
+{
+"chrom": 23,
+"hap": 1,
+"start_frac": 0.9952,
+"end_frac": 1.0,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 31.0
+},
+{
+"chrom": 23,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.1578,
+"breed": "POODLE_STANDARD",
+"bar_pt": 31.0
+},
+{
+"chrom": 23,
+"hap": 2,
+"start_frac": 0.1578,
+"end_frac": 0.9785,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 31.0
+},
+{
+"chrom": 23,
+"hap": 2,
+"start_frac": 0.9785,
+"end_frac": 1.0,
+"breed": "POODLE_SMALL",
+"bar_pt": 31.0
+},
+{
+"chrom": 24,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.141,
+"breed": "POODLE_STANDARD",
+"bar_pt": 28.2
+},
+{
+"chrom": 24,
+"hap": 1,
+"start_frac": 0.141,
+"end_frac": 0.8434,
+"breed": "POODLE_SMALL",
+"bar_pt": 28.2
+},
+{
+"chrom": 24,
+"hap": 1,
+"start_frac": 0.8434,
+"end_frac": 0.9582,
+"breed": "POODLE_STANDARD",
+"bar_pt": 28.2
+},
+{
+"chrom": 24,
+"hap": 1,
+"start_frac": 0.9582,
+"end_frac": 1.0,
+"breed": "POODLE_SMALL",
+"bar_pt": 28.2
+},
+{
+"chrom": 24,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.2445,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 28.2
+},
+{
+"chrom": 24,
+"hap": 2,
+"start_frac": 0.2445,
+"end_frac": 0.3019,
+"breed": "POODLE_STANDARD",
+"bar_pt": 28.2
+},
+{
+"chrom": 24,
+"hap": 2,
+"start_frac": 0.3019,
+"end_frac": 0.5282,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 28.2
+},
+{
+"chrom": 24,
+"hap": 2,
+"start_frac": 0.5282,
+"end_frac": 0.5351,
+"breed": "POODLE_STANDARD",
+"bar_pt": 28.2
+},
+{
+"chrom": 24,
+"hap": 2,
+"start_frac": 0.5351,
+"end_frac": 0.8644,
+"breed": "POODLE_SMALL",
+"bar_pt": 28.2
+},
+{
+"chrom": 24,
+"hap": 2,
+"start_frac": 0.8644,
+"end_frac": 1.0,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 28.2
+},
+{
+"chrom": 25,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.1735,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 30.6
+},
+{
+"chrom": 25,
+"hap": 1,
+"start_frac": 0.1735,
+"end_frac": 0.3295,
+"breed": "POODLE_STANDARD",
+"bar_pt": 30.6
+},
+{
+"chrom": 25,
+"hap": 1,
+"start_frac": 0.3295,
+"end_frac": 0.4526,
+"breed": "POODLE_SMALL",
+"bar_pt": 30.6
+},
+{
+"chrom": 25,
+"hap": 1,
+"start_frac": 0.4526,
+"end_frac": 0.6681,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 30.6
+},
+{
+"chrom": 25,
+"hap": 1,
+"start_frac": 0.6681,
+"end_frac": 0.7898,
+"breed": "POODLE_SMALL",
+"bar_pt": 30.6
+},
+{
+"chrom": 25,
+"hap": 1,
+"start_frac": 0.7898,
+"end_frac": 0.8003,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 30.6
+},
+{
+"chrom": 25,
+"hap": 1,
+"start_frac": 0.8003,
+"end_frac": 0.9284,
+"breed": "POODLE_SMALL",
+"bar_pt": 30.6
+},
+{
+"chrom": 25,
+"hap": 1,
+"start_frac": 0.9284,
+"end_frac": 0.9774,
+"breed": "POODLE_STANDARD",
+"bar_pt": 30.6
+},
+{
+"chrom": 25,
+"hap": 1,
+"start_frac": 0.9774,
+"end_frac": 1.0,
+"breed": "POODLE_SMALL",
+"bar_pt": 30.6
+},
+{
+"chrom": 25,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.2554,
+"breed": "POODLE_STANDARD",
+"bar_pt": 30.6
+},
+{
+"chrom": 25,
+"hap": 2,
+"start_frac": 0.2554,
+"end_frac": 0.2688,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 30.6
+},
+{
+"chrom": 25,
+"hap": 2,
+"start_frac": 0.2688,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 30.6
+},
+{
+"chrom": 26,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.4582,
+"breed": "POODLE_STANDARD",
+"bar_pt": 23.1
+},
+{
+"chrom": 26,
+"hap": 1,
+"start_frac": 0.4582,
+"end_frac": 0.4836,
+"breed": "POODLE_SMALL",
+"bar_pt": 23.1
+},
+{
+"chrom": 26,
+"hap": 1,
+"start_frac": 0.4836,
+"end_frac": 0.53,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 23.1
+},
+{
+"chrom": 26,
+"hap": 1,
+"start_frac": 0.53,
+"end_frac": 0.5685,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 23.1
+},
+{
+"chrom": 26,
+"hap": 1,
+"start_frac": 0.5685,
+"end_frac": 0.8789,
+"breed": "POODLE_SMALL",
+"bar_pt": 23.1
+},
+{
+"chrom": 26,
+"hap": 1,
+"start_frac": 0.8789,
+"end_frac": 1.0,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 23.1
+},
+{
+"chrom": 26,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.35,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 23.1
+},
+{
+"chrom": 26,
+"hap": 2,
+"start_frac": 0.35,
+"end_frac": 0.4582,
+"breed": "POODLE_SMALL",
+"bar_pt": 23.1
+},
+{
+"chrom": 26,
+"hap": 2,
+"start_frac": 0.4582,
+"end_frac": 0.4836,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 23.1
+},
+{
+"chrom": 26,
+"hap": 2,
+"start_frac": 0.4836,
+"end_frac": 0.5178,
+"breed": "POODLE_SMALL",
+"bar_pt": 23.1
+},
+{
+"chrom": 26,
+"hap": 2,
+"start_frac": 0.5178,
+"end_frac": 0.5509,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 23.1
+},
+{
+"chrom": 26,
+"hap": 2,
+"start_frac": 0.5509,
+"end_frac": 0.9284,
+"breed": "POODLE_SMALL",
+"bar_pt": 23.1
+},
+{
+"chrom": 26,
+"hap": 2,
+"start_frac": 0.9284,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 23.1
+},
+{
+"chrom": 27,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.3684,
+"breed": "POODLE_STANDARD",
+"bar_pt": 27.1
+},
+{
+"chrom": 27,
+"hap": 1,
+"start_frac": 0.3684,
+"end_frac": 0.3885,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 27.1
+},
+{
+"chrom": 27,
+"hap": 1,
+"start_frac": 0.3885,
+"end_frac": 0.3934,
+"breed": "POODLE_STANDARD",
+"bar_pt": 27.1
+},
+{
+"chrom": 27,
+"hap": 1,
+"start_frac": 0.3934,
+"end_frac": 0.4951,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 27.1
+},
+{
+"chrom": 27,
+"hap": 1,
+"start_frac": 0.4951,
+"end_frac": 0.5188,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 27.1
+},
+{
+"chrom": 27,
+"hap": 1,
+"start_frac": 0.5188,
+"end_frac": 0.565,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 27.1
+},
+{
+"chrom": 27,
+"hap": 1,
+"start_frac": 0.565,
+"end_frac": 0.6598,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 27.1
+},
+{
+"chrom": 27,
+"hap": 1,
+"start_frac": 0.6598,
+"end_frac": 0.7015,
+"breed": "POODLE_SMALL",
+"bar_pt": 27.1
+},
+{
+"chrom": 27,
+"hap": 1,
+"start_frac": 0.7015,
+"end_frac": 0.7186,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 27.1
+},
+{
+"chrom": 27,
+"hap": 1,
+"start_frac": 0.7186,
+"end_frac": 0.7384,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 27.1
+},
+{
+"chrom": 27,
+"hap": 1,
+"start_frac": 0.7383,
+"end_frac": 1.0,
+"breed": "POODLE_SMALL",
+"bar_pt": 27.1
+},
+{
+"chrom": 27,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.289,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 27.1
+},
+{
+"chrom": 27,
+"hap": 2,
+"start_frac": 0.289,
+"end_frac": 0.3471,
+"breed": "POODLE_SMALL",
+"bar_pt": 27.1
+},
+{
+"chrom": 27,
+"hap": 2,
+"start_frac": 0.3471,
+"end_frac": 0.3684,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 27.1
+},
+{
+"chrom": 27,
+"hap": 2,
+"start_frac": 0.3684,
+"end_frac": 0.3885,
+"breed": "POODLE_STANDARD",
+"bar_pt": 27.1
+},
+{
+"chrom": 27,
+"hap": 2,
+"start_frac": 0.3885,
+"end_frac": 0.3934,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 27.1
+},
+{
+"chrom": 27,
+"hap": 2,
+"start_frac": 0.3934,
+"end_frac": 0.6948,
+"breed": "POODLE_STANDARD",
+"bar_pt": 27.1
+},
+{
+"chrom": 27,
+"hap": 2,
+"start_frac": 0.6948,
+"end_frac": 0.7289,
+"breed": "POODLE_SMALL",
+"bar_pt": 27.1
+},
+{
+"chrom": 27,
+"hap": 2,
+"start_frac": 0.7289,
+"end_frac": 1.0,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 27.1
+},
+{
+"chrom": 28,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.4563,
+"breed": "POODLE_SMALL",
+"bar_pt": 24.4
+},
+{
+"chrom": 28,
+"hap": 1,
+"start_frac": 0.4563,
+"end_frac": 0.7207,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 24.4
+},
+{
+"chrom": 28,
+"hap": 1,
+"start_frac": 0.7207,
+"end_frac": 0.9678,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 24.4
+},
+{
+"chrom": 28,
+"hap": 1,
+"start_frac": 0.9678,
+"end_frac": 1.0,
+"breed": "POODLE_SMALL",
+"bar_pt": 24.4
+},
+{
+"chrom": 28,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.082,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 24.4
+},
+{
+"chrom": 28,
+"hap": 2,
+"start_frac": 0.082,
+"end_frac": 0.5945,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 24.4
+},
+{
+"chrom": 28,
+"hap": 2,
+"start_frac": 0.5945,
+"end_frac": 0.7773,
+"breed": "POODLE_STANDARD",
+"bar_pt": 24.4
+},
+{
+"chrom": 28,
+"hap": 2,
+"start_frac": 0.7773,
+"end_frac": 0.9533,
+"breed": "POODLE_SMALL",
+"bar_pt": 24.4
+},
+{
+"chrom": 28,
+"hap": 2,
+"start_frac": 0.9533,
+"end_frac": 0.9704,
+"breed": "POODLE_STANDARD",
+"bar_pt": 24.4
+},
+{
+"chrom": 28,
+"hap": 2,
+"start_frac": 0.9704,
+"end_frac": 1.0,
+"breed": "POODLE_SMALL",
+"bar_pt": 24.4
+},
+{
+"chrom": 29,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.2066,
+"breed": "POODLE_STANDARD",
+"bar_pt": 24.8
+},
+{
+"chrom": 29,
+"hap": 1,
+"start_frac": 0.2066,
+"end_frac": 0.4792,
+"breed": "POODLE_SMALL",
+"bar_pt": 24.8
+},
+{
+"chrom": 29,
+"hap": 1,
+"start_frac": 0.4792,
+"end_frac": 0.7755,
+"breed": "POODLE_STANDARD",
+"bar_pt": 24.8
+},
+{
+"chrom": 29,
+"hap": 1,
+"start_frac": 0.7755,
+"end_frac": 0.8303,
+"breed": "POODLE_SMALL",
+"bar_pt": 24.8
+},
+{
+"chrom": 29,
+"hap": 1,
+"start_frac": 0.8304,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 24.8
+},
+{
+"chrom": 29,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.1531,
+"breed": "POODLE_STANDARD",
+"bar_pt": 24.8
+},
+{
+"chrom": 29,
+"hap": 2,
+"start_frac": 0.1531,
+"end_frac": 0.2221,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 24.8
+},
+{
+"chrom": 29,
+"hap": 2,
+"start_frac": 0.2221,
+"end_frac": 0.3029,
+"breed": "POODLE_SMALL",
+"bar_pt": 24.8
+},
+{
+"chrom": 29,
+"hap": 2,
+"start_frac": 0.3029,
+"end_frac": 0.8112,
+"breed": "POODLE_STANDARD",
+"bar_pt": 24.8
+},
+{
+"chrom": 29,
+"hap": 2,
+"start_frac": 0.8112,
+"end_frac": 0.9382,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 24.8
+},
+{
+"chrom": 29,
+"hap": 2,
+"start_frac": 0.9382,
+"end_frac": 0.9794,
+"breed": "POODLE_STANDARD",
+"bar_pt": 24.8
+},
+{
+"chrom": 29,
+"hap": 2,
+"start_frac": 0.9795,
+"end_frac": 1.0,
+"breed": "POODLE_SMALL",
+"bar_pt": 24.8
+},
+{
+"chrom": 30,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.1761,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 23.8
+},
+{
+"chrom": 30,
+"hap": 1,
+"start_frac": 0.1761,
+"end_frac": 0.2571,
+"breed": "POODLE_SMALL",
+"bar_pt": 23.8
+},
+{
+"chrom": 30,
+"hap": 1,
+"start_frac": 0.2571,
+"end_frac": 0.6412,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 23.8
+},
+{
+"chrom": 30,
+"hap": 1,
+"start_frac": 0.6412,
+"end_frac": 0.7161,
+"breed": "POODLE_STANDARD",
+"bar_pt": 23.8
+},
+{
+"chrom": 30,
+"hap": 1,
+"start_frac": 0.7161,
+"end_frac": 0.86,
+"breed": "POODLE_SMALL",
+"bar_pt": 23.8
+},
+{
+"chrom": 30,
+"hap": 1,
+"start_frac": 0.86,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 23.8
+},
+{
+"chrom": 30,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.0847,
+"breed": "POODLE_STANDARD",
+"bar_pt": 23.8
+},
+{
+"chrom": 30,
+"hap": 2,
+"start_frac": 0.0847,
+"end_frac": 0.1879,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 23.8
+},
+{
+"chrom": 30,
+"hap": 2,
+"start_frac": 0.1879,
+"end_frac": 0.3611,
+"breed": "POODLE_SMALL",
+"bar_pt": 23.8
+},
+{
+"chrom": 30,
+"hap": 2,
+"start_frac": 0.3611,
+"end_frac": 0.4422,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 23.8
+},
+{
+"chrom": 30,
+"hap": 2,
+"start_frac": 0.4422,
+"end_frac": 0.574,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 23.8
+},
+{
+"chrom": 30,
+"hap": 2,
+"start_frac": 0.574,
+"end_frac": 0.6036,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 23.8
+},
+{
+"chrom": 30,
+"hap": 2,
+"start_frac": 0.6036,
+"end_frac": 0.6379,
+"breed": "POODLE_SMALL",
+"bar_pt": 23.8
+},
+{
+"chrom": 30,
+"hap": 2,
+"start_frac": 0.6379,
+"end_frac": 0.6412,
+"breed": "POODLE_STANDARD",
+"bar_pt": 23.8
+},
+{
+"chrom": 30,
+"hap": 2,
+"start_frac": 0.6412,
+"end_frac": 0.7817,
+"breed": "POODLE_SMALL",
+"bar_pt": 23.8
+},
+{
+"chrom": 30,
+"hap": 2,
+"start_frac": 0.7817,
+"end_frac": 1.0,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 23.8
+},
+{
+"chrom": 31,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.3537,
+"breed": "POODLE_STANDARD",
+"bar_pt": 23.6
+},
+{
+"chrom": 31,
+"hap": 1,
+"start_frac": 0.3537,
+"end_frac": 0.4002,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 23.6
+},
+{
+"chrom": 31,
+"hap": 1,
+"start_frac": 0.4002,
+"end_frac": 0.492,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 23.6
+},
+{
+"chrom": 31,
+"hap": 1,
+"start_frac": 0.492,
+"end_frac": 0.621,
+"breed": "POODLE_STANDARD",
+"bar_pt": 23.6
+},
+{
+"chrom": 31,
+"hap": 1,
+"start_frac": 0.6209,
+"end_frac": 0.6243,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 23.6
+},
+{
+"chrom": 31,
+"hap": 1,
+"start_frac": 0.6243,
+"end_frac": 1.0,
+"breed": "POODLE_SMALL",
+"bar_pt": 23.6
+},
+{
+"chrom": 31,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.2626,
+"breed": "POODLE_STANDARD",
+"bar_pt": 23.6
+},
+{
+"chrom": 31,
+"hap": 2,
+"start_frac": 0.2626,
+"end_frac": 0.3487,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 23.6
+},
+{
+"chrom": 31,
+"hap": 2,
+"start_frac": 0.3487,
+"end_frac": 0.3491,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 23.6
+},
+{
+"chrom": 31,
+"hap": 2,
+"start_frac": 0.3491,
+"end_frac": 0.3941,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 23.6
+},
+{
+"chrom": 31,
+"hap": 2,
+"start_frac": 0.3941,
+"end_frac": 0.4087,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 23.6
+},
+{
+"chrom": 31,
+"hap": 2,
+"start_frac": 0.4087,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 23.6
+},
+{
+"chrom": 32,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.0897,
+"breed": "POODLE_SMALL",
+"bar_pt": 23.0
+},
+{
+"chrom": 32,
+"hap": 1,
+"start_frac": 0.0897,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 23.0
+},
+{
+"chrom": 32,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.797,
+"breed": "POODLE_SMALL",
+"bar_pt": 23.0
+},
+{
+"chrom": 32,
+"hap": 2,
+"start_frac": 0.797,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 23.0
+},
+{
+"chrom": 33,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.6424,
+"breed": "POODLE_SMALL",
+"bar_pt": 18.6
+},
+{
+"chrom": 33,
+"hap": 1,
+"start_frac": 0.6424,
+"end_frac": 0.6543,
+"breed": "POODLE_STANDARD",
+"bar_pt": 18.6
+},
+{
+"chrom": 33,
+"hap": 1,
+"start_frac": 0.6543,
+"end_frac": 0.6579,
+"breed": "POODLE_SMALL",
+"bar_pt": 18.6
+},
+{
+"chrom": 33,
+"hap": 1,
+"start_frac": 0.6579,
+"end_frac": 0.6602,
+"breed": "POODLE_STANDARD",
+"bar_pt": 18.6
+},
+{
+"chrom": 33,
+"hap": 1,
+"start_frac": 0.6602,
+"end_frac": 0.6623,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 18.6
+},
+{
+"chrom": 33,
+"hap": 1,
+"start_frac": 0.6623,
+"end_frac": 0.7109,
+"breed": "POODLE_STANDARD",
+"bar_pt": 18.6
+},
+{
+"chrom": 33,
+"hap": 1,
+"start_frac": 0.7109,
+"end_frac": 0.8311,
+"breed": "POODLE_SMALL",
+"bar_pt": 18.6
+},
+{
+"chrom": 33,
+"hap": 1,
+"start_frac": 0.8311,
+"end_frac": 0.9844,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 18.6
+},
+{
+"chrom": 33,
+"hap": 1,
+"start_frac": 0.9844,
+"end_frac": 1.0,
+"breed": "POODLE_SMALL",
+"bar_pt": 18.6
+},
+{
+"chrom": 33,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.384,
+"breed": "POODLE_SMALL",
+"bar_pt": 18.6
+},
+{
+"chrom": 33,
+"hap": 2,
+"start_frac": 0.384,
+"end_frac": 0.6579,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 18.6
+},
+{
+"chrom": 33,
+"hap": 2,
+"start_frac": 0.6579,
+"end_frac": 0.6602,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 18.6
+},
+{
+"chrom": 33,
+"hap": 2,
+"start_frac": 0.6602,
+"end_frac": 0.6623,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 18.6
+},
+{
+"chrom": 33,
+"hap": 2,
+"start_frac": 0.6623,
+"end_frac": 1.0,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 18.6
+},
+{
+"chrom": 34,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.4331,
+"breed": "POODLE_STANDARD",
+"bar_pt": 25.0
+},
+{
+"chrom": 34,
+"hap": 1,
+"start_frac": 0.4331,
+"end_frac": 0.6388,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 25.0
+},
+{
+"chrom": 34,
+"hap": 1,
+"start_frac": 0.6388,
+"end_frac": 0.6496,
+"breed": "POODLE_SMALL",
+"bar_pt": 25.0
+},
+{
+"chrom": 34,
+"hap": 1,
+"start_frac": 0.6496,
+"end_frac": 0.7826,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 25.0
+},
+{
+"chrom": 34,
+"hap": 1,
+"start_frac": 0.7826,
+"end_frac": 0.8373,
+"breed": "POODLE_STANDARD",
+"bar_pt": 25.0
+},
+{
+"chrom": 34,
+"hap": 1,
+"start_frac": 0.8373,
+"end_frac": 0.8437,
+"breed": "POODLE_SMALL",
+"bar_pt": 25.0
+},
+{
+"chrom": 34,
+"hap": 1,
+"start_frac": 0.8437,
+"end_frac": 0.8513,
+"breed": "POODLE_STANDARD",
+"bar_pt": 25.0
+},
+{
+"chrom": 34,
+"hap": 1,
+"start_frac": 0.8513,
+"end_frac": 0.8709,
+"breed": "POODLE_SMALL",
+"bar_pt": 25.0
+},
+{
+"chrom": 34,
+"hap": 1,
+"start_frac": 0.8709,
+"end_frac": 0.9554,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 25.0
+},
+{
+"chrom": 34,
+"hap": 1,
+"start_frac": 0.9554,
+"end_frac": 0.9927,
+"breed": "POODLE_SMALL",
+"bar_pt": 25.0
+},
+{
+"chrom": 34,
+"hap": 1,
+"start_frac": 0.9927,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 25.0
+},
+{
+"chrom": 34,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.583,
+"breed": "POODLE_STANDARD",
+"bar_pt": 25.0
+},
+{
+"chrom": 34,
+"hap": 2,
+"start_frac": 0.583,
+"end_frac": 0.6059,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 25.0
+},
+{
+"chrom": 34,
+"hap": 2,
+"start_frac": 0.6059,
+"end_frac": 0.7565,
+"breed": "POODLE_STANDARD",
+"bar_pt": 25.0
+},
+{
+"chrom": 34,
+"hap": 2,
+"start_frac": 0.7565,
+"end_frac": 0.7973,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 25.0
+},
+{
+"chrom": 34,
+"hap": 2,
+"start_frac": 0.7973,
+"end_frac": 0.8159,
+"breed": "POODLE_SMALL",
+"bar_pt": 25.0
+},
+{
+"chrom": 34,
+"hap": 2,
+"start_frac": 0.8159,
+"end_frac": 1.0,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 25.0
+},
+{
+"chrom": 35,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.297,
+"breed": "POODLE_SMALL",
+"bar_pt": 15.7
+},
+{
+"chrom": 35,
+"hap": 1,
+"start_frac": 0.297,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 15.7
+},
+{
+"chrom": 35,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.9072,
+"breed": "POODLE_STANDARD",
+"bar_pt": 15.7
+},
+{
+"chrom": 35,
+"hap": 2,
+"start_frac": 0.9072,
+"end_frac": 1.0,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 15.7
+},
+{
+"chrom": 36,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.053,
+"breed": "POODLE_SMALL",
+"bar_pt": 18.3
+},
+{
+"chrom": 36,
+"hap": 1,
+"start_frac": 0.053,
+"end_frac": 0.1169,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 18.3
+},
+{
+"chrom": 36,
+"hap": 1,
+"start_frac": 0.1169,
+"end_frac": 0.241,
+"breed": "POODLE_SMALL",
+"bar_pt": 18.3
+},
+{
+"chrom": 36,
+"hap": 1,
+"start_frac": 0.241,
+"end_frac": 0.2797,
+"breed": "POODLE_STANDARD",
+"bar_pt": 18.3
+},
+{
+"chrom": 36,
+"hap": 1,
+"start_frac": 0.2797,
+"end_frac": 0.3726,
+"breed": "POODLE_SMALL",
+"bar_pt": 18.3
+},
+{
+"chrom": 36,
+"hap": 1,
+"start_frac": 0.3726,
+"end_frac": 0.39,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 18.3
+},
+{
+"chrom": 36,
+"hap": 1,
+"start_frac": 0.39,
+"end_frac": 0.4096,
+"breed": "POODLE_SMALL",
+"bar_pt": 18.3
+},
+{
+"chrom": 36,
+"hap": 1,
+"start_frac": 0.4096,
+"end_frac": 0.4182,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 18.3
+},
+{
+"chrom": 36,
+"hap": 1,
+"start_frac": 0.4182,
+"end_frac": 0.6036,
+"breed": "POODLE_SMALL",
+"bar_pt": 18.3
+},
+{
+"chrom": 36,
+"hap": 1,
+"start_frac": 0.6036,
+"end_frac": 0.7493,
+"breed": "POODLE_STANDARD",
+"bar_pt": 18.3
+},
+{
+"chrom": 36,
+"hap": 1,
+"start_frac": 0.7493,
+"end_frac": 0.7915,
+"breed": "POODLE_SMALL",
+"bar_pt": 18.3
+},
+{
+"chrom": 36,
+"hap": 1,
+"start_frac": 0.7915,
+"end_frac": 0.9586,
+"breed": "POODLE_STANDARD",
+"bar_pt": 18.3
+},
+{
+"chrom": 36,
+"hap": 1,
+"start_frac": 0.9586,
+"end_frac": 1.0,
+"breed": "POODLE_SMALL",
+"bar_pt": 18.3
+},
+{
+"chrom": 36,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.0423,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 18.3
+},
+{
+"chrom": 36,
+"hap": 2,
+"start_frac": 0.0423,
+"end_frac": 0.0913,
+"breed": "POODLE_STANDARD",
+"bar_pt": 18.3
+},
+{
+"chrom": 36,
+"hap": 2,
+"start_frac": 0.0913,
+"end_frac": 0.8836,
+"breed": "POODLE_SMALL",
+"bar_pt": 18.3
+},
+{
+"chrom": 36,
+"hap": 2,
+"start_frac": 0.8836,
+"end_frac": 0.9793,
+"breed": "POODLE_STANDARD",
+"bar_pt": 18.3
+},
+{
+"chrom": 36,
+"hap": 2,
+"start_frac": 0.9793,
+"end_frac": 0.9833,
+"breed": "POODLE_SMALL",
+"bar_pt": 18.3
+},
+{
+"chrom": 36,
+"hap": 2,
+"start_frac": 0.9833,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 18.3
+},
+{
+"chrom": 37,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.5118,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 18.2
+},
+{
+"chrom": 37,
+"hap": 1,
+"start_frac": 0.5118,
+"end_frac": 0.8051,
+"breed": "POODLE_STANDARD",
+"bar_pt": 18.2
+},
+{
+"chrom": 37,
+"hap": 1,
+"start_frac": 0.8051,
+"end_frac": 0.8649,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 18.2
+},
+{
+"chrom": 37,
+"hap": 1,
+"start_frac": 0.8649,
+"end_frac": 0.883,
+"breed": "POODLE_SMALL",
+"bar_pt": 18.2
+},
+{
+"chrom": 37,
+"hap": 1,
+"start_frac": 0.883,
+"end_frac": 0.9062,
+"breed": "ENGLISH_COCKER_SPANIEL",
+"bar_pt": 18.2
+},
+{
+"chrom": 37,
+"hap": 1,
+"start_frac": 0.9062,
+"end_frac": 1.0,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 18.2
+},
+{
+"chrom": 37,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.2182,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 18.2
+},
+{
+"chrom": 37,
+"hap": 2,
+"start_frac": 0.2182,
+"end_frac": 0.2547,
+"breed": "POODLE_STANDARD",
+"bar_pt": 18.2
+},
+{
+"chrom": 37,
+"hap": 2,
+"start_frac": 0.2547,
+"end_frac": 0.2963,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 18.2
+},
+{
+"chrom": 37,
+"hap": 2,
+"start_frac": 0.2963,
+"end_frac": 0.3135,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 18.2
+},
+{
+"chrom": 37,
+"hap": 2,
+"start_frac": 0.3135,
+"end_frac": 0.4529,
+"breed": "POODLE_STANDARD",
+"bar_pt": 18.2
+},
+{
+"chrom": 37,
+"hap": 2,
+"start_frac": 0.4529,
+"end_frac": 0.7501,
+"breed": "POODLE_SMALL",
+"bar_pt": 18.2
+},
+{
+"chrom": 37,
+"hap": 2,
+"start_frac": 0.7501,
+"end_frac": 1.0,
+"breed": "POODLE_STANDARD",
+"bar_pt": 18.2
+},
+{
+"chrom": 38,
+"hap": 1,
+"start_frac": 0.0,
+"end_frac": 0.9193,
+"breed": "POODLE_SMALL",
+"bar_pt": 14.2
+},
+{
+"chrom": 38,
+"hap": 1,
+"start_frac": 0.9193,
+"end_frac": 0.9829,
+"breed": "POODLE_STANDARD",
+"bar_pt": 14.2
+},
+{
+"chrom": 38,
+"hap": 1,
+"start_frac": 0.9829,
+"end_frac": 1.0,
+"breed": "POODLE_SMALL",
+"bar_pt": 14.2
+},
+{
+"chrom": 38,
+"hap": 2,
+"start_frac": 0.0,
+"end_frac": 0.5461,
+"breed": "POODLE_STANDARD",
+"bar_pt": 14.2
+},
+{
+"chrom": 38,
+"hap": 2,
+"start_frac": 0.5461,
+"end_frac": 0.5536,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 14.2
+},
+{
+"chrom": 38,
+"hap": 2,
+"start_frac": 0.5536,
+"end_frac": 0.6947,
+"breed": "LABRADOR_RETRIEVER",
+"bar_pt": 14.2
+},
+{
+"chrom": 38,
+"hap": 2,
+"start_frac": 0.6947,
+"end_frac": 0.8567,
+"breed": "POODLE_STANDARD",
+"bar_pt": 14.2
+},
+{
+"chrom": 38,
+"hap": 2,
+"start_frac": 0.8567,
+"end_frac": 0.9555,
+"breed": "POODLE_SMALL",
+"bar_pt": 14.2
+},
+{
+"chrom": 38,
+"hap": 2,
+"start_frac": 0.9555,
+"end_frac": 1.0,
+"breed": "COCKER_SPANIEL",
+"bar_pt": 14.2
+}
+]
