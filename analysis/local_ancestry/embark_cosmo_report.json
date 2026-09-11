@@ -1,0 +1,60 @@
+{
+  "source": "Embark DNA Test Report, COSMO, test date 2020-12-02, kit EM-1135731, swab 31019100104299 (~/Downloads/MDN78-XKDPP-3EWKZ-4R25P.pdf, 37 pages; painting extracted separately into embark_cosmo_segments.json)",
+  "breed_mix": {
+    "Poodle (Standard)": 40.2, "Poodle (Small)": 34.9, "Labrador Retriever": 10.4,
+    "Cocker Spaniel": 9.4, "English Cocker Spaniel": 5.1
+  },
+  "family_tree": {
+    "parents": ["Mixed", "Mixed"],
+    "grandparents": ["Poodle (Standard) / Cocker Spaniel mix", "Poodle (Small) / English Cocker Spaniel mix", "Poodle (Standard) mix", "Poodle (Small) / Labrador Retriever mix"],
+    "great_grandparents": ["Poodle (Standard)", "Cocker Spaniel mix", "Poodle (Small)", "English Cocker Spaniel mix", "Poodle (Standard)", "Poodle (Standard) mix", "Poodle (Small)", "Labrador Retriever"]
+  },
+  "genetic_stats": {
+    "wolfiness_pct": 2.8, "wolfiness_flag": "HIGH",
+    "predicted_adult_weight_lb": 33,
+    "inbreeding_coi_pct": 10,
+    "mhc_drb1": "High Diversity", "mhc_dqa1_dqb1": "High Diversity"
+  },
+  "maternal_line": {"haplogroup": "B1", "haplotype": "B84"},
+  "paternal_line": {"haplogroup": "A1a", "haplotype": "H1a.59"},
+  "traits": {
+    "E_MC1R": {"genotype": "ee", "call": "light colored fur (cream to red); no dark hairs; no mask"},
+    "I_intensity": {"genotype": "Intermediate", "call": "likely yellow or tan"},
+    "B_TYRP1": {"genotype": "Bb", "call": "black pigment nose/feet (carrier)"},
+    "D_MLPH": {"genotype": "DD", "call": "non-dilute"},
+    "K_CBD103": {"genotype": "KBKB", "call": "dominant black (masked by ee)"},
+    "A_ASIP": {"genotype": "atat", "call": "no impact (ee, KBKB)"},
+    "RALY_saddle": {"genotype": "II"},
+    "S_MITF": {"genotype": "SS", "call": "little to no white"},
+    "M_PMEL": {"genotype": "mm", "call": "non-merle"},
+    "H_PSMB7": {"genotype": "hh", "call": "non-harlequin"},
+    "furnishings_RSPO2": {"genotype": "FF", "call": "furnished (beard/eyebrows)"},
+    "coat_length_FGF5": {"genotype": "LhLh", "call": "long coat"},
+    "shedding_MC5R": {"genotype": "CT", "call": "light shedding (furnished)"},
+    "coat_texture_KRT71": {"genotype": "CC", "call": "wavy (via furnishings)"},
+    "hairless_FOXI3": {"genotype": "NN"}, "hairless_SGK3": {"genotype": "NN"}, "albinism_SLC45A2": {"genotype": "NN"},
+    "muzzle_BMP3": {"genotype": "AC", "call": "medium or long muzzle"},
+    "tail_T": {"genotype": "CC", "call": "normal tail"},
+    "hind_dewclaws_LMBR1": {"genotype": "CC", "call": "unlikely"},
+    "back_muscling_ACSL4": {"genotype": "CC", "call": "normal"},
+    "eye_color_ALX4": {"genotype": "NN", "call": "less likely blue"},
+    "size_IGF1": "NN (larger)", "size_IGFR1": "GA (intermediate)", "size_STC2": "TT (larger)",
+    "size_GHR_E191K": "GA (intermediate)", "size_GHR_P177L": "CC (larger)",
+    "altitude_EPAS1": {"genotype": "GG"}, "appetite_POMC": {"genotype": "NN", "call": "normal food motivation"}
+  },
+  "health": {
+    "summary": "Cosmo is not at increased risk for the genetic health conditions that Embark tests.",
+    "n_breed_relevant_clear": 25, "n_other_clear": 172, "n_total_tested": 197, "n_at_risk_or_carrier": 0,
+    "breed_relevant_conditions": [
+      "Acral Mutilation Syndrome (GDNF-AS)", "Alexander Disease (GFAP)", "Canine Elliptocytosis (SPTB)",
+      "Centronuclear Myopathy (PTPLA/HACD1)", "Congenital Myasthenic Syndrome (COLQ, Lab)", "Day Blindness (CNGA3, Lab)",
+      "Degenerative Myelopathy (SOD1A)", "Exercise-Induced Collapse (DNM1)", "Familial Nephropathy (COL4A4, Cocker)",
+      "PFK Deficiency (PFKM)", "GM2 Gangliosidosis (HEXB, Poodle)", "GR-PRA2 (TTC8)", "HNPK (SUV39H2)",
+      "IVDD Type I (FGF4 retrogene CFA12)", "Macular Corneal Dystrophy (CHST6)", "Narcolepsy (HCRTR2, Lab)",
+      "NEWS (ATF2)", "Osteochondrodysplasia (SLC13A1, Poodle)", "PRA crd4/cord1 (RPGRIP1)", "PRA prcd (PRCD)",
+      "Pyruvate Kinase Deficiency (PKLR, Lab)", "Skeletal Dysplasia 2 (COL11A2, Lab)", "Urate Stones (SLC2A9)",
+      "vWD Type I (VWF)", "X-Linked Myotubular Myopathy (MTM1, Lab)"
+    ],
+    "notable_other_clear": ["MDR1 Drug Sensitivity (ABCB1)", "Malignant Hyperthermia (RYR1)", "Primary Lens Luxation (ADAMTS17)", "Collie Eye Anomaly (NHEJ1)", "Hereditary Cataracts (HSF4)", "Juvenile Epilepsy (LGI2)"]
+  }
+}
