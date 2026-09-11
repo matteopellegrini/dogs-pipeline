@@ -26,13 +26,18 @@ What this script does
      M2L same in log space          log y ~ sum_b w_b * p_b
      M3  M2 stacked with genomic covariates (prs_z, DA size PRS, dense pred,
          height) via inner out-of-fold breed predictions + OLS
+     M2B/M3B* bounded log-space breed model (+ stacks); M3BL_da_sex adds the
+         X-coverage sex call as a male multiplier (males ~+17%)
    and reports r, MAE, bias overall and per actual-weight bin.
 4. Refits the chosen model on all adults and writes
    reference_json/weight_breed_model.json for stage 11.
 
 Usage
 -----
-  fit_weight_model.py <kits_dir> <weights.tsv> <age_weight.tsv> <run_dog_pipeline.sh> <out_dir>
+  fit_weight_model.py <kits_dir> <weights.tsv> <age_weight.tsv> <run_dog_pipeline.sh> <out_dir> [winner] [sex.tsv]
+
+sex.tsv is kit<TAB>male|female (the pipeline's X-coverage call, `_meta.predicted_sex`
+in each kit's coverage_1mb.json); with it the *_sex models become available.
 
 kits_dir holds pk-<kit>/{breed_result.json,prs_result.json}; weights.tsv is
 kit<TAB>weight_lb; age_weight.tsv is sample_id<TAB>age<TAB>weight (age in years).
@@ -243,6 +248,13 @@ def fit_nnls_huber(X, y, prior, lam, c=HUBER_C, iters=10):
 def main():
     kits_dir, weights_tsv, age_tsv, pipeline_sh, out_dir = sys.argv[1:6]
     os.makedirs(out_dir, exist_ok=True)
+    sex = {}
+    if len(sys.argv) > 7:
+        for line in open(sys.argv[7]):
+            f = line.split()
+            if len(f) >= 2 and f[1] in ('male', 'female'):
+                sex[f[0]] = f[1]
+        print(f'{len(sex)} kits with a sex call')
 
     weight_lb = {}
     for line in open(weights_tsv):
@@ -279,7 +291,8 @@ def main():
                      'dense': float(wk.get('pred_kg_dense', wk['pred_kg'])),
                      'prs_z': float(wk.get('prs_z', 0.0)),
                      'da': float(wk.get('da_size_prs', 0.0)),
-                     'height': float(pr['physical_traits'].get('height_cm', {}).get('pred_cm', np.nan))})
+                     'height': float(pr['physical_traits'].get('height_cm', {}).get('pred_cm', np.nan)),
+                     'male': {'male': 1.0, 'female': 0.0}.get(sex.get(kit), np.nan)})
     print(f'{len(rows)} dogs with weight + breed_result + prs_result')
 
     breeds = sorted({b for r in rows for b in r['comp']})
@@ -305,6 +318,10 @@ def main():
     # trimmed (<5e-5 dropped in stage 9) still sums to 1.
     X = X / np.maximum(X.sum(1, keepdims=True), 1e-9)
     pred0 = np.array([r['pred'] for r in rows])
+    male = np.array([r['male'] for r in rows])
+    have_sex = bool(sex) and np.isfinite(male).all()
+    if sex and not have_sex:
+        print(f'  {int(np.isnan(male).sum())} adults lack a sex call; *_sex models skipped')
     cov_all = np.column_stack([[r['prs_z'] for r in rows], [r['da'] for r in rows],
                                [r['dense'] for r in rows], [r['height'] for r in rows]])
     cov_all = np.where(np.isnan(cov_all), np.nanmean(cov_all, 0), cov_all)
@@ -325,7 +342,8 @@ def main():
     oof = {k: np.zeros((N_REPEATS, n)) for k in
            ['M0', 'P0', 'M1', 'M1Q', 'M1H', 'M1L', 'M2_mean', 'M2_akc', 'M2H_akc', 'M2L_akc',
             'M3_prs_z', 'M3_da', 'M3_dense', 'M3_height', 'M3_all', 'M3_blend', 'M3H_blend',
-            'M2B', 'M3B_blend', 'M3BH_blend', 'M3BH_da', 'M3BL_da', 'M3BL_blend', 'M3BL_both']}
+            'M2B', 'M3B_blend', 'M3BH_blend', 'M3BH_da', 'M3BL_da', 'M3BL_blend', 'M3BL_both']
+           + (['M3BL_da_sex'] if have_sex else [])}
     lam_chosen = {'M2_mean': [], 'M2_akc': [], 'M2L_akc': [], 'M2B': []}
     for rep in range(N_REPEATS):
         for te in folds(n, rep):
@@ -390,6 +408,9 @@ def main():
                                   [np.log(outer_b), np.log(pred0[te]), cov_all[te][:, 1]])]:
                 b = huber_ols(np.column_stack(cols_tr), ly, c=LOG_HUBER_C)
                 oof[name][rep, te] = np.exp(b[0] + np.column_stack(cols_te) @ b[1:])
+            if have_sex:
+                b = huber_ols(np.column_stack([np.log(inner_b), cov_all[tr][:, 1], male[tr]]), ly, c=LOG_HUBER_C)
+                oof['M3BL_da_sex'][rep, te] = np.exp(b[0] + np.column_stack([np.log(outer_b), cov_all[te][:, 1], male[te]]) @ b[1:])
 
     print(f'\n{N_REPEATS}x{N_FOLDS}-fold CV on {n} adults (mean over repeats; per-bin bias kg (%) for actual '
           + ', '.join(f'{lo}-{hi}' for lo, hi in BINS) + ' kg):')
@@ -438,7 +459,7 @@ def main():
               + (f"   vs M1 {s1[0]:+5.2f} [{s1[1]:+5.2f},{s1[2]:+5.2f}]" if s1 else ''))
 
     # ── choose winner (lowest CV MAE; tie -> simpler) ───────────────────────
-    order = ['M1', 'M1H', 'M1Q', 'M1L', 'M2_mean', 'M2_akc', 'M2H_akc', 'M2L_akc', 'M3_prs_z', 'M3_da', 'M3_dense', 'M3_height', 'M3_all', 'M3_blend', 'M3H_blend', 'M2B', 'M3B_blend', 'M3BH_blend', 'M3BH_da', 'M3BL_da', 'M3BL_blend', 'M3BL_both']
+    order = ['M1', 'M1H', 'M1Q', 'M1L', 'M2_mean', 'M2_akc', 'M2H_akc', 'M2L_akc', 'M3_prs_z', 'M3_da', 'M3_dense', 'M3_height', 'M3_all', 'M3_blend', 'M3H_blend', 'M2B', 'M3B_blend', 'M3BH_blend', 'M3BH_da', 'M3BL_da', 'M3BL_blend', 'M3BL_both'] + (['M3BL_da_sex'] if have_sex else [])
     winner = min(order, key=lambda k: (round(summary[k]['mae'], 2), order.index(k)))
     print(f'\nLowest CV MAE: {winner}')
     if len(sys.argv) > 6:
@@ -454,7 +475,7 @@ def main():
              'cv': {'design': f'{N_REPEATS}x{N_FOLDS}-fold, lambda by nested CV',
                     'summary': summary, 'winner': winner},
              'breeds': breeds}
-    if winner in ('M2B', 'M3B_blend', 'M3BH_blend', 'M3BH_da', 'M3BL_da', 'M3BL_blend', 'M3BL_both'):
+    if winner in ('M2B', 'M3B_blend', 'M3BH_blend', 'M3BH_da', 'M3BL_da', 'M3BL_blend', 'M3BL_both', 'M3BL_da_sex'):
         ly = np.log(y)
         lpr = np.log(marginal_prior(X, y, prior_akc))
         lam_b = float(np.median(lam_chosen['M2B']))
@@ -467,14 +488,19 @@ def main():
         if winner.startswith('M3BL'):
             inner_b = box_inner_oof(X, ly, lpr, lam_b, 0)
             cols = {'M3BL_da': [cov_all[:, 1]], 'M3BL_blend': [np.log(pred0)],
-                    'M3BL_both': [np.log(pred0), cov_all[:, 1]]}[winner]
+                    'M3BL_both': [np.log(pred0), cov_all[:, 1]],
+                    'M3BL_da_sex': [cov_all[:, 1], male]}[winner]
             names = {'M3BL_da': ['da_size_prs'], 'M3BL_blend': ['log_pred_kg_current'],
-                     'M3BL_both': ['log_pred_kg_current', 'da_size_prs']}[winner]
+                     'M3BL_both': ['log_pred_kg_current', 'da_size_prs'],
+                     'M3BL_da_sex': ['da_size_prs', 'male']}[winner]
             b = huber_ols(np.column_stack([np.log(inner_b)] + cols), ly, c=LOG_HUBER_C)
             model['stack'] = {'space': 'log', 'intercept': float(b[0]), 'coef_log_breed_pred': float(b[1]),
                               'covariates': {nm: float(b[2 + j]) for j, nm in enumerate(names)},
                               'robust': f'Huber c={LOG_HUBER_C} in log space',
-                              'formula': 'pred_kg = exp(intercept + coef_log_breed_pred*log(breed_pred_kg) + sum(coef*cov))'}
+                              'formula': 'pred_kg = exp(intercept + coef_log_breed_pred*log(breed_pred_kg) + sum(coef*cov)); male is 1/0 from the X-coverage sex call, 0.5 if unknown'}
+            if winner == 'M3BL_da_sex':
+                model['stack']['male_multiplier'] = round(float(np.exp(b[3])), 4)
+                model['stack']['n_male'] = int(male.sum()); model['stack']['n_female'] = int((1 - male).sum())
         elif winner != 'M2B':
             inner_b = box_inner_oof(X, ly, lpr, lam_b, 0)
             col = pred0 if winner != 'M3BH_da' else cov_all[:, 1]

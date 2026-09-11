@@ -1,5 +1,5 @@
 {
- "model": "M3BL_da",
+ "model": "M3BL_da_sex",
  "n_train": 577,
  "min_age_years": 1.0,
  "truth": "ProsperK9 customer-reported weights (lb), adults only",
@@ -1147,9 +1147,57 @@
      -0.5970166279578483,
      -0.14230472212116838
     ]
+   },
+   "M3BL_da_sex": {
+    "n": 577,
+    "r": 0.7390995236570832,
+    "mae": 5.588337539834803,
+    "bias": -1.347085407924203,
+    "slope": 0.5538981208476356,
+    "bin_0_8": {
+     "n": 110.0,
+     "mae": 2.3651848876488195,
+     "bias": 1.7744483128198105,
+     "bias_pct": 31.657343215991254
+    },
+    "bin_8_15": {
+     "n": 82.0,
+     "mae": 3.4549521875917373,
+     "bias": 1.096043817134913,
+     "bias_pct": 9.70473281338207
+    },
+    "bin_15_25": {
+     "n": 175.0,
+     "mae": 4.31829709165467,
+     "bias": 1.9504449463726268,
+     "bias_pct": 9.198457822589795
+    },
+    "bin_25_40": {
+     "n": 159.0,
+     "mae": 5.661832846209879,
+     "bias": -2.537011232545372,
+     "bias_pct": -8.128309068317726
+    },
+    "bin_40_999": {
+     "n": 51.0,
+     "mae": 20.099233919095106,
+     "bias": -19.61326014564711,
+     "bias_pct": -38.60695141276476
+    },
+    "calib_by_pred": "M3BL_da_sex   -0.3(  -5%) n=96    -0.2(  -1%) n=83    -2.9( -12%) n=177   -1.6(  -5%) n=202   +6.0( +16%) n=16  ",
+    "dmae_vs_M0": [
+     -0.8964463265621345,
+     -1.1959656806582846,
+     -0.5989777648303678
+    ],
+    "dmae_vs_M1": [
+     -0.5196998679170824,
+     -0.7618205845022117,
+     -0.2812585193096746
+    ]
    }
   },
-  "winner": "M3BL_da"
+  "winner": "M3BL_da_sex"
  },
  "breeds": [
   "AFGHAN_HOUND",
@@ -1857,12 +1905,16 @@
  "default_kg": 17.783,
  "stack": {
   "space": "log",
-  "intercept": 0.7566546496871689,
-  "coef_log_breed_pred": 0.7274031542601418,
+  "intercept": 0.5649425564155824,
+  "coef_log_breed_pred": 0.764120050061778,
   "covariates": {
-   "da_size_prs": 0.0002505280797901847
+   "da_size_prs": 0.00023404822460173282,
+   "male": 0.16050815324222628
   },
   "robust": "Huber c=0.3 in log space",
-  "formula": "pred_kg = exp(intercept + coef_log_breed_pred*log(breed_pred_kg) + sum(coef*cov))"
+  "formula": "pred_kg = exp(intercept + coef_log_breed_pred*log(breed_pred_kg) + sum(coef*cov)); male is 1/0 from the X-coverage sex call, 0.5 if unknown",
+  "male_multiplier": 1.1741,
+  "n_male": 309,
+  "n_female": 268
  }
 }

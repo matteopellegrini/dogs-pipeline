@@ -3333,19 +3333,23 @@ if not np.isnan(z_w):
 #     is a per-breed adult weight fit by box-constrained ridge in log space
 #     (each W_b within 1.5x of its prior: AKC breed-standard weight where the
 #     label joins, proportion-weighted marginal mean otherwise);
-#   pred_kg = exp(a + b*log(breed_pred) + c*da_size_prs), Huber fit (label
-#     noise: 65-77 kg "pit mixes"), so the PRS acts multiplicatively.
-# CV: r=0.73, MAE 5.7 kg, bias -1.4 kg (median-type predictor) vs the blend's
-# 0.73 / 6.5 / +0.4 on the same dogs (paired-bootstrap MAE gain 0.76 kg,
-# 95% CI 0.49-1.04). Bias by actual weight: <8 kg +31%, 8-15 +11%, 15-25 +10%,
-# 25-40 -10%, >40 kg -40% (blend: +7/+18/+24/+1/-34%); by predicted weight the
-# model is within +-6% below 15 kg and -13/-4/+19% above. The residual
-# regression-to-the-mean is what r=0.73 implies; the >40 kg shortfall is
-# dominated by self-reported 65-77 kg dogs whose ancestry predicts ~28 kg.
-# Adding the LMM prs_z, dense pred or height as extra covariates added no
-# skill (MAE within 0.1 kg of the recalibrated blend); the breed model alone
-# (no PRS) is MAE 5.9 kg. Falls back to the old blend if the model JSON or
-# breed_result.json is unavailable.
+#   pred_kg = exp(a + b*log(breed_pred) + c*da_size_prs + d*male), Huber fit
+#     (label noise: 65-77 kg "pit mixes"), so the PRS and sex act
+#     multiplicatively. male = 1/0 from the stage-6 X-coverage sex call
+#     (coverage_1mb.json _meta.predicted_sex), 0.5 if missing; fitted
+#     multiplier x1.17 for males (309 M / 268 F), in line with breed standards.
+# CV: r=0.74, MAE 5.6 kg, bias -1.3 kg (median-type predictor) vs the blend's
+# 0.73 / 6.5 / +0.4 on the same dogs (paired-bootstrap MAE gain 0.90 kg,
+# 95% CI 0.60-1.20; without the sex term 0.76). Bias by actual weight: <8 kg
+# +32%, 8-15 +10%, 15-25 +9%, 25-40 -8%, >40 kg -39% (blend:
+# +7/+18/+24/+1/-34%); by predicted weight the model is within +-5% below
+# 15 kg and -12/-5/+16% above. The residual regression-to-the-mean is what
+# r=0.74 implies; the >40 kg shortfall is dominated by self-reported 65-77 kg
+# dogs whose ancestry predicts ~28 kg. Adding the LMM prs_z, dense pred,
+# height, targeted size loci or Darwin's Ark-trained breed scores as extra
+# covariates added no skill; the breed model alone (no PRS) is MAE 5.9 kg.
+# Falls back to the old blend if the model JSON or breed_result.json is
+# unavailable.
 if 'weight_kg' in phys_traits:
     with open("$REF_JSON/darwins_ark_blend.json") as _f:
         _DAB = json.load(_f)
@@ -3408,19 +3412,33 @@ if 'weight_kg' in phys_traits:
         _log_bp = sum(p * np.log(max(_wbw.get(b, _wbm['default_kg']), 0.5)) for b, p in _wcomp) / _tot
         _breed_kg = float(np.exp(_log_bp))
         _st = _wbm['stack']
+        # sex from the stage-6 X-coverage call; 0.5 (sex-neutral) if missing
+        _sex_call, _male = None, 0.5
+        try:
+            with open(f'{PUB}/coverage_1mb.json') as _f:
+                _sex_call = json.load(_f).get('_meta', {}).get('predicted_sex')
+            _male = {'male': 1.0, 'female': 0.0}.get(_sex_call, 0.5)
+        except Exception:
+            pass
         _log_pred = (_st['intercept'] + _st['coef_log_breed_pred'] * _log_bp
-                     + _st['covariates'].get('da_size_prs', 0.0) * _da_prs)
+                     + _st['covariates'].get('da_size_prs', 0.0) * _da_prs
+                     + _st['covariates'].get('male', 0.0) * _male)
         _final_kg = float(np.clip(np.exp(_log_pred), 1, 120))
         _cv = _wbm['cv']['summary'][_wbm['model']]
+        _sex_txt = ({'male': 'a male', 'female': 'a female'}.get(_sex_call, 'unknown sex')
+                    if 'male' in _st['covariates'] else None)
         phys_traits['weight_kg'].update({
             'pred_kg': round(_final_kg, 1),
             'pred_lbs': round(_final_kg * 2.205, 1),
             'pred_kg_breed': round(_breed_kg, 1),
+            'sex_used': _sex_call if 'male' in _st['covariates'] else None,
             'method_note': (f"Breed-composition adult-weight model (per-breed weights fit to "
                             f"{_wbm['n_train']} ProsperK9 customer-reported adult weights, "
                             f"box-constrained to 1.5x the AKC breed-standard prior) combined "
-                            f"multiplicatively with the Darwin's Ark size PRS (Morrill 2022). "
-                            f"Cross-validated on those {_wbm['n_train']} dogs (never in-sample): "
+                            f"multiplicatively with the Darwin's Ark size PRS (Morrill 2022)"
+                            + (f" and the dog's sex from X-chromosome coverage (this dog: {_sex_txt}; "
+                               f"males run x{_st.get('male_multiplier', 1.0):.2f} heavier)" if _sex_txt else '')
+                            + f". Cross-validated on those {_wbm['n_train']} dogs (never in-sample): "
                             f"r={_cv['r']:.2f}, MAE {_cv['mae']:.1f} kg, bias {_cv['bias']:+.1f} kg; "
                             f"the prediction is a typical adult weight for this ancestry and "
                             f"does not see body condition, so individual dogs differ from it by "
@@ -3433,7 +3451,8 @@ if 'weight_kg' in phys_traits:
                                               'note': 'same 577 adults; 878 incl. puppies: r 0.63, MAE 8.2, bias +4.1'}},
         })
         print(f"  Weight: {_final_kg:.1f}kg (breed model {_breed_kg:.1f}kg, DA prs {_da_prs:.1f}, "
-              f"{_da_matched}/{len(_da_rows)} sites; old blend {_blend_kg:.1f}kg, dense {_dense_kg:.1f}kg)")
+              f"sex {_sex_call}, {_da_matched}/{len(_da_rows)} sites; old blend {_blend_kg:.1f}kg, "
+              f"dense {_dense_kg:.1f}kg)")
     else:
         phys_traits['weight_kg'].update({
             'pred_kg': round(_blend_kg, 1),

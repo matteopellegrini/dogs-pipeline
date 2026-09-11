@@ -74,14 +74,16 @@ M3BL_both     -0.4(  -6%) n=100   -0.3(  -2%) n=80    -3.4( -14%) n=176   -1.2( 
 - The current blend is already unbiased on adults; the gain available from any model is ~0.6-0.8 kg MAE (10-12%), all of it from (a) robust fitting that stops 65-77 kg outliers pulling the fit and (b) better handling of mixed-breed dogs. No candidate raises r beyond ~0.74: within-breed body condition is invisible to genetics.
 - The LMM `prs_z`, dense prediction and height prediction add no skill on top of the breed model (dMAE vs the recalibrated blend within +-0.1 kg). The Darwin's Ark size PRS adds a small but consistent gain (-0.1 to -0.15 kg) and is kept.
 - Plain NNLS breed models (M2*) win on mixed-breed MAE but drive toy breeds to ~0-1 kg (Chihuahua 1.0, Shih Tzu 2.2, Toy Poodle 4.4 kg for a 100% dog) because large "noise" components in small dogs push small-breed weights down. Boxing each breed to 1.5x its prior (M2B family) fixes that at a cost of ~0.1 kg MAE.
-- The kg-space stack (M3BH_da, lowest MAE 5.72, r 0.739) still floors toy dogs (a 93% Maltese at 1.45 kg; the current pipeline gives 1.0 kg) because the PRS term is additive in kg. The log-space stack (M3BL_da) has the same MAE 5.72, r 0.729, and predicts that Maltese at 2.6 kg, a 50% Chihuahua mix at 4.3 kg. **M3BL_da is shipped.**
-- Cosmo (13.6 kg): current 18.4 kg -> new 17.8 kg. His composition is 37% Standard Poodle, so the model cannot get much lower.
+- The kg-space stack (M3BH_da, lowest MAE 5.72, r 0.739) still floors toy dogs (a 93% Maltese at 1.45 kg; the current pipeline gives 1.0 kg) because the PRS term is additive in kg. The log-space stack (M3BL_da) has the same MAE 5.72, r 0.729, and predicts that Maltese at 2.6 kg, a 50% Chihuahua mix at 4.3 kg.
+- **Sex.** Males weigh ~17% more than females at the same genetic prediction (t=5, 309 M / 268 F from the stage-6 X-coverage call); the sex-neutral model sat 2.9 kg low on males. A single male multiplier in the log stack (M3BL_da_sex) gives r 0.739, MAE 5.59, bias -1.35 (MAE gain vs the blend 0.90 kg [0.60, 1.20]; vs the sex-neutral model 0.14 kg). Separate male/female models were tested and are worse (5.67 kg): ~300 dogs per sex cannot support 231 breed weights each. **M3BL_da_sex is shipped**; a kit without a sex call gets the sex-neutral value (male = 0.5).
+- **Things that did not help** (all CV'd): LMM prs_z, dense pred, height; Darwin's Ark-trained breed scores (its size label is a 0-4 shoulder-height class, not a weight; training on it costs 0.66 kg on customers, using it as a prior is a wash); a targeted panel of ~12 lead size loci (FGF4-retrogene region, HMGA2, IGF1, LCORL, SMAD2, IGF1R), which adds nothing beyond breed + the 480k-site PRS on 1,835 Darwin's Ark dogs (r 0.775 -> 0.775). Customer BCFs are purged from scratch, so loci could not be tested on customers directly.
+- Cosmo (13.6 kg, male): current 18.4 kg -> 17.8 kg sex-neutral -> 19.2 kg with the male term. His composition is 37% Standard Poodle, so an ancestry model cannot get much lower; the sex term is right on average and wrong for him.
 
 ## Shipped model
 
 - `breed_pred = exp(sum_b p_b * log W_b)` over `breed_composition_raw` (unknown label -> 17.8 kg), W_b from box-constrained ridge (lambda 1.0, box 1.5x) in log space; prior = AKC breed-standard weight for 98/231 labels (from `BREED_WEIGHT_KG` in the pipeline), proportion-weighted marginal mean for the rest.
-- `pred_kg = exp(0.757 + 0.727 * log(breed_pred) + 0.00025 * da_size_prs)`, Huber c=0.3 in log space.
-- Fields kept: `pred_kg`, `pred_lbs`, `prs_z`, `percentile` (still the LMM z); added `pred_kg_breed`, `pred_kg_blend` (old value), `validation`; `method_note` now carries the CV figures. Falls back to the old blend if the model JSON or `breed_result.json` is missing.
+- `pred_kg = exp(0.565 + 0.764 * log(breed_pred) + 0.000234 * da_size_prs + 0.1605 * male)`, Huber c=0.3 in log space; `male` = 1/0 from `coverage_1mb.json` `_meta.predicted_sex`, 0.5 if absent (x1.174 for males).
+- Fields kept: `pred_kg`, `pred_lbs`, `prs_z`, `percentile` (still the LMM z); added `pred_kg_breed`, `pred_kg_blend` (old value), `sex_used`, `validation`; `method_note` now carries the CV figures. Falls back to the old blend if the model JSON or `breed_result.json` is missing.
 
 ## Implied purebred weights (100% of one breed), 30 best-supported labels
 
@@ -125,8 +127,9 @@ Labrador (42.9 kg, prior 30) and Chihuahua (1.7 kg, prior 2.5) sit on the box ed
 
 ```bash
 # on a machine with the kit JSONs (Hoffman: $D/results_prosper), weights TSV and the age/weight TSV
-python3 analysis/weight_model/fit_weight_model.py <kits_dir> analysis_weights.tsv customer_age_weight.tsv run_dog_pipeline.sh <out_dir> M3BL_da
+# kit_sex.tsv: kit<TAB>male|female from each kit's coverage_1mb.json _meta.predicted_sex
+python3 analysis/weight_model/fit_weight_model.py <kits_dir> analysis_weights.tsv customer_age_weight.tsv run_dog_pipeline.sh <out_dir> M3BL_da_sex kit_sex.tsv
 cp <out_dir>/weight_breed_model.json reference_json/
 ```
 
-Open follow-ups: 56 weighted kits had no results yet; refit once the ProsperKits batch (1,100 dogs) has weights; a neuter/sex field would likely add more than any further genomic covariate.
+Open follow-ups: 56 weighted kits had no results yet; refit once the ProsperKits batch (1,100 dogs) has weights; flag implausible self-reported weights before fitting (dropping labels >2x off the prediction alone moves r from 0.73 to 0.83); neuter status is the next unmeasured covariate.
