@@ -48,6 +48,8 @@ Writes <out_prefix>.lai.json (the pipeline names it local_ancestry.json).
 import gzip, json, sys, os
 import numpy as np
 
+K_MAX = 16   # candidate-breed cap (memory; see lasso_prior)
+
 
 def load_panel(panel):
     P = np.load(f'{panel}/phat.npy')                       # sites x breeds, freq of allele a1
@@ -124,6 +126,10 @@ def lasso_prior(breed, breeds, floor):
             group[code] = e.get('breed_name', code)
             if code not in w: w[code] = float(c.get('proportion', 0)); pretty.setdefault(code, e.get('breed_name', code))
     keep = {k: v for k, v in w.items() if k in set(breeds) and v >= floor}
+    # Memory is O(sites x K^2) per array (four of them): K=21 needs ~1.8 GB and
+    # overflowed a 4 GB cluster slot on a supermutt. Keep the K_MAX largest.
+    if len(keep) > K_MAX:
+        keep = dict(sorted(keep.items(), key=lambda kv: -kv[1])[:K_MAX])
     tot = sum(keep.values()); keep = {k: v / tot for k, v in keep.items()}
     return keep, pretty, group
 
