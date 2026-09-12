@@ -32,7 +32,7 @@ def flare_run(tag, keep, order, ks):
     t = time.time()
     r = subprocess.run([J, '-Xmx8g', '-jar', 'flare.jar', f'ref=work_{tag}.ref.vcf.gz', f'ref-panel=work_{tag}.map.tsv', f'gt={q}',
                     'map=constant_1cM_per_Mb.map', f'out=out/{tag}', 'probs=true', f'gt-ancestries=work_{tag}.prior.tsv',
-                    'em=false', f'gen={GEN}', 'nthreads=8', 'seed=1'], capture_output=True, text=True)
+                    'em=false', f'gen={GEN}', 'min-mac=2', 'nthreads=8', 'seed=1'], capture_output=True, text=True)
     gl = [l.split() for l in gzip.open(f'out/{tag}.global.anc.gz', 'rt')]
     return dict(zip(gl[0][1:], map(float, gl[1][1:]))), time.time() - t
 props, secs = flare_run(tag, keep, order, ks)
