@@ -73,7 +73,7 @@ else
     PUB=$D/dogs-app/public/$DOG_LOWER
 fi
 REF=$D/canFam4_idx                   # BWA-MEM2 index prefix
-FASTA=$D/canFam4.fa
+FASTA="${FASTA:-$D/canFam4.fa}"   # override with canFam4_plusY.fa (chrY = KP081776.1) for the Y-enabled pipeline
 VEP_CACHE=$D/vep_cache
 
 # Shared reference data (same for every dog)
