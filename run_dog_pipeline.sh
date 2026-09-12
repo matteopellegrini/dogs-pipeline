@@ -2566,6 +2566,27 @@ print('relatives_result.json: {} matches{}'.format(
     len(matches), '' if not top else '; top {} {} ({})'.format(top['kinship'], top['category'], top['breed'])))
 PYEOF
 
+# ── 9c: Local ancestry (chromosome painting) ───────────────
+# Two-step ancestry: the stage-9 lasso picks the candidate breeds and the
+# prior; a diploid HMM on the SAME breed allele frequencies then assigns
+# ancestry along the genome from the dosages already queried for 9b. The
+# genome-wide mean of the local posteriors REPLACES breed_composition in
+# breed_result.json (the lasso estimate is kept as breed_composition_global)
+# — user decision 2026-09-11. FLARE was tried first and rejected by simulation
+# (see analysis/local_ancestry/). Seconds per dog; no depth gate needed —
+# proportions held to 0.25x on the cosmo3 downsample series.
+log "=== Stage 9c: Local ancestry HMM (chromosome painting) ==="
+if [[ -s "$REL_DS" ]]; then
+    BREED_PANEL="$BREED_PANEL" "$DATA_PYTHON" "$D/analysis/local_ancestry/lai_hmm.py" \
+        "$REL_DS" "$PUB/breed_result.json" "$OUT/local_ancestry" --ds \
+        --panel "$BREED_PANEL" --write-breed-result \
+      && cp "$OUT/local_ancestry.lai.json" "$PUB/local_ancestry.json" \
+      && log "  local_ancestry.json written; breed_composition now from the HMM" \
+      || log "  WARNING: local ancestry failed — breed_result.json left as the global estimate"
+else
+    log "  no dosage file ($REL_DS) — local ancestry skipped"
+fi
+
 fi # end stage 9
 
 if (( FROM_STAGE <= 10 && TO_STAGE >= 10 )); then
