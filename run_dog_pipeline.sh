@@ -72,8 +72,12 @@ else
     OUT=$D/$DOG_NAME/analysis
     PUB=$D/dogs-app/public/$DOG_LOWER
 fi
-REF=$D/canFam4_idx                   # BWA-MEM2 index prefix
 FASTA="${FASTA:-$D/canFam4.fa}"   # override with canFam4_plusY.fa (chrY = KP081776.1) for the Y-enabled pipeline
+# BWA-MEM2 index prefix: the default reference is indexed under canFam4_idx;
+# any other FASTA must be indexed under its own path (build_ref_plusY.sh does).
+# Under SGE the override reaches the job only via `qsub -v FASTA=...` (the Y
+# pilot 14728250 silently aligned to canFam4 without it).
+if [[ "$FASTA" == "$D/canFam4.fa" ]]; then REF=$D/canFam4_idx; else REF="$FASTA"; fi
 VEP_CACHE=$D/vep_cache
 
 # Shared reference data (same for every dog)
@@ -188,6 +192,7 @@ die() { log "ERROR: $*"; exit 1; }
 
 log "Site profile: $DOGS_SITE  (D=$D, NPROC=$NPROC, GLIMPSE_PARALLEL=$GLIMPSE_PARALLEL, publish=$PUBLISH_RESULTS)"
 log "Run config: sample=$DOG_NAME from_stage=$FROM_STAGE out=$OUT"
+log "Reference: $FASTA (bwa-mem2 index $REF)$( grep -q "^chrY" "$FASTA.fai" 2>/dev/null && echo " — chrY present, Y haplogroup enabled" )"
 
 # ── Preflight ────────────────────────────────────────────────
 # Every prerequisite is checked up front. Previously a missing tool or reference
