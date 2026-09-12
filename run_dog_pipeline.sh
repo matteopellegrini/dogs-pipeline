@@ -2587,6 +2587,22 @@ else
     log "  no dosage file ($REL_DS) — local ancestry skipped"
 fi
 
+# ── 9d: Paternal line (Y haplogroup) ───────────────────────
+# Only when the alignment reference carries chrY (canFam4_plusY.fa =
+# canFam4 + KP081776.1; the Y-enabled pipeline for new samples, 2026-09-12).
+# Females get 'not applicable'; the Y/autosome coverage ratio is recorded as
+# a second, independent sex signal.
+if grep -q $'^chrY\t' "$FASTA.fai" 2>/dev/null; then
+    log "=== Stage 9d: Paternal line (Y haplogroup, Oetjens 2018 tree) ==="
+    Y_SEX=$("$DATA_PYTHON" -c "import json;print(json.load(open('$PUB/coverage_1mb.json')).get('_meta',{}).get('predicted_sex','unknown'))" 2>/dev/null || echo unknown)
+    Y_AUTO=$("$DATA_PYTHON" -c "import json;print(json.load(open('$PUB/qc_result.json')).get('genome_mean_depth',0))" 2>/dev/null || echo 0)
+    "$DATA_PYTHON" "$D/analysis/y_haplogroup/y_haplogroup.py" "$OUT/markdup.bam" "$REF_JSON/y_tree_oetjens2018.tsv" \
+        "$PUB/y_result.json" --auto-depth "$Y_AUTO" --sex "$Y_SEX" \
+      || log "  WARNING: Y haplogroup stage failed"
+else
+    log "  (stage 9d skipped: reference has no chrY)"
+fi
+
 fi # end stage 9
 
 if (( FROM_STAGE <= 10 && TO_STAGE >= 10 )); then
