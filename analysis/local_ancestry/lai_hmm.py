@@ -50,6 +50,17 @@ import numpy as np
 
 K_MAX = 16   # candidate-breed cap (memory; see lasso_prior)
 
+# The HMM has no state for "a mosaic of many small breeds": those stretches can
+# only be assigned to the diverse village-dog populations (whose intermediate
+# allele frequencies fit mixed DNA well), so a supermutt's long lasso tail
+# resurfaces as e.g. "Village Dog (Oceania) 23%". The mixed-ancestry
+# conclusion is right; the geography is not defensible. Pool them for display
+# (user decision 2026-09-12, Embark's "Supermutt" equivalent).
+POOLED_GROUP = 'Village dog / mixed ancestry'
+def display_group(code, group, pretty):
+    if code.startswith('VILLAGE_') or code == 'MIXED_OTHER': return POOLED_GROUP
+    return group.get(code, pretty.get(code, code))
+
 
 def load_panel(panel):
     P = np.load(f'{panel}/phat.npy')                       # sites x breeds, freq of allele a1
@@ -193,7 +204,7 @@ def rewrite_breed_result(path, breed, props, pretty, group, gen, n_conf_frac):
         breed['breed_composition_global'] = breed['breed_composition']
     grouped = {}
     for code, p in props.items():
-        d = group.get(code, pretty.get(code, code))
+        d = display_group(code, group, pretty)
         g = grouped.setdefault(d, {'breed': code, 'breed_name': d, 'proportion': 0.0, 'components': []})
         g['proportion'] += p; g['components'].append({'code': code, 'proportion': round(p, 6)})
         if p > max((c['proportion'] for c in g['components'][:-1]), default=-1): g['breed'] = code
@@ -246,7 +257,7 @@ def main():
     res = {'method': 'diploid local-ancestry HMM on breed allele frequencies (breed_panel Phat), lasso prior; '
                      'segments = posterior-max unordered ancestry pair per site, run-length encoded; '
                      'confident = mean posterior >= 0.5',
-           'candidates': cands, 'names': {b: pretty.get(b, b) for b in cands}, 'groups': {b: group.get(b, pretty.get(b, b)) for b in cands},
+           'candidates': cands, 'names': {b: pretty.get(b, b) for b in cands}, 'groups': {b: display_group(b, group, pretty) for b in cands},
            'prior': {b: round(float(v), 4) for b, v in zip(cands, pi)}, 'gen': gen, 'loglik': round(ll, 1),
            'eps': eps, 'temper': temper, 'floor': floor, 'sites_used': int((dos >= 0).sum()),
            'proportions': props, 'confident_fraction': round(conf_frac, 3),
