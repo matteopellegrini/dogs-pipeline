@@ -3910,6 +3910,20 @@ else:
 PYEOF
 fi # end stage 12
 
+if (( FROM_STAGE <= 12 && TO_STAGE >= 12 )); then
+# ── Stage 12b: MHC (DLA) diversity from the imputed phased genotypes ────────
+# Class II (DLA-DRA/DRB1/DQA1/DQB1) and class I (DLA-88/DLA-64) windows on
+# chr12: heterozygosity percentile vs the cohort, whether the dog carries two
+# copies of the same DLA haplotype, breed context from the Dog10K panel, and
+# the comparison with what genome-wide F_ROH predicts. analysis/mhc/.
+log "=== Stage 12b: MHC (DLA) diversity ==="
+if [[ -s "$IMPUTED_BCF" && -s "$REF_JSON/mhc_reference.json" ]]; then
+    "$DATA_PYTHON" "$D/analysis/mhc/mhc_stage.py" "$IMPUTED_BCF" "$REF_JSON/mhc_reference.json" "$PUB/mhc_result.json" \
+        --breed "$PUB/breed_result.json" --inbreeding "$PUB/inbreeding_result.json" \
+      || log "  WARNING: MHC diversity failed — mhc_result.json not written"
+else log "  imputed BCF or mhc_reference.json missing — MHC diversity skipped"; fi
+fi # end stage 12b
+
 if (( FROM_STAGE <= 13 && TO_STAGE >= 13 )); then
 # ── Stage 13: Coat color (GLIMPSE2 imputed genotypes at causal loci) ─────
 log "=== Stage 13: Coat color ==="
