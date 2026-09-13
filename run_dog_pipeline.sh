@@ -4440,8 +4440,21 @@ def call_locus(locus, calls):
     return '?', '?', 'low', 'Unknown locus'
 
 loci_gt = {}
+CONF_RANK = {'low': 0, 'medium': 1, 'high': 2}
 for locus in ['E', 'K', 'A', 'B', 'D', 'M', 'H', 'S', 'W']:
     a1, a2, conf, interp = call_locus(locus, variant_calls)
+    # A locus can never be more confident than the imputed sites it was decided
+    # from. At 0.2x a KB/KB "high" came from one site at GP 0.64 backed by a
+    # single read, on a dog that is red and white (kit 31231210404804,
+    # 2026-09-13). E decided from reads at the p.306 stop is exempt.
+    if locus in ('E', 'K', 'B', 'D') and not (locus == 'E' and 'reads at MC1R' in interp):
+        site_confs = [c['conf'] for c in variant_calls
+                      if c['locus'] == locus and c['found'] and c.get('n_alt') is not None
+                      and c['source'].startswith('Dog10K imputed')]
+        if site_confs and min(CONF_RANK[c] for c in site_confs) < CONF_RANK.get(conf, 0):
+            conf = min(site_confs, key=lambda c: CONF_RANK[c])
+            interp += (' Imputed at low certainty at this sequencing depth, so treat as provisional; '
+                       "the dog's actual coat resolves this.")
     loci_gt[locus] = dict(allele1=a1, allele2=a2, confidence=conf, interpretation=interp)
 
 # ── Cross-locus E locus validation ────────────────────────────────────────
