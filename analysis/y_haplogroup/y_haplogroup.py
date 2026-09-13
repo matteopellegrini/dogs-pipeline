@@ -16,7 +16,8 @@ with per-base error eps; the winner's posterior (uniform prior over the six
 dog haplogroups) is the confidence. Sites are only informative if the
 candidates disagree there, so the JSON also reports how many such sites had
 reads. Y coverage relative to autosomal depth is reported as a second sex
-signal (male ~0.5 of autosomal on the haploid Y, female ~0).
+signal (male ~0.5 of autosomal on the haploid Y, female ~0); it is the
+median of 50 kb windows because the contig carries collapsed repeats.
 
 Haplogroup names follow Oetjens/Ding (HG1-3, HG27, HG6, HG9, HG8, HG23);
 Embark uses a different label scheme (e.g. A1a) - mapping is a separate,
@@ -62,17 +63,23 @@ def main():
         print('y_haplogroup: reference has no chrY; skipped'); return
     ylen = bam.get_reference_length('chrY')
 
-    # Y coverage over the callable, non-amplicon part (the diagnostic-SNV span; the
-    # ~1 Mb amplicon region beyond ~1.3 Mb is masked by Oetjens' callability).
+    # Y coverage = MEDIAN of 50 kb window depths (MQ >= 30, no dups/secondaries)
+    # across the diagnostic-SNV span. A mean is useless here: KP081776.1 has a
+    # collapsed repeat at ~1.05-1.10 Mb sitting at ~75x that alone triples a
+    # span mean (Cosmo pilot read 1.07x autosomal by mean, 0.44 by median).
+    # Beyond ~1.3 Mb the contig is ampliconic (MQ30 depth ~0, MQ0 ~1x).
     sites = load_tree(tree_path)
     span0, span1 = min(s[0] for s in sites), max(s[0] for s in sites)
-    n_reads = bam.count('chrY', span0, span1, read_callback=lambda r: r.mapping_quality >= MIN_MQ and not r.is_duplicate and not r.is_secondary)
-    # mean depth ~ reads * read length / span
-    rl = 150
-    for r in bam.fetch('chrY', span0, span1):
-        rl = r.query_length or 150; break
-    y_depth = n_reads * rl / max(1, span1 - span0)
+    WIN = 50000
+    def keep(r): return r.mapping_quality >= MIN_MQ and not r.is_duplicate and not r.is_secondary and not r.is_supplementary
+    win_depth = []
+    for w0 in range(0, span1, WIN):
+        w1 = min(w0 + WIN, span1)
+        bases = sum(min(r.reference_end, w1) - max(r.reference_start, w0) for r in bam.fetch('chrY', w0, w1) if keep(r) and r.reference_end)
+        win_depth.append(bases / (w1 - w0))
+    sd = sorted(win_depth); y_depth = sd[len(sd) // 2] if sd else 0.0
     y_auto = (y_depth / auto_depth) if auto_depth else None
+    high = [i * WIN for i, d in enumerate(win_depth) if y_depth > 0 and d > 5 * y_depth]
 
     obs = []
     for pos, carriers, ref, der in sites:
@@ -106,6 +113,8 @@ def main():
         'sites_covered': len(obs), 'sites_total': len(sites),
         'informative_sites_vs_runner_up': len(informative), 'reads_supporting': support, 'reads_against': against,
         'y_depth_x': round(y_depth, 3), 'y_to_autosomal': round(y_auto, 3) if y_auto is not None else None,
+        'y_depth_method': f'median of {WIN//1000} kb window depths (MQ>={MIN_MQ}) over the diagnostic-SNV span 0-{span1}',
+        'collapsed_repeat_windows_bp': high,
         'sex_from_x_coverage': sex,
         'sex_from_y': ('male' if (y_auto is not None and y_auto > 0.15) else ('female' if y_auto is not None else None)),
         'nomenclature': 'Oetjens et al. 2018 / Ding et al. 2012 haplogroups',
