@@ -72,11 +72,16 @@ else
     OUT=$D/$DOG_NAME/analysis
     PUB=$D/dogs-app/public/$DOG_LOWER
 fi
-FASTA="${FASTA:-$D/canFam4.fa}"   # override with canFam4_plusY.fa (chrY = KP081776.1) for the Y-enabled pipeline
-# BWA-MEM2 index prefix: the default reference is indexed under canFam4_idx;
-# any other FASTA must be indexed under its own path (build_ref_plusY.sh does).
-# Under SGE the override reaches the job only via `qsub -v FASTA=...` (the Y
-# pilot 14728250 silently aligned to canFam4 without it).
+# Alignment reference. DEFAULT SINCE 2026-09-13: canFam4 + KP081776.1 as chrY
+# (canFam4_plusY.fa), so Y reads map and stage 9d calls the paternal
+# haplogroup. Reports processed before that date were aligned to canFam4.fa
+# (no chrY) and are not backfilled. Override with FASTA=$D/canFam4.fa to
+# reproduce an old alignment; under SGE an override reaches the job only via
+# `qsub -v FASTA=...`. Coverage/karyotype windows exclude chrY (regex
+# ^chr([0-9]+|X)$); GLIMPSE/snpEff/coat calls are per-site and unaffected.
+FASTA="${FASTA:-$D/canFam4_plusY.fa}"
+# BWA-MEM2 index prefix: the legacy reference is indexed under canFam4_idx;
+# any other FASTA is indexed under its own path (build_ref_plusY.sh does).
 if [[ "$FASTA" == "$D/canFam4.fa" ]]; then REF=$D/canFam4_idx; else REF="$FASTA"; fi
 VEP_CACHE=$D/vep_cache
 
