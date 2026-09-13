@@ -10,7 +10,8 @@ Method (Oetjens et al. 2018, BMC Genomics 19:350): 795 diagnostic Y-SNVs on
 KP081776.1, each tagged with the set of branches that carry the DERIVED
 allele. A dog's Y is haploid, so at every covered site the reads should show
 one allele: the derived one if his haplogroup lies on that branch, else the
-reference one. Each candidate haplogroup H is scored by the log-likelihood
+ancestral one (the reference base, or the coyote allele where the reference
+itself carries the derived allele). Each candidate haplogroup H is scored by the log-likelihood
 of the observed bases under "expected allele = derived iff H in branch set"
 with per-base error eps; the winner's posterior (uniform prior over the six
 dog haplogroups) is the confidence. Sites are only informative if the
@@ -37,7 +38,13 @@ def load_tree(path):
         if l.startswith('#') or l.startswith('pos\t'): continue
         pos, branch, ref, der, coy = l.rstrip('\n').split('\t')
         carriers = {b.strip() for b in branch.split(';')}
-        sites.append((int(pos), carriers, ref, der))
+        # At 340 of 775 sites the KP081776.1 reference base IS the derived
+        # allele (the reference dog sits on that branch); the ancestral base
+        # is then the coyote allele. Scoring ref-vs-derived there made those
+        # sites uninformative and inflated reads_against.
+        anc = ref if ref != der else coy
+        if not anc or anc == der: continue
+        sites.append((int(pos), carriers, anc, der))
     return sites
 
 
