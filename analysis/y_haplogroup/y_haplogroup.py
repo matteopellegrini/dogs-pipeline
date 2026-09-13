@@ -79,7 +79,7 @@ def main():
         win_depth.append(bases / (w1 - w0))
     sd = sorted(win_depth); y_depth = sd[len(sd) // 2] if sd else 0.0
     y_auto = (y_depth / auto_depth) if auto_depth else None
-    high = [i * WIN for i, d in enumerate(win_depth) if y_depth > 0 and d > 5 * y_depth]
+    high = [i * WIN for i, d in enumerate(win_depth) if y_depth >= 0.2 and d > 5 * y_depth]   # only meaningful with real Y coverage
 
     obs = []
     for pos, carriers, ref, der in sites:
