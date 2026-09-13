@@ -4717,6 +4717,20 @@ PYEOF
 
 fi # end stage 13
 
+if (( FROM_STAGE <= 13 && TO_STAGE >= 13 )); then
+# ── Stage 13b: single-gene physical traits (Embark-style Traits section) ───
+# Coat length/curl/furnishings/shedding, muzzle, bobtail, dewclaws, muscling,
+# eye colour, size genes, altitude, appetite. Imputed sites first, reads for
+# the rest (indels, insertions, copy-number events). analysis/traits/.
+log "=== Stage 13b: Single-gene traits ==="
+TRAIT_BAM="$OUT/markdup.bam"; [[ -s "$TRAIT_BAM" ]] || TRAIT_BAM="$OUT/sites.bam"
+if [[ -s "$REF_JSON/trait_catalog.json" && ( -s "$IMPUTED_BCF" || -s "$TRAIT_BAM" ) ]]; then
+    "$DATA_PYTHON" "$D/analysis/traits/trait_stage.py" "$REF_JSON/trait_catalog.json" "$PUB/traits_result.json" \
+        $( [[ -s "$IMPUTED_BCF" ]] && echo --bcf "$IMPUTED_BCF" ) $( [[ -s "$TRAIT_BAM" ]] && echo --bam "$TRAIT_BAM" ) \
+      || log "  WARNING: trait stage failed — traits_result.json not written"
+else log "  trait catalogue or inputs missing — traits skipped"; fi
+fi # end stage 13b
+
 # Stages 15-17 had no FROM_STAGE guard at all, so they ran on every resume
 # regardless of what was asked. TO_STAGE could not stop them either.
 if (( FROM_STAGE <= 15 && TO_STAGE >= 15 )); then

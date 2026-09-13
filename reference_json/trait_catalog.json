@@ -1,0 +1,441 @@
+{
+ "version": "2026-09-13",
+ "method": "Single-gene physical traits from Dog10K-imputed genotypes (GP >= 0.8) with read-level calls for indels, insertions and copy-number events (canFam4 coordinates from OMIA and flank-mapped literature positions; see analysis/traits/).",
+ "traits": [
+  {
+   "id": "coat_length",
+   "name": "Coat length",
+   "group": "coat",
+   "gene": "FGF5",
+   "description": "Long coats need two long-hair (Lh) copies in total across the FGF5 variants (recessive). Lh1 is the common one; Lh2-Lh5 are breed-specific.",
+   "loci": [
+    {
+     "id": "FGF5 Lh1 p.C95F",
+     "type": "snp",
+     "chrom": "chr32",
+     "pos": 35494497,
+     "ref": "C",
+     "alt": "A"
+    },
+    {
+     "id": "FGF5 Lh2 p.A193V",
+     "type": "snp",
+     "chrom": "chr32",
+     "pos": 35475211,
+     "ref": "G",
+     "alt": "A"
+    },
+    {
+     "id": "FGF5 Lh3 16-bp deletion",
+     "type": "del",
+     "chrom": "chr32",
+     "pos": 35475218,
+     "len": 16
+    },
+    {
+     "id": "FGF5 Lh4 2-bp duplication",
+     "type": "ins",
+     "chrom": "chr32",
+     "pos": 35475229,
+     "len": 2
+    },
+    {
+     "id": "FGF5 Lh5 splice",
+     "type": "snp",
+     "chrom": "chr32",
+     "pos": 35486609,
+     "ref": "A",
+     "alt": "T"
+    }
+   ]
+  },
+  {
+   "id": "furnishings",
+   "name": "Furnishings",
+   "group": "coat",
+   "gene": "RSPO2",
+   "description": "A 167-letter insertion near RSPO2 gives the mustache, beard and eyebrows of Schnauzers, terriers and doodles. One copy is enough (dominant); furnished dogs shed little whatever their shedding gene says.",
+   "loci": [
+    {
+     "id": "RSPO2 3'UTR 167-bp insertion",
+     "type": "ins",
+     "chrom": "chr13",
+     "pos": 8823200,
+     "len": 167
+    }
+   ]
+  },
+  {
+   "id": "curl",
+   "name": "Coat curl",
+   "group": "coat",
+   "gene": "KRT71",
+   "description": "KRT71 curl variants make long coats wavy (one copy) or curly (two copies); furnishings add curl of their own.",
+   "loci": [
+    {
+     "id": "KRT71 c1 p.R151W",
+     "type": "snp",
+     "chrom": "chr27",
+     "pos": 44113063,
+     "ref": "G",
+     "alt": "A"
+    },
+    {
+     "id": "KRT71 c2 delins",
+     "type": "del",
+     "chrom": "chr27",
+     "pos": 44109036,
+     "len": 8
+    }
+   ]
+  },
+  {
+   "id": "shedding",
+   "name": "Shedding",
+   "group": "coat",
+   "gene": "MC5R",
+   "description": "The MC5R variant (Thr237) lowers shedding; dogs with two copies shed lightly, others heavily or seasonally. Furnished dogs are light shedders regardless.",
+   "loci": [
+    {
+     "id": "MC5R p.A237T",
+     "type": "snp",
+     "chrom": "chr1",
+     "pos": 24541931,
+     "ref": "C",
+     "alt": "T"
+    }
+   ]
+  },
+  {
+   "id": "hairless_xolo",
+   "name": "Hairlessness (Xolo type)",
+   "group": "coat",
+   "gene": "FOXI3",
+   "description": "A 7-letter duplication in FOXI3 causes the hairlessness of Xoloitzcuintli, Chinese Crested and Peruvian Inca Orchid; one copy is hairless, two copies do not survive.",
+   "loci": [
+    {
+     "id": "FOXI3 c.57_63dup",
+     "type": "ins",
+     "chrom": "chr17",
+     "pos": 38316027,
+     "len": 7
+    }
+   ]
+  },
+  {
+   "id": "hairless_terrier",
+   "name": "Hairlessness (terrier type)",
+   "group": "coat",
+   "gene": "SGK3",
+   "description": "The SGK3 deletion of the American Hairless Terrier; hairless only with two copies.",
+   "loci": [
+    {
+     "id": "SGK3 c.287_290del",
+     "type": "del",
+     "chrom": "chr29",
+     "pos": 16835127,
+     "len": 4
+    }
+   ]
+  },
+  {
+   "id": "albinism",
+   "name": "Albinism (Doberman type)",
+   "group": "coat",
+   "gene": "SLC45A2",
+   "description": "A 4,081-letter deletion in SLC45A2; two copies cause oculocutaneous albinism (white coat, pink skin, light eyes).",
+   "loci": [
+    {
+     "id": "SLC45A2 4.1-kb deletion",
+     "type": "cnv_del",
+     "chrom": "chr4",
+     "start": 74777793,
+     "end": 74781874
+    }
+   ]
+  },
+  {
+   "id": "saddle_tan",
+   "name": "Saddle tan",
+   "group": "coat",
+   "gene": "RALY",
+   "description": "A 16-letter duplication near RALY is a marker for the tan-point pattern: two copies favour black-and-tan; the pattern only shows in tan-pointed dogs. A marker, not the cause.",
+   "loci": [
+    {
+     "id": "RALY 16-bp duplication",
+     "type": "ins",
+     "chrom": "chr24",
+     "pos": 23763233,
+     "len": 16
+    }
+   ]
+  },
+  {
+   "id": "red_intensity",
+   "name": "Red pigment intensity",
+   "group": "coat",
+   "gene": "MFSD12 and 4 loci",
+   "description": "Five positions explain most of the difference between deep red and cream in yellow/red fur (Slavney 2021). Counting the intensifying alleles gives the shade.",
+   "loci": [
+    {
+     "id": "chr2 lincRNA near RUNX3",
+     "type": "snp",
+     "chrom": "chr2",
+     "pos": 74142969,
+     "ref": "T",
+     "alt": "A",
+     "red_allele": "T"
+    },
+    {
+     "id": "KITLG upstream (chr15)",
+     "type": "snp",
+     "chrom": "chr15",
+     "pos": 30145498,
+     "ref": "T",
+     "alt": "C",
+     "red_allele": "C"
+    },
+    {
+     "id": "SLC26A4 p.I487M",
+     "type": "snp",
+     "chrom": "chr18",
+     "pos": 13147324,
+     "ref": "T",
+     "alt": "C",
+     "red_allele": "C"
+    },
+    {
+     "id": "MFSD12 p.R51C",
+     "type": "snp",
+     "chrom": "chr20",
+     "pos": 56252402,
+     "ref": "C",
+     "alt": "T",
+     "red_allele": "C"
+    },
+    {
+     "id": "TYR intron 2",
+     "type": "snp",
+     "chrom": "chr21",
+     "pos": 10955561,
+     "ref": "G",
+     "alt": "A",
+     "red_allele": "A"
+    }
+   ]
+  },
+  {
+   "id": "muzzle",
+   "name": "Muzzle length",
+   "group": "body",
+   "gene": "BMP3",
+   "description": "The BMP3 F452L variant is the best-known muzzle-length gene: two copies give a short muzzle (Bulldog, Pug), one or none a medium or long one. At least five genes shape the snout.",
+   "loci": [
+    {
+     "id": "BMP3 p.F452L",
+     "type": "snp",
+     "chrom": "chr32",
+     "pos": 34768246,
+     "ref": "G",
+     "alt": "T"
+    }
+   ]
+  },
+  {
+   "id": "bobtail",
+   "name": "Tail length",
+   "group": "body",
+   "gene": "T (brachyury)",
+   "description": "One copy of the T-gene variant gives a natural bobtail (Corgi, Australian Shepherd, Brittany); two copies do not survive.",
+   "loci": [
+    {
+     "id": "T p.I63M",
+     "type": "snp",
+     "chrom": "chr1",
+     "pos": 54742499,
+     "ref": "G",
+     "alt": "C"
+    }
+   ]
+  },
+  {
+   "id": "hind_dewclaws",
+   "name": "Hind dewclaws",
+   "group": "body",
+   "gene": "LMBR1",
+   "description": "Regulatory variants near LMBR1 (the limb enhancer of SHH) give roughly a 50% chance of hind dewclaws per carrier; other genes contribute.",
+   "loci": [
+    {
+     "id": "LMBR1 DC-2 (Western breeds)",
+     "type": "snp",
+     "chrom": "chr16",
+     "pos": 20112737,
+     "ref": "C",
+     "alt": "T"
+    },
+    {
+     "id": "LMBR1 DC-1 (Asian breeds)",
+     "type": "snp",
+     "chrom": "chr16",
+     "pos": 20112974,
+     "ref": "C",
+     "alt": "T"
+    }
+   ]
+  },
+  {
+   "id": "muscling",
+   "name": "Back muscling and bulk",
+   "group": "body",
+   "gene": "ACSL4",
+   "description": "An X-linked ACSL4 variant adds heavy back muscling and about 12 kg in bulky large breeds (Rottweiler, Bernese, St Bernard). Males need one copy, females two.",
+   "loci": [
+    {
+     "id": "ACSL4 5'UTR",
+     "type": "snp",
+     "chrom": "chrX",
+     "pos": 83569837,
+     "ref": "C",
+     "alt": "T"
+    }
+   ]
+  },
+  {
+   "id": "eye_color",
+   "name": "Blue eyes (non-merle)",
+   "group": "body",
+   "gene": "ALX4",
+   "description": "A 98-kb duplication upstream of ALX4 is behind most blue eyes in Huskies and tri-colour Australian Shepherds; one copy raises the chance of blue eyes.",
+   "loci": [
+    {
+     "id": "ALX4 98.6-kb duplication",
+     "type": "cnv_dup",
+     "chrom": "chr18",
+     "start": 45223389,
+     "end": 45324386
+    }
+   ]
+  },
+  {
+   "id": "size_igf1",
+   "name": "Body size 1",
+   "group": "size",
+   "gene": "IGF1",
+   "description": "The IGF1 small-dog haplotype (tagged by an intron SNP in complete linkage with the SINE insertion) is the single biggest size gene: each copy takes off several kilograms.",
+   "loci": [
+    {
+     "id": "IGF1 intron-2 SNP (SINE tag)",
+     "type": "snp",
+     "chrom": "chr15",
+     "pos": 41513523,
+     "ref": "G",
+     "alt": "A"
+    }
+   ],
+   "alt_label": "I",
+   "ref_label": "N",
+   "pheno_alt2": "Smaller",
+   "pheno_het": "Intermediate",
+   "pheno_ref2": "Larger"
+  },
+  {
+   "id": "size_igf1r",
+   "name": "Body size 2",
+   "group": "size",
+   "gene": "IGF1R",
+   "description": "The IGF1R R204H variant reduces adult size; each copy takes off several kilograms.",
+   "loci": [
+    {
+     "id": "IGF1R p.R204H",
+     "type": "snp",
+     "chrom": "chr3",
+     "pos": 42234279,
+     "ref": "G",
+     "alt": "A"
+    }
+   ],
+   "alt_label": "A",
+   "ref_label": "G",
+   "pheno_alt2": "Smaller",
+   "pheno_het": "Intermediate",
+   "pheno_ref2": "Larger"
+  },
+  {
+   "id": "size_ghr1",
+   "name": "Body size 4",
+   "group": "size",
+   "gene": "GHR (E191K)",
+   "description": "The GHR E191K growth-hormone-receptor variant reduces adult size.",
+   "loci": [
+    {
+     "id": "GHR p.E191K",
+     "type": "snp",
+     "chrom": "chr4",
+     "pos": 67960775,
+     "ref": "C",
+     "alt": "T"
+    }
+   ],
+   "alt_label": "A",
+   "ref_label": "G",
+   "pheno_alt2": "Smaller",
+   "pheno_het": "Intermediate",
+   "pheno_ref2": "Larger"
+  },
+  {
+   "id": "size_ghr2",
+   "name": "Body size 5",
+   "group": "size",
+   "gene": "GHR (P177L)",
+   "description": "The GHR P177L variant is one of the strongest small-size alleles (about 10 kg per copy).",
+   "loci": [
+    {
+     "id": "GHR p.P177L",
+     "type": "snp",
+     "chrom": "chr4",
+     "pos": 67960816,
+     "ref": "G",
+     "alt": "A"
+    }
+   ],
+   "alt_label": "T",
+   "ref_label": "C",
+   "pheno_alt2": "Smaller",
+   "pheno_het": "Intermediate",
+   "pheno_ref2": "Larger"
+  },
+  {
+   "id": "altitude",
+   "name": "Altitude adaptation",
+   "group": "performance",
+   "gene": "EPAS1",
+   "description": "The EPAS1 G305S variant, shared with Tibetan Mastiffs and high-altitude wolves, improves tolerance of low oxygen.",
+   "loci": [
+    {
+     "id": "EPAS1 p.G305S",
+     "type": "snp",
+     "chrom": "chr10",
+     "pos": 49679610,
+     "ref": "G",
+     "alt": "A"
+    }
+   ]
+  },
+  {
+   "id": "appetite",
+   "name": "Appetite",
+   "group": "performance",
+   "gene": "POMC",
+   "description": "A 14-letter deletion in POMC (common in Labradors and Flat-coated Retrievers) removes two satiety signals: carriers are more food-motivated and prone to weight gain.",
+   "loci": [
+    {
+     "id": "POMC 14-bp deletion",
+     "type": "del",
+     "chrom": "chr17",
+     "pos": 19497254,
+     "len": 14
+    }
+   ]
+  }
+ ]
+}
