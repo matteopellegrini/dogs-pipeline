@@ -55,6 +55,19 @@ def main():
         het = np.array([float(r[1]) for r in crows]); dist = np.array([float(r[3]) for r in crows])
         froh = np.array([float(r[8]) if r[8] else np.nan for r in crows]); ok = ~np.isnan(froh)
         slope, intercept = np.polyfit(froh[ok], het[ok], 1)
+        # Breed context from OUR cohort too: the Dog10K subset in the panel is
+        # skewed to rare breeds (Poodle 1, German Shepherd 2, no Husky/Rottweiler),
+        # while the cohort has dozens of each common breed. Cohort dogs whose top
+        # breed is >= 50% count for that breed (n >= 5); cohort entries take
+        # precedence over panel entries of the same name.
+        cb = {}
+        for r in crows:
+            if r[9] and r[10] and float(r[10]) >= 0.5:
+                e = cb.setdefault(r[9], {'n': 0, 'het': [], 'hom': 0}); e['n'] += 1; e['het'].append(float(r[1])); e['hom'] += int(float(r[3]) <= HOM_THR)
+        for k, v in cb.items():
+            if v['n'] >= 5:
+                breed_out[k] = {'n': v['n'], 'mean_het': round(float(np.mean(v['het'])), 4), 'homozygous_frac': round(v['hom'] / v['n'], 3), 'source': 'prosperk9 cohort (top breed >= 50%)'}
+        for k, v in breed_out.items(): v.setdefault('source', 'Dog10K panel')
         out['windows'][win] = {
             'window': list(window), 'core': list(core), 'n_sites': int(len(pos)),
             'cohort_n': int(len(het)), 'cohort_het_sorted': [round(float(x), 4) for x in np.sort(het)],
