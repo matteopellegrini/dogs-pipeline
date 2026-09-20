@@ -4235,27 +4235,33 @@ H_EVIDENCE = bam_pileup(H_CHROM, H_POS, min_reads=1)
 # alignment jitter in the G run); a read spanning the site with no deletion is a
 # ky chromosome. Counted the same way merle and harlequin are.
 KB_CHROM, KB_POS, KB_LEN = 'chr16', 55468988, 3
-KB_TAG_FALLBACK = False   # flip only after kloc/calibration.tsv shows the tag is reliable
+# Calibrated 2026-09-20 on 349 kits with a confident read-level call (GP>=0.8 at
+# the tag): tag 0/0 -> KB present 2%; 0/1 -> 85% (KB/KB 47%); 1/1 -> 100%
+# (KB/KB 95%). Used only when no read spans the deletion (~57% of low-pass kits).
+KB_TAG_FALLBACK = True
 
-def detect_kb_deletion():
+def detect_deletion(chrom, pos, length, tol=3):
+    """Reads carrying an exact `length`-bp deletion within ±tol of pos (1-based)
+    vs reads that span pos..pos+length cleanly. Used for KB (CBD103) and the
+    TYRP1 bd allele; neither indel is in the imputation panel."""
     try:
         bam_fh = pysam.AlignmentFile(BAM, 'rb')
     except Exception:
         return None
     n_del = n_ref = 0
     try:
-        for r in bam_fh.fetch(KB_CHROM, KB_POS - 200, KB_POS + 200):
+        for r in bam_fh.fetch(chrom, pos - 200, pos + 200):
             if r.is_unmapped or r.mapping_quality < 20 or r.is_secondary or r.is_supplementary:
                 continue
             p = r.reference_start + 1   # 1-based
             hit = spans = False
             for op, ln in r.cigartuples or []:
                 if op in (0, 7, 8):          # M, =, X
-                    if p <= KB_POS - 3 and p + ln - 1 >= KB_POS + KB_LEN + 2:
+                    if p <= pos - tol and p + ln - 1 >= pos + length + tol - 1:
                         spans = True
                     p += ln
                 elif op == 2:                # D
-                    if ln == KB_LEN and KB_POS - 3 <= p <= KB_POS + 3:
+                    if ln == length and pos - tol <= p <= pos + tol:
                         hit = True
                     p += ln
                 elif op == 3:                # N
@@ -4266,9 +4272,50 @@ def detect_kb_deletion():
         return None
     finally:
         bam_fh.close()
-    return {'n_del': n_del, 'n_ref': n_ref, 'site': f'{KB_CHROM}:{KB_POS}-{KB_POS + KB_LEN - 1}'}
+    return {'n_del': n_del, 'n_ref': n_ref, 'site': f'{chrom}:{pos}-{pos + length - 1}'}
 
-KB_EVIDENCE = detect_kb_deletion()
+KB_EVIDENCE = detect_deletion(KB_CHROM, KB_POS, KB_LEN)
+
+# ── B locus: the two TYRP1 brown alleles the panel does not carry ────────
+# TYRP1 is on the PLUS strand in canFam4 (verified by translating chr11:33.38 Mb
+# against the dog TYRP1 protein: ...QRLPEPQ[331]DVAQCLEVGLFDT[345]PPFYSN...).
+#   bs  p.Gln331*   c.991C>T   chr11:33,385,200 C>T (CAG -> TAG)
+#   bd  p.Pro345del c.1033_1035delCCT  chr11:33,385,242-244 (CCTCCT run, left-aligned)
+# Neither site is in the Dog10K panel (no records within 150 bp), so they were
+# invisible until 2026-09-20: a cohort scan found bs variant reads in 145 kits
+# and bd deletion reads in 46, 81 of them looking homozygous, and 24 of those
+# were being reported B/B (black nose) — red-nose pit bulls mostly. No reads
+# at either site in any never-brown breed (GSD, Husky, Malamute, Boxer, Rottie).
+BS_CHROM, BS_POS = 'chr11', 33385200
+BD_POS, BD_LEN = 33385242, 3
+_bs = bam_pileup(BS_CHROM, BS_POS, min_reads=1) or {}
+BS_EVIDENCE = {'n_alt': _bs.get('T', 0), 'n_ref': _bs.get('C', 0), 'site': f'{BS_CHROM}:{BS_POS}'}
+BD_EVIDENCE = detect_deletion(BS_CHROM, BD_POS, BD_LEN) or {'n_del': 0, 'n_ref': 0, 'site': f'{BS_CHROM}:{BD_POS}-{BD_POS + BD_LEN - 1}'}
+
+def read_brown_allele(name, effect, n_alt, n_ref, pos):
+    """Turn read counts at a TYRP1 site into a synthetic 'b' call for the B
+    rules: copies 2 (variant reads only), 1 (both), or 1 low-confidence from a
+    single variant read. None when no variant read was seen."""
+    # Homozygous needs >=3 variant reads and no reference read (likelihood
+    # ratio 8:1 vs a carrier); two variant reads alone are a carrier call.
+    if n_alt >= 3 and n_ref == 0:
+        copies, conf = 2, ('high' if n_alt >= 5 else 'medium')
+    elif n_alt >= 1 and n_ref >= 1:
+        copies, conf = 1, ('medium' if n_alt >= 2 else 'low')
+    elif n_alt == 2:
+        copies, conf = 1, 'medium'
+    elif n_alt == 1:
+        copies, conf = 1, 'low'
+    else:
+        return None
+    return dict(locus='B', chrom=BS_CHROM, pos=pos, allele='b', inheritance='recessive',
+                effect=effect, found=True, n_alt=copies, conf=conf, read_based=True,
+                source=f'BAM reads ({n_alt} with the {name} variant / {n_ref} without)')
+
+B_READ_CALLS = [c for c in (
+    read_brown_allele('bs', 'TYRP1 p.Gln331* (bs) — brown/liver', BS_EVIDENCE['n_alt'], BS_EVIDENCE['n_ref'], BS_POS),
+    read_brown_allele('bd', 'TYRP1 p.Pro345del (bd) — brown/liver', BD_EVIDENCE['n_del'], BD_EVIDENCE['n_ref'], BD_POS),
+) if c]
 
 def call_locus(locus, calls):
     """Returns (allele1, allele2, confidence, interpretation)."""
@@ -4327,15 +4374,18 @@ def call_locus(locus, calls):
         # 'CBD103 deletion' — the confidence cap below keys on that.
         ev = KB_EVIDENCE or {'n_del': 0, 'n_ref': 0}
         nd, nr = ev['n_del'], ev['n_ref']
-        if nd >= 2 and nr == 0:
-            return 'KB', 'KB', 'high' if nd >= 4 else 'medium', \
+        # KB/KB needs >=3 deletion reads and none without (two reads both
+        # deleted happens in a quarter of carriers; calibration showed most
+        # such dogs are KB/ky). Phenotype is solid either way.
+        if nd >= 3 and nr == 0:
+            return 'KB', 'KB', 'high' if nd >= 5 else 'medium', \
                 f'Dominant black — {nd} of {nd} reads at the CBD103 deletion carry it (KB/KB): solid eumelanin, A locus hidden'
         if nd >= 1 and nr >= 1:
             return 'KB', 'ky', 'high' if (nd >= 2 and nr >= 2) else 'medium', \
                 f'Dominant black carrier — {nd} read(s) with the CBD103 deletion and {nr} without (KB/ky): solid eumelanin, A locus hidden'
-        if nd == 1 and nr == 0:
-            return 'KB', '?', 'low', \
-                'One read carries the CBD103 deletion — at least one KB copy (solid eumelanin); the second copy is not resolved at this depth'
+        if nd in (1, 2) and nr == 0:
+            return 'KB', '?', 'medium' if nd == 2 else 'low', \
+                f'{nd} read(s) carry the CBD103 deletion — at least one KB copy (solid eumelanin); whether the second copy is KB is not resolved at this depth'
         if nd == 0 and nr >= 3:
             return 'ky', 'ky', 'high' if nr >= 6 else 'medium', \
                 f'No KB — {nr} reads span the CBD103 deletion site and none carry it (ky/ky): the A locus sets the pattern'
@@ -4343,11 +4393,20 @@ def call_locus(locus, calls):
             return 'ky', 'ky', 'low', \
                 f'Likely no KB — {nr} read(s) span the CBD103 deletion site without it (ky/ky), but one KB copy could be missed at this depth; the dog\'s coat pattern resolves it'
         if KB_TAG_FALLBACK:
-            n_tag = n_copies('K', 'KB_tag', calls)
+            # Only confidently imputed tag sites (GP >= 0.8) count.
+            tag_hits = [c['n_alt'] for c in calls if c['locus'] == 'K' and c['allele'] == 'KB_tag'
+                        and c['found'] and c['n_alt'] is not None and c['source'] == 'Dog10K imputed']
+            n_tag = max(tag_hits) if tag_hits else None
             if n_tag == 2:
-                return 'KB', '?', 'low', 'No read spans the CBD103 deletion; the imputed KB-linked haplotype is present on both chromosomes, so dominant black is likely but provisional'
+                return 'KB', '?', 'medium', ('No read spans the CBD103 deletion; the KB-linked haplotype is imputed on both chromosomes '
+                    '(every such dog carried KB in our calibration), so dominant black — solid eumelanin, A locus hidden')
             if n_tag == 0:
-                return 'ky', 'ky', 'low', 'No read spans the CBD103 deletion; the imputed KB-linked haplotype is absent, so ky/ky is likely but provisional'
+                return 'ky', 'ky', 'medium', ('No read spans the CBD103 deletion; the KB-linked haplotype is imputed on neither chromosome '
+                    '(98% ky/ky in our calibration), so the A locus sets the pattern')
+            if n_tag == 1:
+                return 'KB', '?', 'low', ('No read spans the CBD103 deletion; the KB-linked haplotype is imputed on one chromosome, '
+                    'which carried KB in about 85% of calibration dogs — provisionally dominant black (solid); '
+                    'a patterned coat (sable, tan points, brindle) would mean ky/ky')
         return '?', '?', 'low', 'No read spans the CBD103 deletion site at this sequencing depth — dominant black (KB) not resolved; the dog\'s coat pattern tells you: solid = KB, patterned/sable/tan-points = ky/ky'
 
     elif locus == 'A':
@@ -4366,14 +4425,33 @@ def call_locus(locus, calls):
             'Sable (ay) or wild agouti (aw) likely but require structural variant analysis to confirm.')
 
     elif locus == 'B':
+        # Imputed b1/bc sites plus the read-level bs/bd calls (B_READ_CALLS).
+        # Read-based alleles carry their own confidence; the final call can be
+        # no more confident than the read evidence it rests on, and a single
+        # variant read is never enough to build a compound b/b on its own.
         b_calls = [c for c in calls
                    if c['locus'] == 'B' and c['allele'] == 'b'
-                   and c['found'] and c['n_alt'] is not None]
+                   and c['found'] and c['n_alt'] is not None] + B_READ_CALLS
         if not b_calls:
             return '?', '?', 'low', 'TYRP1 brown alleles not found in Dog10K panel'
-        if any(c['n_alt'] == 2 for c in b_calls):
-            return 'b', 'b', 'high', 'Brown/liver eumelanin (b/b) — black pigment becomes brown; nose and pads liver/brown'
-        het = [c for c in b_calls if c['n_alt'] == 1]
+        rb_used = [c for c in B_READ_CALLS if c['n_alt'] > 0]
+        read_note = ''.join(f" {c['effect'].split(' — ')[0]} seen directly in reads ({c['source'][11:-1]})." for c in rb_used)
+        def _cap(a1, a2, conf, interp):
+            if 'b' in (a1, a2) and rb_used:
+                conf = min([conf] + [c['conf'] for c in rb_used], key=lambda x: CONF_RANK[x])
+                interp += read_note
+            return a1, a2, conf, interp
+        hom = [c for c in b_calls if c['n_alt'] == 2]
+        if hom:
+            return _cap('b', 'b', 'high', 'Brown/liver eumelanin (b/b) — black pigment becomes brown; nose and pads liver/brown')
+        het = [c for c in b_calls if c['n_alt'] == 1 and not (c.get('read_based') and c['conf'] == 'low')]
+        if len(het) < 2 and any(c['n_alt'] == 1 and c.get('read_based') and c['conf'] == 'low' for c in b_calls):
+            # a single variant read: carrier evidence, not proof
+            if het:
+                return _cap('B', 'b', 'low', 'Carrier (B/b): one brown allele detected, and a single read suggests a second brown variant — '
+                            'possibly brown (b/b), not resolvable at this depth; the nose color tells you (liver = brown).')
+            return _cap('B', 'b', 'low', 'Possible carrier (B/b): one brown variant seen in a single read. Pigment expected black; '
+                        'a liver nose would mean the dog is brown.')
         if len(het) >= 2:
             # Two different brown variants, each heterozygous. Two DISTINCT
             # TYRP1 brown alleles are independent mutations that essentially
@@ -4404,7 +4482,7 @@ def call_locus(locus, calls):
                         continue
                 supported.append(c)
             if len(supported) >= 2:
-                return 'b', 'b', 'medium', ('Brown/liver eumelanin (b/b): two different brown variants detected, '
+                return _cap('b', 'b', 'medium', 'Brown/liver eumelanin (b/b): two different brown variants detected, '
                     'each in one copy. Distinct brown alleles arise as separate mutations and are not found '
                     'together on one chromosome copy, so they are inferred on opposite copies (compound '
                     'heterozygous) — both TYRP1 copies affected, black pigment becomes brown; nose and pads '
@@ -4414,13 +4492,13 @@ def call_locus(locus, calls):
                 f'({n} reference reads, none variant), so it is disregarded.'
                 for c, n in refuted)
             if len(supported) == 1:
-                return 'B', 'b', 'medium', ('Carrier (B/b): one brown allele detected. Pigment stays black '
+                return _cap('B', 'b', 'medium', 'Carrier (B/b): one brown allele detected. Pigment stays black '
                     '(black nose and pads); puppies may inherit brown if the other parent also carries it.'
                     + ref_note)
             return 'B', 'B', 'medium', ('No brown alleles supported by reads (B/B) — black eumelanin, black nose '
                 'and pads.' + ref_note)
         if len(het) == 1:
-            return 'B', 'b', 'medium', ('Carrier (B/b): one brown allele detected. Pigment stays black '
+            return _cap('B', 'b', 'medium', 'Carrier (B/b): one brown allele detected. Pigment stays black '
                 '(black nose and pads); puppies may inherit brown if the other parent also carries it. '
                 'Rare brown alleles outside the panel cannot be fully excluded.')
         return 'B', 'B', 'high', 'No brown alleles detected (B/B) — black eumelanin, black nose and pads'
@@ -4654,6 +4732,10 @@ def predict_phenotype(loci_gt):
         base_color = f'Eumelanin — solid {eume_color}'
         pattern = (f'Solid {eume_color}{mask_note} — KB dominant black suppresses A locus entirely. '
                    f'{nose_color.capitalize()}.')
+        if loci_gt['K']['confidence'] == 'low':
+            base_color = f'Eumelanin — likely solid {eume_color} (K locus provisional)'
+            pattern += (' The K call is provisional at this sequencing depth: if the coat shows a pattern '
+                        '(sable, tan points, brindle) the dog is ky/ky and the A locus applies.')
         dil_str = (f'Dilute (d/d) — {eume_color} coat' if is_dd
                    else f'Full pigment (D/D or D/d)')
         return base_color, pattern, dil_str
@@ -4758,6 +4840,10 @@ for locus in ['E', 'K', 'A', 'B', 'D', 'M', 'H', 'S', 'W']:
         locus_entry['eumelanic_alternative'] = g['eumelanic_alternative']
     if locus == 'K' and KB_EVIDENCE:
         locus_entry['read_evidence'] = KB_EVIDENCE
+    if locus == 'B':
+        locus_entry['read_evidence'] = {'bs': BS_EVIDENCE, 'bd': BD_EVIDENCE}
+        for c in B_READ_CALLS:
+            obs.append({'pos': c['pos'], 'source': c['source'], 'effect': c['effect'], 'n_alt': c['n_alt']})
     loci_result[locus] = locus_entry
 
 coat = {
