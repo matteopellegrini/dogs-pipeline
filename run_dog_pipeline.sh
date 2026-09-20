@@ -3966,12 +3966,28 @@ KNOWN_VARIANTS = [
          allele='e_tag', inheritance='recessive',
          effect='MC1R c.790 M264V (chr5:64186854) — REF C = V264 Em mask haplotype; ALT T = non-mask M264 background that e arises on'),
 
-    # K locus: CBD103 (chr16)
-    # KB: p.Lys43Arg (c.128A>G) — dominant black
-    dict(locus='K', chrom='chr16', pos=57074438, exp_ref='A', exp_alt='G',
-         allele='KB', inheritance='dominant', effect='CBD103 p.Lys43Arg — dominant black'),
-    dict(locus='K', chrom='chr16', pos=57036106, exp_ref=None, exp_alt=None,
-         allele='KB', inheritance='dominant', effect='CBD103 — dominant black tagging SNP 2'),
+    # K locus: CBD103 (chr16). KB is the 3-bp deletion (ΔG23, Candille 2007), which
+    # in canFam4 sits at chr16:55,468,988-55,468,990 (left-aligned in a GGGGG run;
+    # context ...GCAGGAAATG[GGG]GGAATTATAAA...). It is read directly from the BAM
+    # (detect_kb_deletion below): Newfoundland 6/6 reads deleted, Golden 3/3,
+    # Standard Poodle 3/3; Dachshunds and a GSD 0/n (2026-09-20).
+    #
+    # The two SNPs used until 2026-09-20 (chr16:57074438 "p.Lys43Arg" and 57036106)
+    # were NOT KB: the panel carries T/C at the first, not the expected A/G, and
+    # Dog10K allele frequencies show no KB-breed vs ky-breed contrast there
+    # (0.37 vs 0.41). The 57.07 Mb "CBD103" in the gene annotation is a paralogous
+    # defensin. Cohort calls made from them were noise (Goldens 5/10 ky/ky,
+    # Dachshunds 10/10 KB) — kit 31240411303312 (white with brown patches) was
+    # reported solid black.
+    #
+    # Tag SNPs with the strongest KB-vs-ky contrast in Dog10K (AF 0.75 vs 0.05).
+    # Evidence only: they are haplotype proxies, never a genotype. Used as a
+    # provisional fallback solely when no read spans the deletion, gated by
+    # KB_TAG_FALLBACK (set after calibration against read-level calls).
+    dict(locus='K', chrom='chr16', pos=55464672, exp_ref='G', exp_alt='A',
+         allele='KB_tag', inheritance='dominant', effect='CBD103 region KB-haplotype tag (Dog10K AF 0.75 in KB breeds / 0.05 in ky breeds)'),
+    dict(locus='K', chrom='chr16', pos=55464673, exp_ref='C', exp_alt='A',
+         allele='KB_tag', inheritance='dominant', effect='CBD103 region KB-haplotype tag 2'),
 
     # A locus: ASIP (chr24)
     # ay (sable) and aw involve regulatory/structural variants — not detectable from SNP imputation.
@@ -4213,6 +4229,47 @@ MERLE_EVIDENCE = detect_merle_sine()
 H_CHROM, H_POS, H_REF, H_ALT = 'chr9', 58614853, 'T', 'G'
 H_EVIDENCE = bam_pileup(H_CHROM, H_POS, min_reads=1)
 
+# ── K locus (dominant black) from read alignments ────────────────────────
+# KB = 3-bp deletion at chr16:55,468,988-55,468,990 (see KNOWN_VARIANTS
+# comment). A read carrying it shows a 3-bp 'D' at that position (±3 bp for
+# alignment jitter in the G run); a read spanning the site with no deletion is a
+# ky chromosome. Counted the same way merle and harlequin are.
+KB_CHROM, KB_POS, KB_LEN = 'chr16', 55468988, 3
+KB_TAG_FALLBACK = False   # flip only after kloc/calibration.tsv shows the tag is reliable
+
+def detect_kb_deletion():
+    try:
+        bam_fh = pysam.AlignmentFile(BAM, 'rb')
+    except Exception:
+        return None
+    n_del = n_ref = 0
+    try:
+        for r in bam_fh.fetch(KB_CHROM, KB_POS - 200, KB_POS + 200):
+            if r.is_unmapped or r.mapping_quality < 20 or r.is_secondary or r.is_supplementary:
+                continue
+            p = r.reference_start + 1   # 1-based
+            hit = spans = False
+            for op, ln in r.cigartuples or []:
+                if op in (0, 7, 8):          # M, =, X
+                    if p <= KB_POS - 3 and p + ln - 1 >= KB_POS + KB_LEN + 2:
+                        spans = True
+                    p += ln
+                elif op == 2:                # D
+                    if ln == KB_LEN and KB_POS - 3 <= p <= KB_POS + 3:
+                        hit = True
+                    p += ln
+                elif op == 3:                # N
+                    p += ln
+            if hit: n_del += 1
+            elif spans: n_ref += 1
+    except Exception:
+        return None
+    finally:
+        bam_fh.close()
+    return {'n_del': n_del, 'n_ref': n_ref, 'site': f'{KB_CHROM}:{KB_POS}-{KB_POS + KB_LEN - 1}'}
+
+KB_EVIDENCE = detect_kb_deletion()
+
 def call_locus(locus, calls):
     """Returns (allele1, allele2, confidence, interpretation)."""
 
@@ -4265,14 +4322,33 @@ def call_locus(locus, calls):
         return '?', '?', 'low', 'E locus not resolvable at this sequencing depth'
 
     elif locus == 'K':
-        n_kb = n_copies('K', 'KB', calls)
-        if not any_found('K', calls):
-            return '?', '?', 'low', 'CBD103 positions not found in Dog10K panel'
-        if n_kb == 2:
-            return 'KB', 'KB', 'high', 'Homozygous dominant black (KB/KB)'
-        if n_kb == 1:
-            return 'KB', 'ky', 'high', 'Dominant black carrier (KB/ky) — KB overrides A locus'
-        return 'ky', 'ky', 'high', 'No KB allele (ky/ky) — A locus controls pattern'
+        # Read-level call at the CBD103 deletion; the imputed tags are a
+        # gated fallback only. Interpretations that come from reads contain
+        # 'CBD103 deletion' — the confidence cap below keys on that.
+        ev = KB_EVIDENCE or {'n_del': 0, 'n_ref': 0}
+        nd, nr = ev['n_del'], ev['n_ref']
+        if nd >= 2 and nr == 0:
+            return 'KB', 'KB', 'high' if nd >= 4 else 'medium', \
+                f'Dominant black — {nd} of {nd} reads at the CBD103 deletion carry it (KB/KB): solid eumelanin, A locus hidden'
+        if nd >= 1 and nr >= 1:
+            return 'KB', 'ky', 'high' if (nd >= 2 and nr >= 2) else 'medium', \
+                f'Dominant black carrier — {nd} read(s) with the CBD103 deletion and {nr} without (KB/ky): solid eumelanin, A locus hidden'
+        if nd == 1 and nr == 0:
+            return 'KB', '?', 'low', \
+                'One read carries the CBD103 deletion — at least one KB copy (solid eumelanin); the second copy is not resolved at this depth'
+        if nd == 0 and nr >= 3:
+            return 'ky', 'ky', 'high' if nr >= 6 else 'medium', \
+                f'No KB — {nr} reads span the CBD103 deletion site and none carry it (ky/ky): the A locus sets the pattern'
+        if nd == 0 and nr in (1, 2):
+            return 'ky', 'ky', 'low', \
+                f'Likely no KB — {nr} read(s) span the CBD103 deletion site without it (ky/ky), but one KB copy could be missed at this depth; the dog\'s coat pattern resolves it'
+        if KB_TAG_FALLBACK:
+            n_tag = n_copies('K', 'KB_tag', calls)
+            if n_tag == 2:
+                return 'KB', '?', 'low', 'No read spans the CBD103 deletion; the imputed KB-linked haplotype is present on both chromosomes, so dominant black is likely but provisional'
+            if n_tag == 0:
+                return 'ky', 'ky', 'low', 'No read spans the CBD103 deletion; the imputed KB-linked haplotype is absent, so ky/ky is likely but provisional'
+        return '?', '?', 'low', 'No read spans the CBD103 deletion site at this sequencing depth — dominant black (KB) not resolved; the dog\'s coat pattern tells you: solid = KB, patterned/sable/tan-points = ky/ky'
 
     elif locus == 'A':
         at_calls = [c for c in calls if c['locus'] == 'A' and c['allele'] == 'at_tag'
@@ -4466,7 +4542,8 @@ for locus in ['E', 'K', 'A', 'B', 'D', 'M', 'H', 'S', 'W']:
     # from. At 0.2x a KB/KB "high" came from one site at GP 0.64 backed by a
     # single read, on a dog that is red and white (kit 31231210404804,
     # 2026-09-13). E decided from reads at the p.306 stop is exempt.
-    if locus in ('E', 'K', 'B', 'D') and not (locus == 'E' and 'reads at MC1R' in interp):
+    if locus in ('E', 'K', 'B', 'D') and not (locus == 'E' and 'reads at MC1R' in interp) \
+            and not (locus == 'K' and 'CBD103 deletion' in interp):
         site_confs = [c['conf'] for c in variant_calls
                       if c['locus'] == locus and c['found'] and c.get('n_alt') is not None
                       and c['source'].startswith('Dog10K imputed')]
@@ -4679,6 +4756,8 @@ for locus in ['E', 'K', 'A', 'B', 'D', 'M', 'H', 'S', 'W']:
     }
     if g.get('eumelanic_alternative'):
         locus_entry['eumelanic_alternative'] = g['eumelanic_alternative']
+    if locus == 'K' and KB_EVIDENCE:
+        locus_entry['read_evidence'] = KB_EVIDENCE
     loci_result[locus] = locus_entry
 
 coat = {
@@ -4691,7 +4770,7 @@ coat = {
         'predicted_harlequin': loci_gt['H']['interpretation'],
         'overall_confidence': overall_conf,
         **({'validation_warning': validation_warning} if validation_warning else {}),
-        'caveat': ('E, K, B, D loci called from Dog10K GLIMPSE2 imputed BCF (causal SNPs). '
+        'caveat': ('E, B, D loci called from Dog10K GLIMPSE2 imputed BCF (causal SNPs); K (dominant black) is read directly from the reads at the CBD103 deletion. '
                    'A locus sable (ay/aw) requires structural variant analysis not available here. '
                    'Merle (M) is screened from reads at the PMEL insertion site (the exact merle class needs a length test); extreme white (W) requires PCR or long-read. '
                    'Harlequin (H, PSMB7 V49G) is called from direct reads — the allele is too rare for panel imputation — and is only expressed on a merle background. '
