@@ -4386,17 +4386,32 @@ def call_locus(locus, calls):
         if nd in (1, 2) and nr == 0:
             return 'KB', '?', 'medium' if nd == 2 else 'low', \
                 f'{nd} read(s) carry the CBD103 deletion — at least one KB copy (solid eumelanin); whether the second copy is KB is not resolved at this depth'
-        if nd == 0 and nr >= 3:
-            return 'ky', 'ky', 'high' if nr >= 6 else 'medium', \
-                f'No KB — {nr} reads span the CBD103 deletion site and none carry it (ky/ky): the A locus sets the pattern'
-        if nd == 0 and nr in (1, 2):
-            return 'ky', 'ky', 'low', \
-                f'Likely no KB — {nr} read(s) span the CBD103 deletion site without it (ky/ky), but one KB copy could be missed at this depth; the dog\'s coat pattern resolves it'
+        # Imputed KB-haplotype tag (GP >= 0.8 only); None when unusable.
+        n_tag = None
         if KB_TAG_FALLBACK:
-            # Only confidently imputed tag sites (GP >= 0.8) count.
             tag_hits = [c['n_alt'] for c in calls if c['locus'] == 'K' and c['allele'] == 'KB_tag'
                         and c['found'] and c['n_alt'] is not None and c['source'] == 'Dog10K imputed']
             n_tag = max(tag_hits) if tag_hits else None
+        if nd == 0 and nr >= 3:
+            # A KB/ky dog shows no deletion in 3 spanning reads 1 time in 8, so a
+            # het-tag background keeps this provisional until ~6 reads.
+            if n_tag == 2:
+                return '?', '?', 'low', (f'{nr} reads span the CBD103 deletion site without it, but the KB-linked haplotype is '
+                    'imputed on both chromosomes — the two lines of evidence disagree, so K is not resolved; the coat pattern tells you')
+            conf = 'high' if nr >= 6 else ('low' if n_tag == 1 else 'medium')
+            return 'ky', 'ky', conf, \
+                f'No KB — {nr} reads span the CBD103 deletion site and none carry it (ky/ky): the A locus sets the pattern'
+        if nd == 0 and nr in (1, 2):
+            if n_tag == 0:
+                return 'ky', 'ky', 'medium', \
+                    f'No KB — {nr} read(s) span the CBD103 deletion site without it and the KB-linked haplotype is imputed on neither chromosome (ky/ky): the A locus sets the pattern'
+            if n_tag in (1, 2):
+                return '?', '?', 'low', (f'{nr} read(s) span the CBD103 deletion site without it, but the KB-linked haplotype is imputed on '
+                    f'{"one chromosome" if n_tag == 1 else "both chromosomes"} — one KB copy could easily be missed in so few reads, so K is not resolved; '
+                    'a solid coat means KB, a patterned coat (sable, tan points, brindle) means ky/ky')
+            return 'ky', 'ky', 'low', \
+                f'Likely no KB — {nr} read(s) span the CBD103 deletion site without it (ky/ky), but one KB copy could be missed at this depth; the dog\'s coat pattern resolves it'
+        if KB_TAG_FALLBACK:
             if n_tag == 2:
                 return 'KB', '?', 'medium', ('No read spans the CBD103 deletion; the KB-linked haplotype is imputed on both chromosomes '
                     '(every such dog carried KB in our calibration), so dominant black — solid eumelanin, A locus hidden')
