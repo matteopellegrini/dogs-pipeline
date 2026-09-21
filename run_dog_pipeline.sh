@@ -5107,6 +5107,13 @@ try:
 except Exception:
     pass
 _platform_ok = not _panel_rl or _sample_rl is None or int(_sample_rl) in _panel_rl
+# MICROBIOME_AGE_FORCE=1 (env) overrides the read-length guard for a deliberate
+# cross-platform run (e.g. 150bp DNBSEQ vs the 151bp panel). The estimate may
+# then carry a batch shift; the result records that it was forced.
+_age_forced = ("${MICROBIOME_AGE_FORCE:-0}" == "1") and not _platform_ok
+if _age_forced:
+    print(f"WARNING: read length {_sample_rl}bp not in panel {sorted(_panel_rl)} — age prediction FORCED by MICROBIOME_AGE_FORCE=1")
+    _platform_ok = True
 skip_reason = None
 _sample_n_sp = len([v for v in kiki_species.values() if v])
 if len(aged) < MIN_AGED:
@@ -5167,6 +5174,9 @@ else:
             age_result['actual_age_years'] = float(ACTUAL_AGE)
         except ValueError:
             pass
+    if _age_forced:
+        age_result['platform_note'] = (f"Read length {_sample_rl}bp differs from the reference panel "
+                                       f"({sorted(_panel_rl)}bp); estimate forced across platforms and may carry a batch shift.")
 
     with open(f'{PUB}/microbiome_age_result.json', 'w') as fh:
         json.dump(age_result, fh, indent=2)
