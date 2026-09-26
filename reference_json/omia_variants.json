@@ -2580,7 +2580,7 @@
    "trait": "Persistent Mullerian Duct Syndrome (PMDS)",
    "variant_breed": "",
    "panel": "Embark, Wisdom",
-   "reference": "https://doi.org/10.2164/jandrol.108.005736.A",
+   "reference": "https://doi.org/10.2164/jandrol.108.005736",
    "cosmo": {
     "zygosity": "ref/ref",
     "depth": 1,
@@ -9210,7 +9210,7 @@
    "trait": "Limb-girdle muscular dystrophy Type L3",
    "variant_breed": "Miniature Dachshund",
    "panel": "Wisdom",
-   "reference": "https://doi.org/10.1186/10.1186/s13395-020-00257-y",
+   "reference": "https://doi.org/10.1186/s13395-020-00257-y",
    "cosmo": {
     "zygosity": "ref/ref",
     "depth": 1,
