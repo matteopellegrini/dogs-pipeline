@@ -5254,6 +5254,84 @@ PYEOF
     log "  Microbiome stage complete."
 
 fi # end stage 15
+if (( FROM_STAGE <= 15 && TO_STAGE >= 15 )); then
+# ── Stage 15b: Bacterial activity (HUMAnN functional profile) ───────
+# "What <dog>'s mouth bacteria are doing": four health-relevant functions
+# (breath sulfur compounds, gingipains, nitrate reduction, ammonia) scored as
+# percentiles against reference_panel/oral_function_panel.json (built from
+# the 2026-10 cohort run, analysis/oral_function/build_oral_function_panel.py).
+# Same recipe as that run: unmapped reads capped at 5M, HUMAnN in profile
+# mode with the sample's MetaPhlAn table (header patched to the vJun23 name
+# HUMAnN 3.9 accepts), UniRef90 -> EC level-4 regroup, CPM. Skipped, not
+# fatal, when the HUMAnN environment is absent (Mac) or the sample has fewer
+# than ORAL_FUNCTION_MIN_READS microbial reads: the dashboard card simply
+# does not render without oral_function_result.json.
+log "=== Stage 15b: Bacterial activity (HUMAnN) ==="
+HUMANN_ENV="${HUMANN_ENV:-$D/envs/humann}"
+HUMANN_DB_DIR="${HUMANN_DB_DIR:-$D/humann_db}"
+ORAL_FUNCTION_PANEL="${ORAL_FUNCTION_PANEL:-$D/reference_panel/oral_function_panel.json}"
+ORAL_FUNCTION_MIN_READS="${ORAL_FUNCTION_MIN_READS:-1000000}"
+HUMANN_READ_CAP="${HUMANN_READ_CAP:-5000000}"
+UNMAPPED_FQ="$OUT/${DOG_LOWER}_unmapped.fastq"
+MICRO_OUT="$OUT/${DOG_LOWER}_metaphlan.txt"
+if [[ "${SKIP_HUMANN:-0}" == "1" ]]; then
+    log "  SKIP_HUMANN=1 — bacterial activity card not computed"
+elif [[ ! -x "$HUMANN_ENV/bin/humann" ]]; then
+    log "  HUMAnN not installed at $HUMANN_ENV — bacterial activity card skipped"
+elif [[ ! -f "$ORAL_FUNCTION_PANEL" ]]; then
+    log "  Reference panel missing at $ORAL_FUNCTION_PANEL — bacterial activity card skipped"
+elif [[ ! -f "$MICRO_OUT" || ! -f "$UNMAPPED_FQ" ]]; then
+    log "  MetaPhlAn profile or unmapped reads missing — bacterial activity card skipped"
+else
+    # Microbial read count = reads MetaPhlAn processed (the cohort's depth measure).
+    MICRO_READS=$(grep -m1 -o '^#[0-9]* reads processed' "$MICRO_OUT" | tr -dc '0-9')
+    MICRO_READS="${MICRO_READS:-0}"
+    log "  Microbial reads: $MICRO_READS (minimum for the card: $ORAL_FUNCTION_MIN_READS)"
+    if (( MICRO_READS < ORAL_FUNCTION_MIN_READS )); then
+        log "  Below the minimum — bacterial activity card skipped"
+        rm -f "$PUB/oral_function_result.json"
+    else
+        HUMANN_DIR="$OUT/humann"
+        rm -rf "$HUMANN_DIR"; mkdir -p "$HUMANN_DIR"
+        HUMANN_FQ="$HUMANN_DIR/${DOG_LOWER}_humann_input.fastq"
+        # Random cap at HUMANN_READ_CAP reads (fixed seed) so deep kits are
+        # comparable with the reference; below the cap every read is kept.
+        KEEP_P=$(awk -v n="$MICRO_READS" -v cap="$HUMANN_READ_CAP" 'BEGIN{p=cap/n; if(p>1)p=1; printf "%.6f", p}')
+        awk -v p="$KEEP_P" 'BEGIN{srand(11)} NR%4==1{k=(rand()<p)} k' "$UNMAPPED_FQ" > "$HUMANN_FQ"
+        log "  HUMAnN input: $(( $(wc -l < "$HUMANN_FQ") / 4 )) reads (keep fraction $KEEP_P)"
+        HUMANN_PROFILE="$HUMANN_DIR/${DOG_LOWER}_profile_for_humann.tsv"
+        sed 's/mpa_vJan25_CHOCOPhlAnSGB_202503/mpa_vJun23_CHOCOPhlAnSGB_202403/' "$MICRO_OUT" > "$HUMANN_PROFILE"
+        HUMANN_LOG="$HUMANN_DIR/humann.log"
+        # HUMAnN's env first (its metaphlan wrapper must shadow the real one:
+        # HUMAnN parses the last line of `metaphlan --version`), then the
+        # genomics env for bowtie2/diamond. OpenBLAS threads pinned to 1 as in
+        # the cohort run.
+        if ( export PATH="$HUMANN_ENV/bin:$ENV_GENOMICS/bin:$PATH" OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1; \
+             humann --input "$HUMANN_FQ" --output "$HUMANN_DIR" --threads "$NPROC" \
+                 --nucleotide-database "$HUMANN_DB_DIR/chocophlan" --protein-database "$HUMANN_DB_DIR/uniref" \
+                 --output-basename "$DOG_LOWER" --remove-temp-output --taxonomic-profile "$HUMANN_PROFILE" >"$HUMANN_LOG" 2>&1 \
+             && humann_regroup_table -i "$HUMANN_DIR/${DOG_LOWER}_genefamilies.tsv" -g uniref90_level4ec -o "$HUMANN_DIR/${DOG_LOWER}_ec.tsv" >>"$HUMANN_LOG" 2>&1 \
+             && humann_renorm_table -i "$HUMANN_DIR/${DOG_LOWER}_ec.tsv" -u cpm -o "$HUMANN_DIR/${DOG_LOWER}_ec_cpm.tsv" >>"$HUMANN_LOG" 2>&1 \
+             && humann_renorm_table -i "$HUMANN_DIR/${DOG_LOWER}_pathabundance.tsv" -u cpm -o "$HUMANN_DIR/${DOG_LOWER}_pathabundance_cpm.tsv" >>"$HUMANN_LOG" 2>&1 ); then
+            rm -f "$HUMANN_FQ"
+            gzip -f "$HUMANN_DIR/${DOG_LOWER}_genefamilies.tsv" 2>/dev/null || true
+            python3 "$D/analysis/oral_function/score_oral_function.py" \
+                --ec "$HUMANN_DIR/${DOG_LOWER}_ec_cpm.tsv" --profile "$MICRO_OUT" --reads "$MICRO_READS" \
+                --panel "$ORAL_FUNCTION_PANEL" --out "$PUB/oral_function_result.json" 2>&1 \
+                | while IFS= read -r l; do log "  [oral_function] $l"; done
+            [[ -f "$PUB/oral_function_result.json" ]] && log "  oral_function_result.json written" \
+                || log "  oral_function_result.json not written (see messages above)"
+        else
+            # A failed HUMAnN run must not sink the report: the rest of the
+            # pipeline publishes without the card and the operator sees why here.
+            log "  WARNING: HUMAnN failed — bacterial activity card skipped. Last lines:"
+            tail -5 "$HUMANN_LOG" 2>/dev/null | while IFS= read -r l; do log "    $l"; done
+            rm -f "$HUMANN_FQ" "$PUB/oral_function_result.json"
+        fi
+    fi
+fi
+
+fi # end stage 15b
 if (( FROM_STAGE <= 16 && TO_STAGE >= 16 )); then
 # ── Stage 16: Copy reference JSONs ───────────────────────────
 log "=== Stage 16: Copy reference JSONs ==="
