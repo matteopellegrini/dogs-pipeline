@@ -5314,6 +5314,7 @@ else
              && humann_renorm_table -i "$HUMANN_DIR/${DOG_LOWER}_ec.tsv" -u cpm -o "$HUMANN_DIR/${DOG_LOWER}_ec_cpm.tsv" >>"$HUMANN_LOG" 2>&1 \
              && humann_renorm_table -i "$HUMANN_DIR/${DOG_LOWER}_pathabundance.tsv" -u cpm -o "$HUMANN_DIR/${DOG_LOWER}_pathabundance_cpm.tsv" >>"$HUMANN_LOG" 2>&1 ); then
             rm -f "$HUMANN_FQ"
+            rm -rf "$HUMANN_DIR"/*_humann_temp_* 2>/dev/null || true   # HUMAnN leaves the emptied temp dir behind
             gzip -f "$HUMANN_DIR/${DOG_LOWER}_genefamilies.tsv" 2>/dev/null || true
             python3 "$D/analysis/oral_function/score_oral_function.py" \
                 --ec "$HUMANN_DIR/${DOG_LOWER}_ec_cpm.tsv" --profile "$MICRO_OUT" --reads "$MICRO_READS" \
