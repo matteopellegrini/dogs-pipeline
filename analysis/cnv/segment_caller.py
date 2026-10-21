@@ -143,7 +143,9 @@ def call_sample(v, sex, panel):
     if len(segments) > 25:
         return {'segments': [], 'aneuploidies': aneuploidies, 'sigma': round(sigma, 4),
                 'confidence': 'low',
-                'note': f'{len(segments)} candidate segments — unstable profile, CNV calls suppressed.'}
+                'note': (f'Read depth was too uneven on this sample for reliable copy-number calling '
+                         f'({len(segments)} candidate segments, a sign of a noisy profile rather than real changes), '
+                         f'so no copy-number variants are reported.')}
     return {'segments': segments, 'aneuploidies': aneuploidies, 'sigma': round(sigma, 4),
             'confidence': confidence}
 
