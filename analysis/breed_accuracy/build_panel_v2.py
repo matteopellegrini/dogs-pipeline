@@ -42,7 +42,7 @@ os.makedirs(OUT, exist_ok=True)
 # --- load everything on the Parker grid -------------------------------------
 P, p_ids, p_truth, keys, a1 = read_parker(CONFIG['parker'], CONFIG['clust'])
 key_index = {k: i for i, k in enumerate(keys)}
-label_of_code = json.load(open(CONFIG['harmonized']))
+label_of_code = json.load(open(opt('--harmonized', CONFIG['harmonized'])))
 for l in open(CONFIG['dups']):
     f = l.split('\t')
     if len(f) >= 5 and re.match(r'^0\.9', f[4]): drop.add(f[0])          # Parker copy of a Dog10K dog
@@ -55,7 +55,7 @@ add(P, p_ids, [label_of_code.get(p_truth.get(i, ''), None) for i in p_ids], 'par
 D, d_ids, d_truth = read_dog10k(CONFIG['dog10k_gt'], CONFIG['dog10k_samples'], key_index, a1)
 add(D, d_ids, [label_of_code.get(d_truth.get(i, ''), None) for i in d_ids], 'dog10k')
 if USE_HW:
-    z = np.load(CONFIG['hayward']); hmap = json.load(open(CONFIG['hayward_map']))
+    z = np.load(CONFIG['hayward']); hmap = json.load(open(opt('--hayward-map', CONFIG['hayward_map'])))
     add(z['dos'], list(z['ids']), [hmap.get(str(l)) for l in z['labels']], 'hayward')
 X = np.concatenate(cols, axis=1); del cols
 labels = np.array(labels); source = np.array(source); ids = np.array(ids)
@@ -84,13 +84,19 @@ if DAP:
         G[np.diag_indices_from(G)] += 1e-6; R = np.linalg.cholesky(G).T
         q, _ = nnls(R, solve_triangular(R.T, rhs, lower=True)); return q / (q.sum() + 1e-12)
     keep, why = [], Counter()
+    SELF = float(opt('--dap-self', 0.85))     # DAP genotypes are low-pass imputed: self-proportions run lower than array/WGS dogs
+    per_dog = open(f'{OUT}/dap_confirmation_dogs.tsv', 'w'); per_dog.write('dog_id\tstated\ttop\tself\ttop_prop\tkept\n')
     for j in range(Dd.shape[1]):
-        q = score0(Dd[:, j]); lab_ = d_lab[j]
+        q = score0(Dd[:, j]); lab_ = d_lab[j]; top = b0[int(q.argmax())]
         if lab_ in i0:
-            ok = q[i0[lab_]] >= 0.85; why['confirmed' if ok else f'rejected:{lab_}->{b0[int(q.argmax())]}'] += 1
+            ok = (top == lab_) and q[i0[lab_]] >= SELF; why['confirmed' if ok else f'rejected:{lab_}->{top}'] += 1
+            selfp = q[i0[lab_]]
         else:
-            ok = q.max() < 0.6; why['new-breed kept' if ok else f'new-breed rejected:{lab_}->{b0[int(q.argmax())]}'] += 1
+            ok = q.max() < 0.6; why['new-breed kept' if ok else f'new-breed rejected:{lab_}->{top}'] += 1
+            selfp = float('nan')
+        per_dog.write(f'{d_ids[j]}\t{lab_}\t{top}\t{selfp:.3f}\t{q.max():.3f}\t{int(ok)}\n')
         if ok: keep.append(j)
+    per_dog.close()
     print(f'DAP confirmation: kept {len(keep)} of {Dd.shape[1]}; ' + ', '.join(f'{k} {v}' for k, v in why.most_common(14)), file=sys.stderr)
     with open(f'{OUT}/dap_confirmation.tsv', 'w') as fh:
         for k, v in why.most_common(): fh.write(f'{k}\t{v}\n')
