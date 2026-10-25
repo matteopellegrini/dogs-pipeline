@@ -69,3 +69,6 @@ relatives_ref/
 invites_*.tsv
 kit_map_96.tsv
 do_not_contact.tsv
+reinvite_*.tsv
+reinvite_*.log
+hayward2016/
