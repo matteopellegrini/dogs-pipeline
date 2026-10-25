@@ -64,9 +64,10 @@ def report(name, ibs, a_ids, a_lab, b_ids, b_lab, thr=0.97):
     print(f'\n== {name}: best-match IBS percentiles 50/90/99/max = {np.round(np.percentile(best, [50, 90, 99, 100]), 4)}')
     hits = np.argwhere(ibs >= thr)
     print(f'pairs with IBS >= {thr}: {len(hits)}')
-    for i, j in hits[:80]:
+    for i, j in hits:
         print(f'  {a_ids[i]}\t{a_lab(a_ids[i])}\t{b_ids[j]}\t{b_lab(b_ids[j])}\t{ibs[i, j]:.4f}')
 
+sys.exit(0)  # duplicate check already done; dosages only
 ibs, nu = ibs_matrix(H, P); print(f'Hayward vs Parker at {nu} sites', file=sys.stderr)
 report('Hayward vs Parker', ibs, ids, lambda i: labels.get(i, ''), p_ids, lambda i: p_truth.get(i, ''))
 # Hayward vs Hayward (internal duplicates), upper triangle only

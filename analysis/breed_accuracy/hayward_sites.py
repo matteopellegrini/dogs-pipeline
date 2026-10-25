@@ -34,9 +34,12 @@ with open(out, 'w') as fo:
         if key not in panel: continue
         p1, p2 = panel[key]
         ambiguous = comp.get(a1) == a2
-        if (a1, a2) == (p1, p2): k = 'same'
+        # A/T and C/G SNPs: the array export does not say which strand, and the allele
+        # letters cannot tell. Half of them came out flipped (checked against Parker/Dog10K
+        # frequencies: r ~ 0), so they are dropped rather than guessed.
+        if ambiguous: k = 'ambig_drop'
+        elif (a1, a2) == (p1, p2): k = 'same'
         elif (a1, a2) == (p2, p1): k = 'swap'
-        elif ambiguous: k = 'ambig_drop'
         elif (comp.get(a1), comp.get(a2)) == (p1, p2): k = 'flip'
         elif (comp.get(a1), comp.get(a2)) == (p2, p1): k = 'flipswap'
         else: k = 'mismatch'
