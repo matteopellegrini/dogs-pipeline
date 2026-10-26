@@ -28,7 +28,8 @@ sheet=$(mktemp "$D/logs/sheet9.XXXXXX.tsv")
 printf 'sample_id\tfastq_dir\tage\toutput_name\twork_dir\tpub_dir\tfrom_stage\tsex\tnotes\n' > "$sheet"
 printf '%s\t%s\t\t%s\t%s\t%s\t9\t\trerun stage 9 with breed panel v2\n' "$pk" "$D/fastq/none" "$pk" "$WORK" "$PUB" >> "$sheet"
 # Snapshot the pipeline script: bash reads scripts incrementally, an edit mid-task would poison running tasks.
-snap=$(mktemp "$D/logs/pipeline9.XXXXXX.sh"); cp run_dog_pipeline.sh "$snap"
+# The snapshot must live IN the repo root: the pipeline resolves PIPELINE_DIR (and site/hoffman.sh) from its own path.
+snap=$(mktemp "$D/.rdp_snapshot9.XXXXXX.sh"); cp run_dog_pipeline.sh "$snap"
 BREED_PANEL="$D/breed_panel_v2" TO_STAGE=9 PUBLISH_RESULTS=0 bash "$snap" "$sheet" 2 9; rc=$?
 rm -f "$sheet" "$snap"
 echo "RERUN9-DONE $pk rc=$rc"
