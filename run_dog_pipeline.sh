@@ -2437,9 +2437,9 @@ breed_result = {
     'snps_used': int(valid.sum()),
     'k': P.shape[1],
     'pct_parker_covered': round(pct_covered, 1),
-    'reference_panel': (f'Parker 2017 (Cell Reports) — {P.shape[0]:,} SNPs, {P.shape[1]} populations '
-                        'from 177 (regional Salukis pooled into one; the seven '
-                        'geographic wolf populations pooled into one)'),
+    'reference_panel': (f'Breed panel v2 (2026-10): Parker 2017 (Cell Reports) + Dog10K + Hayward 2016 + Dog Aging Project reference dogs, '
+                        f'{P.shape[0]:,} SNPs, {P.shape[1]} populations (breeds, village-dog populations by region, gray wolf)'),
+
     'method': ('Supervised SCOPE NNLS projection onto Parker 2017 allele frequency matrix. '
                f'P matrix: {P.shape[0]} SNPs × {P.shape[1]} breeds. '
                'Dosages from GLIMPSE2 Dog10K imputed BCF (posterior GP-weighted, E[a1]).')
