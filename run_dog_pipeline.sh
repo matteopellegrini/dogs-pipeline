@@ -103,10 +103,10 @@ COV_PANEL_1MB=$D/reference_panel/coverage_1mb_panel.json
 COV_PANEL_CNV=$D/reference_panel/coverage_cnv_panel.json
 COV_Z_1MB=5.0
 COV_Z_CNV=6.0
-BREED_PANEL=${BREED_PANEL:-$D/breed_panel}   # override to test a candidate panel (e.g. breed_panel_v2)
+BREED_PANEL=${BREED_PANEL:-$D/breed_panel_v2}   # v2 (2026-10-25): Parker+Dog10K+Hayward+DAP, 311 populations; breed_panel/ = v1 (230+APBT)
 BREED_SITES=$BREED_PANEL/sites.tsv     # chrom, pos, a1, a2 in Phat row order
-BREED_PHAT=$BREED_PANEL/phat.npy       # (131353 x 230) float32 allele frequencies
-BREED_LABELS=$BREED_PANEL/breeds.txt   # 230 canonical breed names, Phat column order
+BREED_PHAT=$BREED_PANEL/phat.npy       # (131353 x N_breeds) float32 allele frequencies
+BREED_LABELS=$BREED_PANEL/breeds.txt   # canonical breed names, Phat column order
 BREED_LASSO=0.3                        # non-negative L1 penalty; see lasso_sweep.py
 SCOPE_P=$D/COSMO/analysis/cosmo_scope177Phat.txt     # (143933 SNPs × 177 breeds) full Parker panel allele freq matrix
 SCOPE_CLUST=$D/COSMO/analysis/scope_clust.txt        # breed ordering for Phat columns
