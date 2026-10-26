@@ -57,6 +57,9 @@ add(D, d_ids, [label_of_code.get(d_truth.get(i, ''), None) for i in d_ids], 'dog
 if USE_HW:
     z = np.load(CONFIG['hayward']); hmap = json.load(open(opt('--hayward-map', CONFIG['hayward_map'])))
     add(z['dos'], list(z['ids']), [hmap.get(str(l)) for l in z['labels']], 'hayward')
+for i, a in enumerate(args):
+    if a == '--extra':      # another pre-built source on the Parker grid (npz: dos, ids, labels), e.g. Shannon 2015 village dogs
+        z = np.load(args[i + 1]); add(z['dos'], list(z['ids']), [str(l) or None for l in z['labels']], os.path.basename(args[i + 1]).split('_')[0])
 X = np.concatenate(cols, axis=1); del cols
 labels = np.array(labels); source = np.array(source); ids = np.array(ids)
 site_rows = []
@@ -155,7 +158,7 @@ rng = np.random.default_rng(SEED)
 held = []
 EVAL = opt('--eval-sources', 'parker,dog10k,hayward,dap').split(',')
 for b in breeds:
-    for s in [x for x in ('parker', 'dog10k', 'hayward', 'dap') if x in EVAL]:
+    for s in [x for x in sorted(set(source)) if x in EVAL]:
         idx = np.where((labels == b) & (source == s))[0]
         if len(idx) >= 4: held.extend(rng.choice(idx, size=max(1, int(round(HOLD * len(idx)))), replace=False))
 held = np.array(sorted(held)); train = np.setdiff1d(np.arange(X.shape[1]), held)
