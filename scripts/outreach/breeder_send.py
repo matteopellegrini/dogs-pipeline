@@ -22,10 +22,10 @@ PER_DAY = {1: 10, 2: 9, 3: 9}
 TODAY = date.today().isoformat()
 
 # 2026-10-28: a French Bulldog breeder pointed out that DM and HUU are not Frenchie conditions and that "450
-# conditions" overstates what matters for one breed. Frenchie copy names no variants (JHC and cystinuria type III,
-# the two Frenchie tests, are not reliable at kit depth); the 450 figure is framed as an all-breed screen.
+# conditions" overstates what matters for one breed. Frenchie copy now names Frenchie conditions on the screen
+# (Matteo, 2026-10-28) and links the public list; the 450 figure is framed as an all-breed screen.
 VARIANTS = {'Golden Retriever': 'For a Golden Retriever that includes prcd-PRA and degenerative myelopathy, plus a genome-wide inbreeding coefficient',
-            'French Bulldog': 'For a French Bulldog the most useful parts are a genome-wide inbreeding coefficient and immune-gene (DLA) diversity'}
+            'French Bulldog': 'For a French Bulldog that includes juvenile hereditary cataract (JHC), screw tail (DVL2), CMR1 and chondrodystrophy (CDDY), plus a genome-wide inbreeding coefficient, immune-gene (DLA) diversity'}
 SUBJECT = "Whole-genome testing for {kennel_pos} next litter"
 possessive = lambda k: k + ("'" if k.endswith("s") else "'s")
 BODY = """{greeting},
