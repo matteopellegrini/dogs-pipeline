@@ -32,7 +32,7 @@ BODY = """{greeting},
 
 I'm Matteo Pellegrini, a geneticist and the founder of ProsperK9. I saw that {kennel} health-tests its dogs, so I wanted to tell you about what we do differently: we sequence a dog's whole genome from one cheek swab instead of reading a marker chip.
 
-Each report screens about 450 inherited variants catalogued across dog breeds, most of which matter only in a few breeds. {variants}, an oral microbiome report, and a one-page summary for the vet. The genome is re-analysed free whenever the science moves, so a test you run today keeps getting more useful.
+Each report screens about 450 inherited variants catalogued across dog breeds, most of which matter only in a few breeds. {variants}, an oral microbiome report, and a one-page summary for the vet. The full list is here: https://my.prosperk9.com/conditions?src=breeder_email. The genome is re-analysed free whenever the science moves, so a test you run today keeps getting more useful.
 
 For breeders the price is $125 a kit, or five for $625, shipping included. Your puppy buyers can also start a free ProsperK9 Healthbook, a lifelong record for vet visits, vaccines and notes.
 
