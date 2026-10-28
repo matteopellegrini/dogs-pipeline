@@ -92,7 +92,7 @@ REF_JSON=$D/reference_json                     # shared reference JSONs (genome 
                                                # OMIA catalogue, PRS baseline); deliberately
                                                # outside public/ so no genomic data is
                                                # world-readable and the cluster needs no app checkout
-OMIA_DB=$REF_JSON/omia_variants.json           # OMIA variant catalogue (479 variants)
+OMIA_DB=$REF_JSON/omia_variants.json           # OMIA variant catalogue (450 variants; 2026-10-28 + CYS3 bulldog SLC3A1 haplotype)
 # Merged Parker + Dog10K breed panel (see analysis/breed_accuracy/README.md).
 # Built by make_merged_plink.py with harmonised labels, village dogs grouped by
 # region, wolves pooled, min-n 6 -> 230 breeds over 131,353 SNPs.

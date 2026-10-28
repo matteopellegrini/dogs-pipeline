@@ -1,6 +1,6 @@
 {
  "summary": {
-  "total_screened": 479,
+  "total_screened": 450,
   "affected_snv": 11,
   "indel_unknown": 227,
   "unaffected": 241,
@@ -12813,6 +12813,44 @@
    "palindromic_fix": true,
    "description": "An inherited clotting-cascade quirk that prolongs one lab clotting test but rarely causes real-world bleeding; good for your vet to know before surgery.",
    "category": "disease"
+  },
+  {
+   "gene": "SLC3A1",
+   "chrom": "chr10",
+   "ref": "A",
+   "alt": "G",
+   "variant_type": "A>G",
+   "trait": "Cystinuria Type III (bulldog risk haplotype)",
+   "variant_breed": "English Bulldog, French Bulldog, Mastiff",
+   "panel": "PennGen, Orivet",
+   "reference": "https://omia.org/OMIA000256/9615/",
+   "description": "Cystinuria type III: the amino acid cystine leaks into the urine and can form bladder stones, almost only in intact males (it depends on male hormones). In English and French Bulldogs, two copies of this SLC3A1 marker haplotype (c.574A>G with c.2092A>G) are associated with the disease. It is a risk marker, not a proven cause: many dogs with two copies never form stones, and neutering lowers the risk.",
+   "category": "disease",
+   "deleterious": "risk marker",
+   "clinical_note": "Risk marker for androgen-dependent (male-limited) cystinuria type III; association shown in English Bulldogs (Fitzwilliams et al. 2023, Anim Genet). Females and neutered males are rarely affected.",
+   "pos": 47766313,
+   "hgvs_c": "c.574A>G",
+   "hgvs_p": "p.(I192V)",
+   "source": "OMIA variant 1542 (CanFam3.1 chr10:46705989, lifted to canFam4)"
+  },
+  {
+   "gene": "SLC3A1",
+   "chrom": "chr10",
+   "ref": "A",
+   "alt": "G",
+   "variant_type": "A>G",
+   "trait": "Cystinuria Type III (bulldog risk haplotype)",
+   "variant_breed": "English Bulldog, French Bulldog, Mastiff",
+   "panel": "PennGen, Orivet",
+   "reference": "https://omia.org/OMIA000256/9615/",
+   "description": "Cystinuria type III: the amino acid cystine leaks into the urine and can form bladder stones, almost only in intact males (it depends on male hormones). In English and French Bulldogs, two copies of this SLC3A1 marker haplotype (c.574A>G with c.2092A>G) are associated with the disease. It is a risk marker, not a proven cause: many dogs with two copies never form stones, and neutering lowers the risk.",
+   "category": "disease",
+   "deleterious": "risk marker",
+   "clinical_note": "Risk marker for androgen-dependent (male-limited) cystinuria type III; association shown in English Bulldogs (Fitzwilliams et al. 2023, Anim Genet). Females and neutered males are rarely affected.",
+   "pos": 47796148,
+   "hgvs_c": "c.2092A>G",
+   "hgvs_p": "p.(S698G)",
+   "source": "OMIA variant 1542 (CanFam3.1 chr10:46735617, lifted to canFam4)"
   }
  ]
 }
