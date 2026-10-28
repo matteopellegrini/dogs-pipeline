@@ -21,15 +21,18 @@ DAY = int(args[args.index('--day') + 1]) if '--day' in args else 0
 PER_DAY = {1: 10, 2: 9, 3: 9}
 TODAY = date.today().isoformat()
 
-VARIANTS = {'Golden Retriever': 'prcd-PRA and degenerative myelopathy',
-            'French Bulldog': 'hyperuricosuria and degenerative myelopathy'}
+# 2026-10-28: a French Bulldog breeder pointed out that DM and HUU are not Frenchie conditions and that "450
+# conditions" overstates what matters for one breed. Frenchie copy names no variants (JHC and cystinuria type III,
+# the two Frenchie tests, are not reliable at kit depth); the 450 figure is framed as an all-breed screen.
+VARIANTS = {'Golden Retriever': 'For a Golden Retriever that includes prcd-PRA and degenerative myelopathy, plus a genome-wide inbreeding coefficient',
+            'French Bulldog': 'For a French Bulldog the most useful parts are a genome-wide inbreeding coefficient and immune-gene (DLA) diversity'}
 SUBJECT = "Whole-genome testing for {kennel_pos} next litter"
 possessive = lambda k: k + ("'" if k.endswith("s") else "'s")
 BODY = """{greeting},
 
 I'm Matteo Pellegrini, a geneticist and the founder of ProsperK9. I saw that {kennel} health-tests its dogs, so I wanted to tell you about what we do differently: we sequence a dog's whole genome from one cheek swab instead of reading a marker chip.
 
-For a {breed} that means about 450 inherited conditions and drug sensitivities, including {variants}, a genome-wide inbreeding coefficient, an oral microbiome report, and a one-page summary for the vet. The genome is re-analysed free whenever the science moves, so a test you run today keeps getting more useful.
+Each report screens about 450 inherited variants catalogued across dog breeds, most of which matter only in a few breeds. {variants}, an oral microbiome report, and a one-page summary for the vet. The genome is re-analysed free whenever the science moves, so a test you run today keeps getting more useful.
 
 For breeders the price is $125 a kit, or five for $625, shipping included. Your puppy buyers can also start a free ProsperK9 Healthbook, a lifelong record for vet visits, vaccines and notes.
 
