@@ -1804,7 +1804,7 @@ def gt_from_bam(chrom, pos, ref, alt, min_bq=20, min_mq=20):
                        'targeted DNA test before acting on this.').format(n_v)
     return out
 
-def gt_sv_from_bam(chrom, pos, svtype='', pos_end=None, bnd_window=15, min_mq=20, ins_len=None, cigar_only=False):
+def gt_sv_from_bam(chrom, pos, svtype='', pos_end=None, bnd_window=15, min_mq=20, ins_len=None, cigar_only=False, min_alt=2):
     """Genotype a known structural variant (del/ins/dup/inv/untyped) at a
     known position from read alignments.
 
@@ -1928,8 +1928,9 @@ def gt_sv_from_bam(chrom, pos, svtype='', pos_end=None, bnd_window=15, min_mq=20
     f_alt = n_alt / n_v
     zyg = 'ref/ref' if f_alt < 0.1 else ('alt/alt' if f_alt > 0.9 else 'het')
     conf = 'low' if n_v < 5 else ('high' if n_v >= 20 else ('medium' if n_v >= 10 else 'low'))
-    if zyg != 'ref/ref' and n_alt < 2:
-        return None                      # a single anomalous read is not a call
+    if zyg != 'ref/ref' and n_alt < max(2, min_alt):
+        return None                      # a single anomalous read is not a call; min_alt (catalogue) raises the
+                                         # floor where slips are common (1-bp indels in HSF4's 10-G run)
     out = {'zygosity': zyg, 'depth': n_v, 'ref_count': n_span, 'alt_count': n_alt,
            'affected': zyg in ('alt/alt', 'het'), 'call_confidence': conf,
            'source': 'bam_direct_sv', 'sv_evidence': {'del_reads': n_del, 'clip_reads': n_clip}}
@@ -1964,7 +1965,7 @@ for v in omia_ref.get('variants', []):
         del_call = None
         if pos and chrom:
             del_call = gt_sv_from_bam(chrom, int(pos), v.get('variant_type') or '', v.get('pos_end'), ins_len=v.get('ins_len'),
-                                      cigar_only=v.get('evidence') == 'cigar')
+                                      cigar_only=v.get('evidence') == 'cigar', min_alt=int(v.get('min_alt') or 2))
         if del_call:
             new_v[DOG] = del_call
             n_bam += 1

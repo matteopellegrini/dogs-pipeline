@@ -4762,7 +4762,8 @@
    "category": "disease",
    "ins_len": 1,
    "evidence": "cigar",
-   "variant_type": "ins"
+   "variant_type": "ins",
+   "min_alt": 3
   },
   {
    "variant_id": "464",
@@ -13249,7 +13250,8 @@
    "panel": "OMIA",
    "category": "disease",
    "reference": "https://pubmed.ncbi.nlm.nih.gov/16939467/",
-   "source": "OMIA variant 456 (CanFam3.1 NC_006587.3:g.82198114del, same G10 run as c.971_972insC); canFam4 chr5:82783339, added 2026-10-29"
+   "source": "OMIA variant 456 (CanFam3.1 NC_006587.3:g.82198114del, same G10 run as c.971_972insC); canFam4 chr5:82783339, added 2026-10-29",
+   "min_alt": 3
   }
  ]
 }
