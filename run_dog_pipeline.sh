@@ -2411,6 +2411,7 @@ AKC_DISPLAY = {
     # and the panel cannot separate it: its held-out dog is called German
     # Shepherd with 0% assigned to its own population.
     'OLD_GERMAN_SHEPHERD': 'German Shepherd', 'GERMAN_SHEPHERD': 'German Shepherd',
+    'RUSSIAN_EUROPEAN_LAIKA': 'Russian-European Laika',
     # White Swiss Shepherd is deliberately NOT folded in with them. It is a
     # separate FCI breed and, unlike the Poodle varieties, the panel tells it
     # apart: held-out White Swiss dogs are called White Swiss 2/2 (74% own
