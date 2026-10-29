@@ -1837,7 +1837,8 @@ def gt_sv_from_bam(chrom, pos, svtype='', pos_end=None, bnd_window=15, min_mq=20
     # visible as D — only as soft-clips at the two breakpoints). Counting any
     # overlapping D as the pathogenic allele mis-called a normal Poodle
     # homozygous for a 130kb dwarfism deletion off a benign 1bp indel.
-    exp_len = (pos_end - pos) if (pos_end and pos_end > pos) else None
+    # pos_end == pos is a 1-bp deletion; only read-internal (cigar) evidence can size it, so it counts there alone.
+    exp_len = (pos_end - pos) if (pos_end and (pos_end > pos or (cigar_only and pos_end == pos))) else None
     large = exp_len is not None and exp_len > 60
     breakpoints = [pos, pos_end] if large else [pos]
     # Evidence is counted per FRAGMENT, not per alignment: overlapping mates of

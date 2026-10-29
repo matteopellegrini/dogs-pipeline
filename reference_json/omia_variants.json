@@ -1,6 +1,6 @@
 {
  "summary": {
-  "total_screened": 473,
+  "total_screened": 474,
   "affected_snv": 11,
   "indel_unknown": 227,
   "unaffected": 241,
@@ -2797,7 +2797,10 @@
    "trait": "Neuronal Ceroid Lipofuscinosis 8 (NCL8)",
    "trait_inherited_from_gene": true,
    "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy.",
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 1,
+   "evidence": "cigar",
+   "variant_type": "dup"
   },
   {
    "gene": "CLN8",
@@ -3913,7 +3916,10 @@
    "panel": "Embark",
    "source": "OMIA+Excel",
    "pos_end": 5599032,
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 5,
+   "evidence": "cigar",
+   "variant_type": "ins"
   },
   {
    "gene": "PRCD",
@@ -3984,7 +3990,9 @@
    "variant_breed": "Doberman Pinscher",
    "panel": "Wisdom",
    "reference": "https://doi.org/10.1111/jvim.15060",
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 1,
+   "evidence": "cigar"
   },
   {
    "variant_id": "552",
@@ -4216,7 +4224,10 @@
     "call_confidence": "medium"
    },
    "source": "OMIA",
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 1,
+   "evidence": "cigar",
+   "variant_type": "ins"
   },
   {
    "gene": "BIN1",
@@ -4353,7 +4364,10 @@
    "trait": "Generalized Progressive Retinal Atrophy",
    "trait_inherited_from_gene": true,
    "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years.",
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 1,
+   "evidence": "cigar",
+   "variant_type": "ins"
   },
   {
    "gene": "CLN8",
@@ -4447,7 +4461,10 @@
    "variant_breed": "Papillon",
    "panel": "Embark, Wisdom",
    "source": "OMIA+Excel",
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 5,
+   "evidence": "cigar",
+   "variant_type": "ins"
   },
   {
    "variant_id": "1502",
@@ -4680,7 +4697,10 @@
    "variant_breed": "German Spitz",
    "panel": "OMIA",
    "source": "OMIA+Excel",
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 1,
+   "evidence": "cigar",
+   "variant_type": "ins"
   },
   {
    "gene": "GUSB",
@@ -4716,7 +4736,7 @@
    "hgvs_c": "c.971_972insC",
    "hgvs_p": "p.(L325Tfs*28)",
    "phene_name": "",
-   "omia_id": "",
+   "omia_id": "001758",
    "deleterious": "yes",
    "characterised": "",
    "mol_gen": "",
@@ -4736,11 +4756,13 @@
     "affected": false,
     "call_confidence": "medium"
    },
-   "variant_breed": "Australian Shepherd",
+   "variant_breed": "Boston Terrier, Staffordshire Bull Terrier",
    "panel": "Embark",
    "source": "OMIA+Excel",
-   "pos_end": 82783667,
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 1,
+   "evidence": "cigar",
+   "variant_type": "ins"
   },
   {
    "variant_id": "464",
@@ -4945,7 +4967,10 @@
    },
    "panel": "Wisdom",
    "source": "OMIA+Excel",
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 1,
+   "evidence": "cigar",
+   "variant_type": "ins"
   },
   {
    "gene": "MPZ",
@@ -5027,7 +5052,10 @@
    "variant_breed": "Miniature Dachshund",
    "panel": "Wisdom",
    "source": "OMIA+Excel",
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 1,
+   "evidence": "cigar",
+   "variant_type": "ins"
   },
   {
    "variant_id": "986",
@@ -5065,7 +5093,10 @@
    "trait": "Leukoencephalomyelopathy",
    "trait_inherited_from_gene": true,
    "description": "An inherited degeneration of white matter in the brain and spinal cord causing progressive weakness and incoordination in young dogs. Recessive.",
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 1,
+   "evidence": "cigar",
+   "variant_type": "ins"
   },
   {
    "variant_id": "474",
@@ -5229,7 +5260,10 @@
    "trait_inherited_from_gene": true,
    "description": "An inherited platelet-function defect causing easy bruising, gum bleeds and prolonged bleeding after procedures. Tell your vet before surgery.",
    "pos_end": 52923458,
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 1,
+   "evidence": "cigar",
+   "variant_type": "dup"
   },
   {
    "variant_id": "477",
@@ -5309,7 +5343,9 @@
    "panel": "Embark, Wisdom",
    "reference": "https://doi.org/10.1006/geno.2002.6699",
    "pos_end": 2406799,
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 1,
+   "evidence": "cigar"
   },
   {
    "variant_id": "954",
@@ -5510,7 +5546,9 @@
    "variant_breed": "Golden Retriever",
    "panel": "Embark, Wisdom",
    "reference": "https://doi.org/10.1371/journal.pone.0021452",
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 1,
+   "evidence": "cigar"
   },
   {
    "variant_id": "1080",
@@ -6127,7 +6165,9 @@
    "panel": "Wisdom",
    "reference": "https://doi.org/10.1007/s10048-009-0223-z",
    "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years.",
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 1,
+   "evidence": "cigar"
   },
   {
    "gene": "CDH23",
@@ -7556,7 +7596,10 @@
    "trait": "Mucopolysaccharidosis Type I",
    "trait_inherited_from_gene": true,
    "description": "An inherited storage disease in which the body cannot fully break down certain complex sugars, which accumulate and affect bones, joints, eyes and organs. Recessive \u2014 two copies are needed.",
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 8,
+   "evidence": "cigar",
+   "variant_type": "ins"
   },
   {
    "gene": "IDUA",
@@ -7642,7 +7685,9 @@
    "variant_breed": "Cardigan Welsh Corgi",
    "panel": "Embark, Wisdom",
    "reference": "https://doi.org/10.1016/0165-2427(94)05400-M",
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 1,
+   "evidence": "cigar"
   },
   {
    "variant_id": "606",
@@ -7681,7 +7726,9 @@
    "variant_type": "ins",
    "panel": "Embark, Wisdom",
    "reference": "https://doi.org/10.1167/iovs.13-12915",
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 1,
+   "evidence": "cigar"
   },
   {
    "variant_id": "739",
@@ -7749,7 +7796,10 @@
    "variant_breed": "German Shepherd Dog",
    "panel": "UCDavis",
    "source": "OMIA+Excel",
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 1,
+   "evidence": "cigar",
+   "variant_type": "ins"
   },
   {
    "variant_id": "459",
@@ -8393,7 +8443,10 @@
    "variant_breed": "English Cocker Spaniel",
    "panel": "OMIA",
    "source": "OMIA+Excel",
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 1,
+   "evidence": "cigar",
+   "variant_type": "ins"
   },
   {
    "gene": "NDRG1",
@@ -8808,7 +8861,9 @@
    "description": "A family of inherited storage diseases in which waste material builds up in nerve cells, causing progressive neurological decline (loss of coordination, vision problems, behavioral change) typically starting in young adulthood. Recessive \u2014 carriers are healthy.",
    "variant_type": "ins",
    "reference": "https://doi.org/10.1016/j.ymgme.2012.11.008",
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 1,
+   "evidence": "cigar"
   },
   {
    "gene": "PRKDC",
@@ -9179,7 +9234,10 @@
    "panel": "Wisdom",
    "source": "OMIA+Excel",
    "pos_end": 1045149,
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 8,
+   "evidence": "cigar",
+   "variant_type": "ins"
   },
   {
    "variant_id": "1250",
@@ -9218,7 +9276,10 @@
    "trait_inherited_from_gene": true,
    "description": "The dog analog of Leigh syndrome: an inherited energy-metabolism defect of the brain causing progressive neurological decline in young dogs. Recessive.",
    "pos_end": 40615755,
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 29,
+   "evidence": "cigar",
+   "variant_type": "ins"
   },
   {
    "gene": "SLC19A3",
@@ -9687,7 +9748,10 @@
    "trait": "Congenital Hypothyroidism",
    "trait_inherited_from_gene": true,
    "description": "An inherited thyroid hormone deficiency from birth, causing disproportionate dwarfism and lethargy; treatable with hormone replacement when identified early.",
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 1,
+   "evidence": "cigar",
+   "variant_type": "ins"
   },
   {
    "gene": "TPO",
@@ -10545,7 +10609,10 @@
    "trait": "Oculoskeletal dysplasia I",
    "trait_inherited_from_gene": true,
    "description": "An inherited syndrome combining dwarfism with serious eye abnormalities including retinal detachment. Recessive.",
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 1,
+   "evidence": "cigar",
+   "variant_type": "ins"
   },
   {
    "gene": "COLQ",
@@ -10899,7 +10966,10 @@
    "variant_breed": "Newfoundland x Standard Poodle",
    "panel": "OMIA",
    "source": "OMIA+Excel",
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 1,
+   "evidence": "cigar",
+   "variant_type": "ins"
   },
   {
    "gene": "FAM20C",
@@ -10963,7 +11033,9 @@
    "variant_breed": "German Shepherd Dog",
    "panel": "Embark, Wisdom",
    "reference": "https://doi.org/10.1111/avj.12206",
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 12,
+   "evidence": "cigar"
   },
   {
    "gene": "FIX",
@@ -11850,7 +11922,10 @@
    "variant_breed": "Gordon Setter, Irish Setter, Poodle, Polish Lowland Sheepdog, Polish Tatra, Tibetan Terrier",
    "panel": "OMIA",
    "source": "OMIA+Excel",
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 1,
+   "evidence": "cigar",
+   "variant_type": "ins"
   },
   {
    "variant_id": "1230",
@@ -12271,7 +12346,10 @@
    "variant_breed": "Scottish Deerhound",
    "panel": "Wisdom",
    "source": "OMIA+Excel",
-   "category": "disease"
+   "category": "disease",
+   "ins_len": 1,
+   "evidence": "cigar",
+   "variant_type": "ins"
   },
   {
    "variant_id": "564",
@@ -13151,6 +13229,27 @@
    "hgvs_p": "",
    "category": "disease",
    "source": "Capt et al. 2005 (cDNA position only; intron 35 placed in canFam4 via AF236865.1), located in canFam4 by flanking sequence 2026-10-28"
+  },
+  {
+   "variant_id": "456",
+   "gene": "HSF4",
+   "chrom": "chr5",
+   "pos": 82783339,
+   "pos_end": 82783339,
+   "ref": null,
+   "alt": null,
+   "variant_type": "del",
+   "evidence": "cigar",
+   "hgvs_c": "c.971del",
+   "hgvs_p": "p.(P324fs)",
+   "phene_name": "",
+   "omia_id": "001758",
+   "deleterious": "yes",
+   "variant_breed": "Australian Shepherd",
+   "panel": "OMIA",
+   "category": "disease",
+   "reference": "https://pubmed.ncbi.nlm.nih.gov/16939467/",
+   "source": "OMIA variant 456 (CanFam3.1 NC_006587.3:g.82198114del, same G10 run as c.971_972insC); canFam4 chr5:82783339, added 2026-10-29"
   }
  ]
 }
