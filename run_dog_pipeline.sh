@@ -1874,7 +1874,14 @@ def gt_sv_from_bam(chrom, pos, svtype='', pos_end=None, bnd_window=15, min_mq=20
                                 # D length must be consistent with the expected
                                 # deletion; unknown-size dels require >=2bp so a
                                 # ubiquitous 1bp homopolymer slip cannot call.
-                                if exp_len is not None:
+                                if exp_len is not None and cigar_only:
+                                    # read-internal evidence: the deletion's own size, +-1/3
+                                    # (an 8-bp STRN deletion must not match the CA repeat's
+                                    # common 4-bp length allele; a 2-bp deletion not a 1-bp slip)
+                                    size = exp_len + 1
+                                    if abs(ln - size) <= max(1, size // 3) and ln >= min(2, size):
+                                        has_del = True
+                                elif exp_len is not None:
                                     if exp_len // 2 <= ln <= exp_len * 2:
                                         has_del = True
                                 elif ln >= 2:
