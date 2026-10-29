@@ -35,18 +35,34 @@ TO_STAGE=8 PUBLISH_RESULTS=0 bash "$snap" "$sheet" 2 8; rc=$?
 rm -f "$sheet" "$snap"
 # ADD-ONLY: keep every published call exactly as it was and append just the catalogue entries the previous result
 # did not have. A full stage-8 rerun reproduces ProsperKits exactly but shifts some calls on older kits whose results
-# came from earlier caller versions (seen on COSMO3 and DOGS-Gen-102, 2026-10-28), so nothing else is replaced.
+# came from earlier caller versions (seen on COSMO3 and DOGS-Gen-102, 2026-10-28), so no call is replaced unless
+# named. Entries are matched by site (chrom, pos, gene); a kept entry takes the new catalogue's labels (breed, HGVS,
+# reference) with its published call. Sites dropped from the catalogue are removed. REPLACE="chrom:pos:GENE ..."
+# names sites whose call must be recomputed (an entry whose alleles were re-encoded).
 if [ $rc -eq 0 ] && [ -f "$PUB/omia_result.pre-$TAG.json" ]; then
-  "$D/envs/genomics/bin/python" - "$PUB/omia_result.pre-$TAG.json" "$PUB/omia_result.json" <<'PY' || rc=3
-import json, sys
+  REPLACE="${REPLACE:-}" "$D/envs/genomics/bin/python" - "$PUB/omia_result.pre-$TAG.json" "$PUB/omia_result.json" <<'PY' || rc=3
+import json, os, sys
 old = json.load(open(sys.argv[1])); new = json.load(open(sys.argv[2]))
-key = lambda v: (v.get('chrom'), v.get('pos'), v.get('gene'), v.get('hgvs_c'))
-have = {key(v) for v in old['variants']}
-add = [v for v in new['variants'] if key(v) not in have]
-old['variants'].extend(add)
-if isinstance(old.get('summary'), dict): old['summary']['total_screened'] = len(old['variants'])
+site = lambda v: f"{v.get('chrom')}:{v.get('pos')}:{str(v.get('gene') or '').strip().upper()}"
+full = lambda v: (site(v), v.get('hgvs_c') or '')
+replace = set(os.environ.get('REPLACE', '').split())
+is_call = lambda x: isinstance(x, dict) and 'zygosity' in x
+old_by = {}
+for v in old['variants']: old_by.setdefault(site(v), []).append(v)
+out, kept, added, replaced = [], 0, 0, 0
+for v in new['variants']:
+    prev = old_by.get(site(v), [])
+    match = next((o for o in prev if full(o) == full(v)), None) or (prev[0] if len(prev) == 1 else None)
+    if match is None or site(v) in replace:
+        out.append(v); added += match is None; replaced += match is not None
+        continue
+    calls = {k: x for k, x in match.items() if is_call(x)}
+    out.append({**{k: x for k, x in v.items() if not is_call(x)}, **calls}); kept += 1
+dropped = len(old['variants']) - kept - replaced
+old['variants'] = out
+if isinstance(old.get('summary'), dict): old['summary']['total_screened'] = len(out)
 json.dump(old, open(sys.argv[2], 'w'))
-print(f"ADD-ONLY: kept {len(old['variants']) - len(add)} published calls, added {len(add)}")
+print(f"ADD-ONLY: kept {kept} published calls, added {added}, replaced {replaced}, dropped {dropped}")
 PY
 fi
 echo "RERUN8-DONE $pk rc=$rc"

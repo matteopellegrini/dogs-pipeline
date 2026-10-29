@@ -92,7 +92,7 @@ REF_JSON=$D/reference_json                     # shared reference JSONs (genome 
                                                # OMIA catalogue, PRS baseline); deliberately
                                                # outside public/ so no genomic data is
                                                # world-readable and the cluster needs no app checkout
-OMIA_DB=$REF_JSON/omia_variants.json           # OMIA variant catalogue (450 variants; 2026-10-28 + CYS3 bulldog SLC3A1 haplotype)
+OMIA_DB=$REF_JSON/omia_variants.json           # OMIA variant catalogue (2026-10-28: + CYS3, + 16 OMIA-positioned breed variants, - somatic BRAF)
 # Merged Parker + Dog10K breed panel (see analysis/breed_accuracy/README.md).
 # Built by make_merged_plink.py with harmonised labels, village dogs grouped by
 # region, wolves pooled, min-n 6 -> 230 breeds over 131,353 SNPs.
@@ -1804,7 +1804,7 @@ def gt_from_bam(chrom, pos, ref, alt, min_bq=20, min_mq=20):
                        'targeted DNA test before acting on this.').format(n_v)
     return out
 
-def gt_sv_from_bam(chrom, pos, svtype='', pos_end=None, bnd_window=15, min_mq=20):
+def gt_sv_from_bam(chrom, pos, svtype='', pos_end=None, bnd_window=15, min_mq=20, ins_len=None):
     """Genotype a known structural variant (del/ins/dup/inv/untyped) at a
     known position from read alignments.
 
@@ -1818,6 +1818,12 @@ def gt_sv_from_bam(chrom, pos, svtype='', pos_end=None, bnd_window=15, min_mq=20
     Catalogue coordinates are approximate to a few bases (target-site
     duplications, ambiguous naming), hence the +-bnd_window tolerance —
     same approach validated for MDR1 (4-bp del) and merle (PMEL SINE).
+
+    ins_len (catalogue field, set on entries added from 2026-10-28): a small
+    insertion or duplication that fits inside a read shows up as an I
+    operation, not a clip, and such a read otherwise counts as clean REFERENCE
+    support. With ins_len set, an I of ins_len/2..2*ins_len bases within the
+    window is alt evidence. Entries without the field keep the clip-only rule.
     """
     # Size-awareness matters: the catalogue mixes 1-4bp deletions (visible as
     # D operations inside reads) with deletions of tens of KILOBASES (never
@@ -1843,6 +1849,14 @@ def gt_sv_from_bam(chrom, pos, svtype='', pos_end=None, bnd_window=15, min_mq=20
                 cig = r.cigartuples or []
                 aligned = sum(ln for op, ln in cig if op in (0, 7, 8))
                 has_del = False
+                has_ins = False
+                if ins_len:
+                    rp = start
+                    for op, ln in cig:
+                        if op in (0, 2, 3, 7, 8):
+                            rp += ln
+                        elif op == 1 and lo <= rp <= hi and max(1, ins_len // 2) <= ln <= ins_len * 2:
+                            has_ins = True
                 if not large:
                     rp = start
                     for op, ln in cig:
@@ -1868,7 +1882,7 @@ def gt_sv_from_bam(chrom, pos, svtype='', pos_end=None, bnd_window=15, min_mq=20
                 if (clip_left or clip_right) and aligned < 30:
                     clip_left = clip_right = False
                 name = r.query_name
-                if has_del:
+                if has_del or has_ins:
                     frag_del.add(name)
                 elif clip_left or clip_right:
                     frag_clip.add(name)
@@ -1885,6 +1899,8 @@ def gt_sv_from_bam(chrom, pos, svtype='', pos_end=None, bnd_window=15, min_mq=20
     t = (svtype or '').lower()
     if 'del' in t:
         n_alt = n_del + n_clip          # short dels cigar; long dels clip
+    elif t and ins_len:
+        n_alt = n_del + n_clip          # ins/dup with known size: I operations (counted in frag_del) + clips
     elif t:
         n_alt = n_clip                  # ins/dup/inv: junction clips only
     else:
@@ -1930,7 +1946,7 @@ for v in omia_ref.get('variants', []):
         # Insertions and complex events stay uncalled.
         del_call = None
         if pos and chrom:
-            del_call = gt_sv_from_bam(chrom, int(pos), v.get('variant_type') or '', v.get('pos_end'))
+            del_call = gt_sv_from_bam(chrom, int(pos), v.get('variant_type') or '', v.get('pos_end'), ins_len=v.get('ins_len'))
         if del_call:
             new_v[DOG] = del_call
             n_bam += 1
