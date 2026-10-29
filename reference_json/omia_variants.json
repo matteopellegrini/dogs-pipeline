@@ -1,6 +1,6 @@
 {
  "summary": {
-  "total_screened": 474,
+  "total_screened": 473,
   "affected_snv": 11,
   "indel_unknown": 227,
   "unaffected": 241,
@@ -3809,7 +3809,8 @@
    "strand_fixed": true,
    "pos_end": 92356054,
    "category": "disease",
-   "ins_len": 8
+   "ins_len": 8,
+   "evidence": "cigar"
   },
   {
    "gene": "PLEC",
@@ -5334,7 +5335,8 @@
    "panel": "Embark, Wisdom",
    "reference": "https://doi.org/10.1006/geno.2000.6275",
    "pos_end": 2406854,
-   "category": "disease"
+   "category": "disease",
+   "evidence": "cigar"
   },
   {
    "gene": "SH3TC2",
@@ -8509,7 +8511,8 @@
    "description": "An inherited localized skin overgrowth producing wart-like, pigmented plaques.",
    "variant_type": "del",
    "pos_end": 122058757,
-   "category": "disease"
+   "category": "disease",
+   "evidence": "cigar"
   },
   {
    "gene": "OCA2",
@@ -12447,7 +12450,8 @@
    "variant_type": "del",
    "reference": "https://omia.org/OMIA001373/9615/",
    "pos_end": 20695180,
-   "category": "disease"
+   "category": "disease",
+   "evidence": "cigar"
   },
   {
    "gene": "T-box",
@@ -12756,7 +12760,8 @@
    "category": "disease",
    "source": "OMIA variant 528 (CanFam3.1 chr3:91747728_91747730del), located in canFam4 by flanking sequence 2026-10-28",
    "description": "A group of inherited eye conditions in which the light-sensing cells of the retina gradually degenerate, usually leading to night blindness first and eventual vision loss. Most forms are recessive: dogs need two copies to be affected, and vision loss develops over years.",
-   "pos_end": 92356097
+   "pos_end": 92356097,
+   "evidence": "cigar"
   },
   {
    "gene": "RPGR",
@@ -12775,7 +12780,8 @@
    "category": "disease",
    "source": "OMIA variant 480 (ROS_Cfam_1.0 chrX:33126490_33126494del), located in canFam4 by flanking sequence 2026-10-28",
    "description": "An X-linked form of progressive retinal atrophy: the light-sensing cells of the retina degenerate, causing night blindness and then vision loss from young adulthood. Males need only one copy to be affected; females with one copy are carriers.",
-   "pos_end": 33219542
+   "pos_end": 33219542,
+   "evidence": "cigar"
   },
   {
    "gene": "RPGR",
@@ -12794,7 +12800,8 @@
    "category": "disease",
    "source": "OMIA variant 481 (ROS_Cfam_1.0 chrX:33126439_33126440del), located in canFam4 by flanking sequence 2026-10-28",
    "description": "An early-onset X-linked form of progressive retinal atrophy: the retina degenerates within the first year of life. Males need only one copy to be affected; females with one copy are carriers.",
-   "pos_end": 33219488
+   "pos_end": 33219488,
+   "evidence": "cigar"
   },
   {
    "gene": "COL9A2",
@@ -12883,7 +12890,8 @@
    "hgvs_p": "p.(T570Pfs*22)",
    "category": "disease",
    "source": "OMIA variant 573 (CanFam3.1 chr23:3796356_3796374dup; canFam4 3991950_3991968dup), located in canFam4 by flanking sequence 2026-10-28",
-   "ins_len": 19
+   "ins_len": 19,
+   "evidence": "cigar"
   },
   {
    "gene": "FIX",
@@ -13037,7 +13045,8 @@
    "category": "disease",
    "source": "Meurs et al. 2010 (CanFam2 chr17:32,373,916-32,373,923, CATACACA), located in canFam4 by flanking sequence 2026-10-28",
    "pos_end": 29430072,
-   "description": "Boxer cardiomyopathy (ARVC): heart-muscle disease causing irregular heartbeats, fainting and occasionally sudden death, usually from middle age. This STRN deletion is a risk marker with incomplete penetrance: many dogs with it never develop disease, and some affected Boxers do not carry it. Two copies are linked to earlier and more severe disease. Annual Holter monitoring is the standard screen."
+   "description": "Boxer cardiomyopathy (ARVC): heart-muscle disease causing irregular heartbeats, fainting and occasionally sudden death, usually from middle age. This STRN deletion is a risk marker with incomplete penetrance: many dogs with it never develop disease, and some affected Boxers do not carry it. Two copies are linked to earlier and more severe disease. Annual Holter monitoring is the standard screen.",
+   "evidence": "cigar"
   },
   {
    "gene": "PDK4",
@@ -13055,7 +13064,8 @@
    "category": "disease",
    "source": "Owczarek-Lipska et al. 2013 (CanFam3.1 chr14:g.20,829,667_20,829,682del), located in canFam4 by flanking sequence 2026-10-28",
    "pos_end": 20789308,
-   "description": "Dilated cardiomyopathy: the heart muscle weakens and the heart enlarges, leading to irregular heartbeats and heart failure; Dobermans are the classic breed. This PDK4 deletion (\"DCM1\") was associated with DCM in North American Dobermans but not in a European study, so it is a weak, disputed risk marker. Echocardiography and Holter monitoring remain the screen."
+   "description": "Dilated cardiomyopathy: the heart muscle weakens and the heart enlarges, leading to irregular heartbeats and heart failure; Dobermans are the classic breed. This PDK4 deletion (\"DCM1\") was associated with DCM in North American Dobermans but not in a European study, so it is a weak, disputed risk marker. Echocardiography and Holter monitoring remain the screen.",
+   "evidence": "cigar"
   },
   {
    "gene": "TTN",
@@ -13092,25 +13102,6 @@
    "description": "A copy of the FGF4 gene inserted on chromosome 18 that shortens the legs (chondrodysplasia, CDPA). It shapes body type rather than causing disease on its own; the separate chromosome-12 FGF4 copy (CDDY) is the one linked to disc disease. Each copy shortens the legs further."
   },
   {
-   "gene": "RD3",
-   "chrom": "chr7",
-   "pos": 9729128,
-   "ref": null,
-   "alt": null,
-   "variant_type": "ins",
-   "trait": "Progressive Retinal Atrophy (rcd2)",
-   "variant_breed": "Collie",
-   "panel": "literature",
-   "reference": "https://doi.org/10.1007/s00335-008-9163-4",
-   "hgvs_c": "exon 4 22-bp insertion",
-   "hgvs_p": "",
-   "category": "disease",
-   "source": "Kukekova et al. 2009 (22-bp insertion in a GGGGGC repeat; placed in canFam4 by exon sequence, 17 equivalent positions 9,729,120-136), located in canFam4 by flanking sequence 2026-10-28",
-   "ins_len": 22,
-   "omia_id": "001260",
-   "description": "An early-onset form of progressive retinal atrophy in Collies: the retina degenerates from puppyhood, causing night blindness and then vision loss. Recessive. The insertion sits in a very GC-rich repeat that sequences poorly, so it is often unreadable at standard depth."
-  },
-  {
    "gene": "PAN2",
    "chrom": "chr10",
    "pos": 980704,
@@ -13142,7 +13133,8 @@
    "hgvs_p": "",
    "category": "disease",
    "source": "Evans et al. 2017 PLoS Genet (CanFam3.1 chr31:24,132,273), located in canFam4 by flanking sequence 2026-10-28",
-   "pos_end": 24668887
+   "pos_end": 24668887,
+   "evidence": "cigar"
   },
   {
    "gene": "LAMA3",

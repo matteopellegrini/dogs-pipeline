@@ -1804,7 +1804,7 @@ def gt_from_bam(chrom, pos, ref, alt, min_bq=20, min_mq=20):
                        'targeted DNA test before acting on this.').format(n_v)
     return out
 
-def gt_sv_from_bam(chrom, pos, svtype='', pos_end=None, bnd_window=15, min_mq=20, ins_len=None):
+def gt_sv_from_bam(chrom, pos, svtype='', pos_end=None, bnd_window=15, min_mq=20, ins_len=None, cigar_only=False):
     """Genotype a known structural variant (del/ins/dup/inv/untyped) at a
     known position from read alignments.
 
@@ -1824,6 +1824,13 @@ def gt_sv_from_bam(chrom, pos, svtype='', pos_end=None, bnd_window=15, min_mq=20
     operation, not a clip, and such a read otherwise counts as clean REFERENCE
     support. With ins_len set, an I of ins_len/2..2*ins_len bases within the
     window is alt evidence. Entries without the field keep the clip-only rule.
+
+    cigar_only (catalogue field evidence='cigar'): for indels small enough to
+    sit inside a read, count only the D/I operation itself. Reads soft-clipped
+    near the site are neither alt nor ref: in microsatellites (STRN's CA
+    repeat) clip noise alone produced 'two copies' calls in Labradors from
+    2-4 reads, while real carriers show the exact D/I (PDK4 D16, MAP3K7CL
+    I1+D7 in every alt read).
     """
     # Size-awareness matters: the catalogue mixes 1-4bp deletions (visible as
     # D operations inside reads) with deletions of tens of KILOBASES (never
@@ -1837,7 +1844,7 @@ def gt_sv_from_bam(chrom, pos, svtype='', pos_end=None, bnd_window=15, min_mq=20
     # one pair are a single molecule, and counting them twice let a lone
     # chimeric fragment (both mates 62S19M30S at the same spot) satisfy the
     # 2-read floor and call a healthy dog alt/alt for a RELN deletion.
-    frag_del, frag_clip, frag_span = set(), set(), set()
+    frag_del, frag_clip, frag_span, frag_skip = set(), set(), set(), set()
     try:
         bam_fh = pysam.AlignmentFile(BAM, 'rb')
         for bp in breakpoints:
@@ -1884,6 +1891,8 @@ def gt_sv_from_bam(chrom, pos, svtype='', pos_end=None, bnd_window=15, min_mq=20
                 name = r.query_name
                 if has_del or has_ins:
                     frag_del.add(name)
+                elif (clip_left or clip_right) and cigar_only:
+                    frag_skip.add(name)
                 elif clip_left or clip_right:
                     frag_clip.add(name)
                 elif start <= lo - 5 and end >= hi + 5:
@@ -1895,7 +1904,7 @@ def gt_sv_from_bam(chrom, pos, svtype='', pos_end=None, bnd_window=15, min_mq=20
     # no alt evidence at all count as reference support.
     n_del  = len(frag_del)
     n_clip = len(frag_clip - frag_del)
-    n_span = len(frag_span - frag_del - frag_clip)
+    n_span = len(frag_span - frag_del - frag_clip - frag_skip)
     t = (svtype or '').lower()
     if 'del' in t:
         n_alt = n_del + n_clip          # short dels cigar; long dels clip
@@ -1946,7 +1955,8 @@ for v in omia_ref.get('variants', []):
         # Insertions and complex events stay uncalled.
         del_call = None
         if pos and chrom:
-            del_call = gt_sv_from_bam(chrom, int(pos), v.get('variant_type') or '', v.get('pos_end'), ins_len=v.get('ins_len'))
+            del_call = gt_sv_from_bam(chrom, int(pos), v.get('variant_type') or '', v.get('pos_end'), ins_len=v.get('ins_len'),
+                                      cigar_only=v.get('evidence') == 'cigar')
         if del_call:
             new_v[DOG] = del_call
             n_bam += 1
