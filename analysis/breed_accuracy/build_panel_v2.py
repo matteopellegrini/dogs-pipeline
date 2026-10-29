@@ -3,7 +3,7 @@
 Breed panel v2: Parker + Dog10K + Hayward (+ DAP later) on the shipped 131,353-site grid.
 
     python3 build_panel_v2.py --out DIR [--min-n 6] [--holdout 0.2] [--seed 1]
-        [--no-hayward] [--dap DAP_NPZ] [--drop IDS.txt ...] [--lasso 0.3]
+        [--no-hayward] [--dap DAP_NPZ] [--drop IDS.txt ...] [--lasso 0.3] [--extra NPZ ...] [--alias JSON]
 
 Inputs are fixed paths relative to the repo (see CONFIG). Writes DIR/{phat.npy,
 breeds.txt,sites.tsv,reference_counts.tsv} from ALL dogs, and benchmarks a
@@ -107,6 +107,10 @@ if DAP:
     ids = list(ids) + [d_ids[j] for j in keep]; labels = list(labels) + [d_lab[j] for j in keep]; source = list(source) + ['dap'] * len(keep)
     del Dd
 labels = np.array(labels); source = np.array(source); ids = np.array(ids)
+if '--alias' in args:
+    # one breed under two names across sources (Parker MEXICAN_HAIRLESS vs XOLOITZCUINTLI, BERGER_PICARD vs PICARDY_SHEPHERD)
+    alias = json.load(open(opt('--alias', '')))
+    labels = np.array([alias.get(l, l) for l in labels]); print(f'aliases applied: {len(alias)}', file=sys.stderr)
 print(f'matrix: {X.shape[0]} sites x {X.shape[1]} dogs; labels {len(set(labels))}', file=sys.stderr)
 
 # --- min-n and the full panel -------------------------------------------------
