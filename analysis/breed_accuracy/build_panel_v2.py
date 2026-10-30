@@ -3,7 +3,7 @@
 Breed panel v2: Parker + Dog10K + Hayward (+ DAP later) on the shipped 131,353-site grid.
 
     python3 build_panel_v2.py --out DIR [--min-n 6] [--holdout 0.2] [--seed 1]
-        [--no-hayward] [--dap DAP_NPZ] [--drop IDS.txt ...] [--lasso 0.3] [--extra NPZ ...] [--alias JSON]
+        [--no-hayward] [--dap DAP_NPZ] [--drop IDS.txt ...] [--lasso 0.3] [--extra NPZ ...] [--alias JSON] [--exclude-label A,B]
 
 Inputs are fixed paths relative to the repo (see CONFIG). Writes DIR/{phat.npy,
 breeds.txt,sites.tsv,reference_counts.tsv} from ALL dogs, and benchmarks a
@@ -115,7 +115,11 @@ print(f'matrix: {X.shape[0]} sites x {X.shape[1]} dogs; labels {len(set(labels))
 
 # --- min-n and the full panel -------------------------------------------------
 cnt = Counter(labels)
-breeds = sorted(b for b, n in cnt.items() if n >= MIN_N and b != 'COYOTE')
+# --exclude-label: populations kept out of the panel (their dogs stay out of every column, like below-min-n labels).
+# v2.1: small imputed-only columns that absorbed ancestry in unrelated customer dogs (East Siberian Laika, Bearded
+# Collie) or duplicated a parent breed (Kunming Dog took German Shepherd share).
+EXCL = set(opt('--exclude-label', '').split(',')) - {''}
+breeds = sorted(b for b, n in cnt.items() if n >= MIN_N and b != 'COYOTE' and b not in EXCL)
 bidx = {b: j for j, b in enumerate(breeds)}
 def freqs(cols_sel):
     Pm = np.full((X.shape[0], len(breeds)), 0.5, dtype=np.float32)
