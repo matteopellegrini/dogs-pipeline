@@ -4261,6 +4261,23 @@ def detect_merle_sine():
 
 MERLE_EVIDENCE = detect_merle_sine()
 
+# Breed context for merle (2026-10-29). Merle is confined to the breeds below, counting those it has been bred into
+# (poodles, bullies, Frenchies, Chihuahuas, Pomeranians); all 10 cohort dogs with merle reads had >=19% ancestry
+# from them. A dog with under 10% from these breeds and no merle read is called m/m instead of "m/?".
+MERLE_BREEDS = {'AUSTRALIAN_SHEPHERD', 'MINIATURE_AMERICAN_SHEPHERD', 'BORDER_COLLIE', 'COLLIE', 'SHETLAND_SHEEPDOG',
+                'DACHSHUND', 'CATAHOULA_LEOPARD', 'GREAT_DANE', 'CHIHUAHUA', 'POMERANIAN', 'CARDIGAN_WELSH_CORGI',
+                'PYRENEAN_SHEPHERD', 'BEAUCERON', 'MUDI', 'ENGLISH_SHEPHERD', 'STANDARD_POODLE', 'MINIATURE_POODLE',
+                'TOY_POODLE', 'FRENCH_BULLDOG', 'AMERICAN_PIT_BULL_TERRIER', 'AMERICAN_STAFFORDSHIRE_TERRIER',
+                'ENGLISH_BULLDOG', 'AMERICAN_BULLDOG', 'COCKER_SPANIEL', 'HAVANESE', 'AMERICAN_HAIRLESS_TERRIER',
+                'RAT_TERRIER'}
+MERLE_BREED_MAX = 0.10
+try:
+    _br = json.load(open(os.path.join(PUB, 'breed_result.json')))
+    MERLE_BREED_SHARE = sum(float(e['proportion']) for e in _br.get('breed_composition_raw') or []
+                            if e.get('breed') in MERLE_BREEDS)
+except Exception:
+    MERLE_BREED_SHARE = None          # no breed result: merle is called from reads alone
+
 # Harlequin needs its own read evidence even though the site IS in the Dog10K
 # panel: at panel AF ~0.0003 GLIMPSE2 returns 0|0/GP 1.0 for true carriers, so
 # the per-variant loop's "imputed hit wins" routing is exactly wrong here.
@@ -4372,22 +4389,42 @@ def call_locus(locus, calls):
         e1_alt = e1['bam_counts'].get('A', 0) if e1 else 0
         if not tag and not e1:
             return '?', '?', 'low', 'MC1R not covered by the imputation panel or by reads at this depth'
-        # Direct reads at the stop codon outrank the tag.
+        # Direct reads at the stop codon outrank the tag; the tag then adds to the
+        # confidence when it agrees and holds it at low when it contradicts
+        # (2026-10-29: graded alone, 2 stop reads + a 2-copy non-mask tag read
+        # "low" on a dog Embark confirms e/e). The tag's alt count bounds the
+        # number of e copies: e only arises on the non-mask (ALT) background.
+        n_tag = tag['n_alt'] if tag else None
         if e1_alt >= 2 and e1_ref == 0:
-            return ('e', 'e', 'medium' if e1_alt >= 3 else 'low',
-                f'Recessive red (e/e): {e1_alt} reads carry the MC1R p.Arg306* stop and none the functional '
-                f'allele — all coat pigment is phaeomelanin (cream/yellow/red)')
+            conf = ('low' if n_tag is not None and n_tag < 2 else
+                    'high' if e1_alt >= 4 or (e1_alt >= 3 and n_tag == 2) else
+                    'medium' if e1_alt >= 3 or n_tag == 2 else 'low')
+            return ('e', 'e', conf,
+                f'Recessive red (e/e): {e1_alt} reads at MC1R p.306 carry the p.Arg306* stop and none the functional '
+                f'allele' + (', and both MC1R copies are the background recessive red arises on' if n_tag == 2 else '') +
+                f' — all coat pigment is phaeomelanin (cream/yellow/red)')
         if e1_ref >= 1 and e1_alt >= 1:
-            return ('E', 'e', 'low',
+            conf = 'low' if n_tag == 0 else ('high' if e1_alt >= 2 and e1_ref >= 2 else 'medium')
+            return ('E', 'e', conf,
                 f'Carrier for recessive red (E/e): reads at MC1R p.306 show both the functional allele '
                 f'({e1_ref}) and the p.Arg306* stop ({e1_alt}) — eumelanin coat is expressed')
         if e1_ref >= 2:
+            # No stop read. With the tag on at most one non-mask copy, an e copy needs that one copy AND
+            # every read to have missed it; with none, e is impossible.
+            if n_tag == 0:
+                return ('Em', 'Em', 'high',
+                    f'No recessive-red stop in {e1_ref} reads at MC1R p.306 and both copies are the V264 mask-type '
+                    f'functional haplotype (Em/Em) — eumelanin coat expressed; a melanistic mask may show where the '
+                    f'coat is phaeomelanin-patterned')
+            if n_tag == 1:
+                return ('E', 'Em', 'high' if e1_ref >= 4 else 'medium',
+                    f'No recessive-red stop in {e1_ref} reads at MC1R p.306; one mask-type (V264) and one standard '
+                    f'MC1R copy — a functional copy is present and eumelanin coat is expressed')
             return ('E', 'E' if e1_ref >= 3 else '?',
-                'medium' if e1_ref >= 3 else 'low',
+                'high' if e1_ref >= 5 else 'medium' if e1_ref >= 3 else 'low',
                 f'No recessive-red stop in {e1_ref} reads at MC1R p.306 — a functional copy is present, '
                 f'eumelanin coat is expressed')
         # Stop codon not covered decisively — bound e by the M264V tag.
-        n_tag = tag['n_alt'] if tag else None
         if n_tag == 0:
             return ('Em', 'Em', 'medium',
                 'Both MC1R copies are the V264 mask-type functional haplotype (Em/Em) — eumelanin coat '
@@ -4572,9 +4609,19 @@ def call_locus(locus, calls):
 
     elif locus == 'M':
         ev = MERLE_EVIDENCE
+        no_merle_breeds = MERLE_BREED_SHARE is not None and MERLE_BREED_SHARE < MERLE_BREED_MAX
+        pct = round(100 * (MERLE_BREED_SHARE or 0))
+        breed_note = ("none of the dog's ancestry comes from breeds that carry merle" if pct == 0 else
+                      f"only {pct}% of the dog's ancestry comes from breeds that carry merle")
         if not ev:
+            if no_merle_breeds:
+                return 'm', 'm', 'medium', f'Not merle (m/m): no read data at the PMEL junction, but {breed_note}.'
             return 'm', 'm', 'low', 'Merle (PMEL SINE insertion) not assessable — no read data at the PMEL junction'
         nc, ns = ev['n_clip'], ev['n_span']
+        if nc == 0 and no_merle_breeds:
+            seen = (f'no merle insertion in the {ns} read{"" if ns == 1 else "s"} spanning the PMEL junction' if ns
+                    else 'no read spans the PMEL junction')
+            return 'm', 'm', 'high' if ns >= 2 else 'medium', f'Not merle (m/m): {seen}, and {breed_note}.'
         if nc >= 2:
             if ns == 0 and nc >= 3:
                 return 'M*', 'M*', 'low', ('Merle-type SINE insertion detected on both read sets ({} clipped, 0 spanning reads) — '
