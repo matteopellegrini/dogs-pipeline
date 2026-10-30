@@ -103,7 +103,9 @@ COV_PANEL_1MB=$D/reference_panel/coverage_1mb_panel.json
 COV_PANEL_CNV=$D/reference_panel/coverage_cnv_panel.json
 COV_Z_1MB=5.0
 COV_Z_CNV=6.0
-BREED_PANEL=${BREED_PANEL:-$D/breed_panel_v21}  # v2.1 (2026-10-29): v2 + public genomes, 322 populations; breed_panel_v2/ = v2 (311), breed_panel/ = v1 (230+APBT)
+BREED_PANEL=${BREED_PANEL:-$D/breed_panel_v2}   # v2 (2026-10-25): Parker+Dog10K+Hayward+DAP, 311 populations; breed_panel/ = v1 (230+APBT)
+# breed_panel_v21/ (2026-10-29, 322) is NOT the default: its imputed public-genome columns drew rare breeds (Dutch Shepherd,
+# Sloughi, Podengo, Kelpie...) into customer mixes.
 BREED_SITES=$BREED_PANEL/sites.tsv     # chrom, pos, a1, a2 in Phat row order
 BREED_PHAT=$BREED_PANEL/phat.npy       # (131353 x N_breeds) float32 allele frequencies
 BREED_LABELS=$BREED_PANEL/breeds.txt   # canonical breed names, Phat column order
@@ -2473,8 +2475,8 @@ breed_result = {
     'snps_used': int(valid.sum()),
     'k': P.shape[1],
     'pct_parker_covered': round(pct_covered, 1),
-    'reference_panel': (f'Breed panel v2.1 (2026-10): Parker 2017 (Cell Reports) + Dog10K + Hayward 2016 + Shannon 2015 + Dog Aging Project '
-                        f'+ public whole genomes, {P.shape[0]:,} SNPs, {P.shape[1]} populations (breeds, village dogs by country, gray wolf)'),
+    'reference_panel': (f'Breed panel v2 (2026-10): Parker 2017 (Cell Reports) + Dog10K + Hayward 2016 + Dog Aging Project reference dogs, '
+                        f'{P.shape[0]:,} SNPs, {P.shape[1]} populations (breeds, village-dog populations by region, gray wolf)'),
 
     'method': ('Supervised SCOPE NNLS projection onto Parker 2017 allele frequency matrix. '
                f'P matrix: {P.shape[0]} SNPs × {P.shape[1]} breeds. '
