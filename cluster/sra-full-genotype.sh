@@ -1,8 +1,9 @@
 #!/bin/bash
 # Breed panel v2.3: full-depth genotypes for the SRA reference genomes that the 50M-spot download
 # (sra-download3.sh) left partial — coordinate-sorted submissions kept only the first chromosomes.
-# One run per task: prefetch the whole run -> fasterq-dump -> bwa-mem2 -> markdup (as stages 3+4)
-# -> keep only the genotypes, then delete the .sra, FASTQ and BAM:
+# Since 2026-10-30 every SRA reference genome is processed this way (Matteo: full files, no caps).
+# One run per task: prefetch the whole run -> stream into bwa-mem2 -> markdup (as stages 3+4)
+# -> keep only the genotypes, then delete the .sra and BAM:
 #   sra_full/<RUN>.g.vcf.gz      genome-wide gVCF (chr1-38, X, Y, M), for later panels/traits/relatives
 #   sra_full/<RUN>.panel.tsv.gz  breed-panel sites: CHROM POS REF ALT GT GQ AD DP (REF/ALT from canFam4;
 #                                hom-ref rows carry no GQ, so judge them by DP)
@@ -25,25 +26,27 @@ mkdir -p sra_full "$OUT"
 fail() { echo "SRAFULL-FAIL $run $label: $1"; exit 1; }
 t0=$(date +%s); echo "[$(date +%T)] $run $label on $(hostname) with $NP slots"
 
-# 1. Whole run (no spot cap), unpacked next to the .sra; reads unpaired after filtering are dropped.
+# 1+2. Whole run (no spot cap), streamed: fasterq-dump interleaves the mates, awk drops spots whose mate was
+# filtered out, bwa-mem2 -p aligns pairs -> sort -> fixmate -> markdup as run_dog_pipeline.sh stages 3+4.
+# No FASTQ on disk (a 59 GB .sra unpacks to ~300 GB); peak disk = .sra + BAM. Sort buffers sized for 4G/slot.
 if [ ! -s "$OUT/markdup.bam" ]; then
   prefetch --max-size 200G -O "$OUT" "$run" >/dev/null || fail prefetch
-  fasterq-dump --split-3 -e "$NP" -t "$OUT/tmp" -O "$OUT" "$OUT/$run/$run.sra" || fail fasterq-dump
-  rm -rf "$OUT/$run" "$OUT/tmp" "$OUT/$run.fastq"
-  [ -s "$OUT/${run}_1.fastq" ] && [ -s "$OUT/${run}_2.fastq" ] || fail "no read pairs"
-  echo "[$(date +%T)] reads: $(du -sh "$OUT" | cut -f1)"
-
-  # 2. Align -> sort -> fixmate -> markdup, as run_dog_pipeline.sh stages 3+4 (smaller sort buffers: 4G/slot).
-  bwa-mem2 mem -t "$NP" -R "@RG\tID:SRA-$run\tSM:SRA-$run\tPL:ILLUMINA\tLB:WGS" "$REF" \
-    "$OUT/${run}_1.fastq" "$OUT/${run}_2.fastq" 2>"$OUT/bwa.log" \
+  echo "[$(date +%T)] .sra: $(du -sh "$OUT/$run" | cut -f1)"
+  fasterq-dump --split-spot --stdout -e 2 -t "$OUT/tmp" --seq-defline '@$ac.$si/$ri' --qual-defline '+' \
+      "$OUT/$run/$run.sra" 2>"$OUT/fqd.log" \
+  | awk 'NR%4==1{k=$1; sub(/\/[12]$/,"",k)} {rec[NR%4]=$0}
+         NR%4==0{r=rec[1]"\n"rec[2]"\n"rec[3]"\n"rec[0]; if(k==pk){print pr; print r; n++; pk=""} else {pr=r; pk=k}}
+         END{print n+0 > "'"$OUT"'/pairs.txt"}' \
+  | bwa-mem2 mem -p -t "$NP" -R "@RG\tID:SRA-$run\tSM:SRA-$run\tPL:ILLUMINA\tLB:WGS" "$REF" - 2>"$OUT/bwa.log" \
   | samtools sort -n -m 400M -@ "$NP" -T "$OUT/tmp_sort" \
   | samtools fixmate -m -@ "$NP" - - \
   | samtools sort -m 400M -@ "$NP" -T "$OUT/tmp_sort2" \
   | samtools markdup -@ "$NP" --write-index - "$OUT/markdup.bam.tmp" \
+  && [ "$(cat "$OUT/pairs.txt" 2>/dev/null || echo 0)" -gt 1000000 ] \
   && mv "$OUT/markdup.bam.tmp" "$OUT/markdup.bam" && mv "$OUT/markdup.bam.tmp.csi" "$OUT/markdup.bam.csi" \
-  || { tail -5 "$OUT/bwa.log"; fail align; }
-  rm -f "$OUT/${run}_1.fastq" "$OUT/${run}_2.fastq"
-  echo "[$(date +%T)] BAM: $(du -sh "$OUT/markdup.bam" | cut -f1)"
+  || { tail -3 "$OUT/fqd.log" "$OUT/bwa.log"; fail "align (pairs=$(cat "$OUT/pairs.txt" 2>/dev/null))"; }
+  rm -rf "$OUT/$run" "$OUT/tmp"
+  echo "[$(date +%T)] pairs: $(cat "$OUT/pairs.txt")  BAM: $(du -sh "$OUT/markdup.bam" | cut -f1)"
 fi
 
 # 3. Genome-wide gVCF, one chromosome per process.
