@@ -4509,10 +4509,13 @@ def call_locus(locus, calls):
         any_hom = any(c['n_alt'] == 2 for c in at_calls)
         if any_hom or n_het_sites >= 2:
             return 'at', 'at', 'medium', 'Tan-points / tricolor (at/at) — recessive black or tricolor pattern'
+        # No 'ay/?' guess (2026-10-29): sable and wild agouti are not readable here, and the guess was wrong for
+        # Cosmo (at/at per Embark). Unknown alleles are '?', which the report shows as not determined.
         if n_at == 1:
-            return 'ay/?', 'at', 'low', 'One putative at allele detected; other allele uncertain (ay/at or at/aw possible)'
-        return 'ay/?', 'ay/?', 'low', ('No at/a coding variants detected. '
-            'Sable (ay) or wild agouti (aw) likely but require structural variant analysis to confirm.')
+            return 'at', '?', 'low', ('One tan-points (at) allele detected; the other copy (sable, wild agouti or a '
+                'second at) cannot be read with this sequencing')
+        return '?', '?', 'low', ('No tan-points (at) or recessive-black (a) coding variant detected. Sable (ay) and '
+            'wild agouti (aw) cannot be read with this sequencing, so the A locus is not determined.')
 
     elif locus == 'B':
         # Imputed b1/bc sites plus the read-level bs/bd calls (B_READ_CALLS).
@@ -4708,7 +4711,7 @@ def call_locus(locus, calls):
         return 'S', 'S', 'medium', 'No piebald allele at MITF queried position'
 
     elif locus == 'W':
-        return 'w', 'w', 'low', 'KIT extreme white (structural variant) not detectable from SNP data'
+        return '?', '?', 'low', 'KIT extreme white (structural variant) not detectable from SNP data'
 
     return '?', '?', 'low', 'Unknown locus'
 
