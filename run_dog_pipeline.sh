@@ -4035,24 +4035,21 @@ KNOWN_VARIANTS = [
     dict(locus='A', chrom='chr24', pos=23908000, exp_ref=None, exp_alt=None,
          allele='at_tag', inheritance='recessive', effect='ASIP — tan-points/recessive-black coding tag 2'),
 
-    # B locus: TYRP1 (chr11)
-    # b1: p.Arg345Cys (c.1033C>T); b2: p.Gln354* (c.1060C>T) — both recessive brown
-    # b1 allele: p.Arg345Cys. BCF encodes on the + strand as ref=T, alt=A (AF≈8% in Dog10K panel).
+    # B locus: TYRP1 (chr11, PLUS strand in canFam4).
+    # bc: c.121T>A p.Cys41Ser at chr11:33,376,317 (TGT -> AGT, first base of codon 41;
+    # verified 2026-11-01 by translating ...G-V-[C41]-C-P-D-L-S-P-V-S-G... against TYRP1).
+    # The ALT is the brown allele: Dog10K ALT AF 7.7% overall but Boykin 1.00 (5/5 hom),
+    # Weimaraner 0.80, Vizsla 0.71, GWP/GSP/Field/IWS 0.38-0.40. It is NOT an independent
+    # haplotype marker: in full-depth SRA genomes bc sits in cis on nearly every bd chromosome
+    # (Lagotto/Lapponian bd 2 -> bc 2), and also on its own chromosome (Lapphund bc 2, bd 0);
+    # never with bs. So B counts brown CHROMOSOMES as bs + max(bd, bc), not variants.
+    # (Mislabelled "b1 p.Arg345Cys" until 2026-11-01; codon 345 is the bd site.)
     dict(locus='B', chrom='chr11', pos=33376317, exp_ref='T', exp_alt='A',
-         allele='b', inheritance='recessive', effect='TYRP1 p.Arg345Cys (b1) — brown/liver'),
-    # Second brown allele: the bc-region haplotype at the exon-1 end of TYRP1
-    # (minus strand, so codon 41 sits at the HIGH coordinate end ~33.40Mb).
-    # Chosen empirically from the Dog10K panel: carried by the b1-heterozygous
-    # obligate-brown dogs (Vizslas, Weimaraners) and by zero Boxers.
-    #
-    # The previous entry here (chr11:33440938, labeled "b2 p.Gln354*") was
-    # WRONG: its ALT allele runs at 53% panel-wide, is carried by Boxers and
-    # absent from obligate browns — a common linked variant, not a brown
-    # allele. Combined with phase-blind compound-het logic it called a third
-    # of the reference cohort chocolate (b/b), including at least one dog
-    # whose owner confirms a black nose.
-    dict(locus='B', chrom='chr11', pos=33400944, exp_ref='A', exp_alt='G',
-         allele='b', inheritance='recessive', effect='TYRP1 bc-region brown haplotype tag'),
+         allele='b', inheritance='recessive', effect='TYRP1 p.Cys41Ser (bc) — brown/liver'),
+    # chr11:33400944 A>G ("bc-region brown haplotype tag", 2026-09 to 2026-11-01) was REMOVED:
+    # it is homozygous in never-brown breeds (Kangal, Tibetan Mastiff, New Guinea Singing Dog)
+    # and carried B/b and b/b calls for ~190 customer dogs on its own. Before it, chr11:33440938
+    # ("b2 p.Gln354*") had been removed for the same reason (53% panel AF, carried by Boxers).
 
     # D locus: MLPH (chr25)
     # d1: splice site c.123+1G>A — recessive dilute
@@ -4372,6 +4369,56 @@ B_READ_CALLS = [c for c in (
     read_brown_allele('bd', 'TYRP1 p.Pro345del (bd) — brown/liver', BD_EVIDENCE['n_del'], BD_EVIDENCE['n_ref'], BD_POS),
 ) if c]
 
+# bc (p.Cys41Ser) is in the panel, so it is imputed; direct reads replace the imputed dosage
+# when >=5 reads cover it (the 18x Cosmo genome, Admera/UCLA-depth kits).
+BC_POS = 33376317
+_bc = bam_pileup(BS_CHROM, BC_POS, min_reads=1) or {}
+BC_EVIDENCE = {'n_alt': _bc.get('A', 0), 'n_ref': _bc.get('T', 0), 'site': f'{BS_CHROM}:{BC_POS}'}
+
+def bs_bd_phase():
+    """bs and bd are 42 bp apart, so one read covers both. Count reads covering both sites as
+    (bs, bd) = variant/variant (cis), variant/reference or reference/variant (trans evidence)."""
+    out = {'both': 0, 'bs_only': 0, 'bd_only': 0}
+    try:
+        bam_fh = pysam.AlignmentFile(BAM, 'rb')
+    except Exception:
+        return out
+    try:
+        for r in bam_fh.fetch(BS_CHROM, BS_POS - 1, BD_POS + BD_LEN + 3):
+            if r.is_unmapped or r.mapping_quality < 20 or r.is_secondary or r.is_supplementary:
+                continue
+            bs_base, has_del, spans_bd = None, False, False
+            p = r.reference_start + 1
+            q = 0
+            for op, ln in r.cigartuples or []:
+                if op in (0, 7, 8):
+                    if p <= BS_POS < p + ln:
+                        bs_base = r.query_sequence[q + BS_POS - p].upper()
+                    if p <= BD_POS - 3 and p + ln - 1 >= BD_POS + BD_LEN + 2:
+                        spans_bd = True
+                    p += ln; q += ln
+                elif op == 2:
+                    if ln == BD_LEN and BD_POS - 3 <= p <= BD_POS + 3:
+                        has_del = True
+                    p += ln
+                elif op in (1, 4):
+                    q += ln
+                elif op == 3:
+                    p += ln
+            if bs_base not in ('C', 'T') or not (has_del or spans_bd):
+                continue
+            v_bs, v_bd = bs_base == 'T', has_del
+            if v_bs and v_bd: out['both'] += 1
+            elif v_bs: out['bs_only'] += 1
+            elif v_bd: out['bd_only'] += 1
+    except Exception:
+        pass
+    finally:
+        bam_fh.close()
+    return out
+
+BS_BD_PHASE = bs_bd_phase() if (BS_EVIDENCE['n_alt'] and BD_EVIDENCE['n_del']) else None
+
 def call_locus(locus, calls):
     """Returns (allele1, allele2, confidence, interpretation)."""
 
@@ -4518,83 +4565,72 @@ def call_locus(locus, calls):
             'wild agouti (aw) cannot be read with this sequencing, so the A locus is not determined.')
 
     elif locus == 'B':
-        # Imputed b1/bc sites plus the read-level bs/bd calls (B_READ_CALLS).
-        # Read-based alleles carry their own confidence; the final call can be
-        # no more confident than the read evidence it rests on, and a single
-        # variant read is never enough to build a compound b/b on its own.
-        b_calls = [c for c in calls
-                   if c['locus'] == 'B' and c['allele'] == 'b'
-                   and c['found'] and c['n_alt'] is not None] + B_READ_CALLS
-        if not b_calls:
-            return '?', '?', 'low', 'TYRP1 brown alleles not found in Dog10K panel'
+        # Count brown CHROMOSOMES, not variants: bs + max(bd, bc). bc rides in cis on nearly
+        # every bd chromosome (full-depth SRA genomes), so bc het + bd het is ONE brown copy
+        # (Cosmo, 18x: bc 0|1 + bd 10/3 reads, black nose). bs never carries bc; bs + bd hets
+        # are trans unless a read carries both. bs/bd are read-only (not in the panel); bc is
+        # imputed, replaced by reads when >=5 cover it. A single variant read (conf 'low')
+        # can make a dog a possible carrier but never completes a b/b on its own.
+        bc_call = next((c for c in calls if c['locus'] == 'B' and c['pos'] == BC_POS
+                        and c['found'] and c['n_alt'] is not None), None)
+        bc_reads = BC_EVIDENCE['n_alt'] + BC_EVIDENCE['n_ref']
+        if bc_reads >= 5:
+            a, r = BC_EVIDENCE['n_alt'], BC_EVIDENCE['n_ref']
+            bc, bc_how = (0 if a == 0 else 2 if r == 0 else 1), f'read directly ({a} variant / {r} reference reads)'
+        elif bc_call:
+            bc, bc_how = bc_call['n_alt'], 'imputed'
+        else:
+            bc, bc_how = None, None
+        rc = {c['effect'].split('(')[1][:2]: c for c in B_READ_CALLS}   # 'bs' / 'bd'
+        d = {k: (rc[k]['n_alt'] if k in rc else 0) for k in ('bs', 'bd')}
+        strict = {k: (d[k] if k in rc and rc[k]['conf'] != 'low' else 0) for k in d}
+        cov = {'bs': BS_EVIDENCE['n_alt'] + BS_EVIDENCE['n_ref'], 'bd': BD_EVIDENCE['n_del'] + BD_EVIDENCE['n_ref']}
+        if bc is None and not rc and cov['bs'] < 3 and cov['bd'] < 3:
+            return '?', '?', 'low', 'TYRP1 brown alleles not assessable at this sequencing depth'
+        cis_sd = bool(BS_BD_PHASE and BS_BD_PHASE['both'] > 0
+                      and BS_BD_PHASE['both'] >= BS_BD_PHASE['bs_only'] + BS_BD_PHASE['bd_only'])
+        def count(dd):
+            if cis_sd and dd['bs'] == 1 and dd['bd'] == 1:
+                return max(1, bc or 0)
+            return min(2, dd['bs'] + max(dd['bd'], bc or 0))
+        n, n_strict = count(d), count(strict)
+        # Is the dog's other chromosome actually checked? Only if both read-only sites have reads.
+        resolved = cov['bs'] >= 3 and cov['bd'] >= 3
         rb_used = [c for c in B_READ_CALLS if c['n_alt'] > 0]
-        read_note = ''.join(f" {c['effect'].split(' — ')[0]} seen directly in reads ({c['source'][11:-1]})." for c in rb_used)
+        names = [f"{k} ({rc[k]['source'][11:-1]})" for k in ('bs', 'bd') if k in rc]
+        if bc:
+            names.insert(0, f'bc p.Cys41Ser ({bc_how}, {bc} cop{"y" if bc == 1 else "ies"})')
+        found = ('Brown variants found: ' + '; '.join(names) + '.') if names else ''
+        cis_note = (' bc and bd are counted as one brown chromosome copy when both are present — '
+                    'bc rides on the bd chromosome in most dogs.') if bc and d['bd'] else ''
+        if cis_sd:
+            cis_note += f" bs and bd were seen on the same read ({BS_BD_PHASE['both']} reads), so they count as one copy."
         def _cap(a1, a2, conf, interp):
-            if 'b' in (a1, a2) and rb_used:
+            if rb_used:
                 conf = min([conf] + [c['conf'] for c in rb_used], key=lambda x: CONF_RANK[x])
-                interp += read_note
-            return a1, a2, conf, interp
-        hom = [c for c in b_calls if c['n_alt'] == 2]
-        if hom:
-            return _cap('b', 'b', 'high', 'Brown/liver eumelanin (b/b) — black pigment becomes brown; nose and pads liver/brown')
-        het = [c for c in b_calls if c['n_alt'] == 1 and not (c.get('read_based') and c['conf'] == 'low')]
-        if len(het) < 2 and any(c['n_alt'] == 1 and c.get('read_based') and c['conf'] == 'low' for c in b_calls):
-            # a single variant read: carrier evidence, not proof
-            if het:
-                return _cap('B', 'b', 'low', 'Carrier (B/b): one brown allele detected, and a single read suggests a second brown variant — '
-                            'possibly brown (b/b), not resolvable at this depth; the nose color tells you (liver = brown).')
-            return _cap('B', 'b', 'low', 'Possible carrier (B/b): one brown variant seen in a single read. Pigment expected black; '
-                        'a liver nose would mean the dog is brown.')
-        if len(het) >= 2:
-            # Two different brown variants, each heterozygous. Two DISTINCT
-            # TYRP1 brown alleles are independent mutations that essentially
-            # never sit on one haplotype in the population, so the population
-            # prior is trans (compound heterozygote, b/b). The GLIMPSE2 phase
-            # across the ~25 kb between the sites is NOT reliable at low-pass
-            # depth: kit pk-31240510809865 (1.2x) was imputed 0|1 / 0|1 and
-            # reported as a black-nosed B/b-cis carrier, but the dog has a
-            # brown nose, pink pads and amber eyes (unambiguous liver). So the
-            # imputed phase is no longer used to call cis. A cis call would need
-            # direct reads spanning both sites, which short reads cannot do at
-            # this distance — effectively never.
-            #
-            # The one thing reads CAN do is refute an imputed het: if a site is
-            # covered by >=5 reads that are all reference, that variant is not
-            # present and the dog falls back to the single-variant rule.
-            supported = []
-            refuted = []
-            for c in het:
-                counts = None
-                if c.get('source', '').startswith('Dog10K'):
-                    counts = bam_pileup(c['chrom'], c['pos'], min_reads=5)
-                if counts:
-                    n_ref = counts.get(str(c.get('ref', '')).upper(), 0)
-                    n_alt = counts.get(str(c.get('alt', '')).upper(), 0)
-                    if n_alt == 0 and n_ref >= 5:
-                        refuted.append((c, n_ref))
-                        continue
-                supported.append(c)
-            if len(supported) >= 2:
-                return _cap('b', 'b', 'medium', 'Brown/liver eumelanin (b/b): two different brown variants detected, '
-                    'each in one copy. Distinct brown alleles arise as separate mutations and are not found '
-                    'together on one chromosome copy, so they are inferred on opposite copies (compound '
-                    'heterozygous) — both TYRP1 copies affected, black pigment becomes brown; nose and pads '
-                    'liver/brown. Called from imputed genotypes at low-pass depth, so moderate confidence.')
-            ref_note = ''.join(
-                f' The imputed {c["effect"].split(" — ")[0]} variant was not supported by direct reads '
-                f'({n} reference reads, none variant), so it is disregarded.'
-                for c, n in refuted)
-            if len(supported) == 1:
-                return _cap('B', 'b', 'medium', 'Carrier (B/b): one brown allele detected. Pigment stays black '
-                    '(black nose and pads); puppies may inherit brown if the other parent also carries it.'
-                    + ref_note)
-            return 'B', 'B', 'medium', ('No brown alleles supported by reads (B/B) — black eumelanin, black nose '
-                'and pads.' + ref_note)
-        if len(het) == 1:
+            return a1, a2, conf, (interp + ' ' + found + cis_note).strip()
+        if n_strict == 2:
+            hom = any(v == 2 for v in strict.values()) or bc == 2
+            return _cap('b', 'b', 'high' if hom else 'medium',
+                'Brown/liver eumelanin (b/b): both TYRP1 copies carry a brown allele — black pigment '
+                'becomes brown; nose and pads liver/brown.')
+        if n_strict == 1:
+            if n == 2:
+                return _cap('b', '?', 'low', 'At least one brown copy (b); a single read suggests a brown '
+                    'variant on the other copy as well, which this depth cannot confirm. Liver nose = brown (b/b).')
+            if not resolved:
+                return _cap('b', '?', 'low', 'One brown copy (b). The other copy could not be checked for the '
+                    'bs and bd brown variants at this sequencing depth, so the dog may be a carrier (black nose) '
+                    'or brown (liver nose).')
             return _cap('B', 'b', 'medium', 'Carrier (B/b): one brown allele detected. Pigment stays black '
-                '(black nose and pads); puppies may inherit brown if the other parent also carries it. '
-                'Rare brown alleles outside the panel cannot be fully excluded.')
-        return 'B', 'B', 'high', 'No brown alleles detected (B/B) — black eumelanin, black nose and pads'
+                '(black nose and pads); puppies may inherit brown if the other parent also carries it.')
+        if n == 1:
+            return _cap('B', 'b', 'low', 'Possible carrier (B/b): one brown variant seen in a single read. '
+                'Pigment expected black; a liver nose would mean the dog is brown.')
+        if resolved and bc is not None:
+            return 'B', 'B', 'high', 'No brown alleles detected (B/B) — black eumelanin, black nose and pads'
+        return 'B', 'B', 'medium', ('No brown alleles detected (B/B) — black eumelanin, black nose and pads. '
+            'The bs and bd brown variants are read directly and had few reads at this depth.')
 
     elif locus == 'D':
         d_by_pos = {c['pos']: c['n_alt'] for c in calls
@@ -4944,7 +4980,8 @@ for locus in ['E', 'K', 'A', 'B', 'D', 'M', 'H', 'S', 'W']:
     if locus == 'K' and KB_EVIDENCE:
         locus_entry['read_evidence'] = KB_EVIDENCE
     if locus == 'B':
-        locus_entry['read_evidence'] = {'bs': BS_EVIDENCE, 'bd': BD_EVIDENCE}
+        locus_entry['read_evidence'] = {'bs': BS_EVIDENCE, 'bd': BD_EVIDENCE, 'bc': BC_EVIDENCE,
+                                        **({'bs_bd_phase': BS_BD_PHASE} if BS_BD_PHASE else {})}
         for c in B_READ_CALLS:
             obs.append({'pos': c['pos'], 'source': c['source'], 'effect': c['effect'], 'n_alt': c['n_alt']})
     loci_result[locus] = locus_entry
@@ -4969,10 +5006,9 @@ coat = {
     'loci': loci_result,
     'method': (f'Coat color genotyping from GLIMPSE2 Dog10K imputed BCF (min GP={MIN_GP}). '
                'Causal SNPs queried at known canFam4 positions; BAM pileup fallback for sites not in panel. '
-               'Compound heterozygosity handled for B (b1/bc) and D (d1/d2) loci: two distinct heterozygous brown '
-               'alleles are called b/b in trans (distinct TYRP1 brown mutations do not co-occur on one haplotype; '
-               'the imputed phase across ~25 kb is unreliable at low pass and is not used), unless direct reads '
-               '(>=5, all reference) refute one of the imputed hets. '
+               'B counts brown TYRP1 chromosome copies as bs + max(bd, bc): bs/bd read from the BAM, bc '
+               '(p.Cys41Ser) imputed or read directly at >=5 reads; bc rides in cis on bd chromosomes, bs and bd '
+               'are trans unless one read carries both. D (d1/d2) heterozygotes are handled as compound hets. '
                'Harlequin (H, PSMB7 p.V49G chr9:58614853 T>G, Clark et al. 2011) called from BAM reads: '
                'the allele is near-absent from the Dog10K panel (AF~0.0003), so imputation returns ref/ref even for true carriers.'),
 }
