@@ -10,8 +10,9 @@
 #   sra_full/<RUN>.done          label + stats; written last, so its presence means the task finished
 #   qsub -t 1-N -tc 20 cluster/sra-full-genotype.sh logs/sra_full_runs.txt     (RUN<TAB>LABEL per line)
 #   highp copy alongside it: qsub -N sra_full_hp -t 1-N -tc 4 -l h_data=4G,h_rt=48:00:00,highp ...
-#   Slurm (login.hoffman2.oarc.ucla.edu): sbatch -J sra_full -a 3-N%20 -p campus -c 16 --mem=60G -t 1-00:00:00 \
+#   Slurm (login.hoffman2.oarc.ucla.edu): sbatch -J sra_full -a 1-N%40 -p campus -c 8 --mem=48G -t 1-00:00:00 \
 #     cluster/sra-full-genotype.sh logs/sra_full_runs_smallfirst.txt     (MCDB nodes: --qos=highp -A pi_mcdb)
+#   (16 threads x 60G ran out of memory on 2x150 runs; 8 x 4G is the proven shape)
 #$ -cwd
 #$ -j y
 #$ -r y
@@ -51,20 +52,23 @@ t0=$(date +%s); echo "[$(date +%T)] $run $label on $(hostname) with $NP slots"
 if [ ! -s "$OUT/markdup.bam" ]; then
   rm -rf "$OUT"/tmp_sort* "$OUT"/markdup.bam.tmp*   # a killed attempt's leftovers
   prefetch --max-size 200G -O "$OUT" "$run" >/dev/null || fail prefetch
-  echo "[$(date +%T)] .sra: $(du -sh "$OUT/$run" | cut -f1)"
+  # Some runs registered as PAIRED store each mate as its own spot (SRR8304181-5: 297M spots = 297M reads):
+  # nothing pairs, so align those single-end.
+  pe=$(fastq-dump -X 1000 --split-spot -Z "$OUT/$run/$run.sra" 2>/dev/null | awk 'END{print (NR/4 > 1500) ? 1 : 0}')
+  echo "[$(date +%T)] .sra: $(du -sh "$OUT/$run" | cut -f1)  $([ "$pe" = 1 ] && echo paired || echo single-end)"
   fasterq-dump --split-spot --stdout -e 2 -t "$OUT/tmp" --seq-defline '@$ac.$si/$ri' --qual-defline '+' \
       "$OUT/$run/$run.sra" 2>"$OUT/fqd.log" \
-  | awk 'NR%4==1{k=$1; sub(/\/[12]$/,"",k)} {rec[NR%4]=$0}
-         NR%4==0{r=rec[1]"\n"rec[2]"\n"rec[3]"\n"rec[0]; if(k==pk){print pr; print r; n++; pk=""} else {pr=r; pk=k}}
+  | awk -v pe="$pe" 'NR%4==1{k=$1; sub(/\/[12]$/,"",k)} {rec[NR%4]=$0}
+         NR%4==0{r=rec[1]"\n"rec[2]"\n"rec[3]"\n"rec[0]; if(!pe){print r; n++} else if(k==pk){print pr; print r; n++; pk=""} else {pr=r; pk=k}}
          END{print n+0 > "'"$OUT"'/pairs.txt"}' \
-  | bwa-mem2 mem -p -t "$NP" -R "@RG\tID:SRA-$run\tSM:SRA-$run\tPL:ILLUMINA\tLB:WGS" "$REF" - 2>"$OUT/bwa.log" \
+  | bwa-mem2 mem $([ "$pe" = 1 ] && echo -p) -t "$NP" -R "@RG\tID:SRA-$run\tSM:SRA-$run\tPL:ILLUMINA\tLB:WGS" "$REF" - 2>"$OUT/bwa.log" \
   | samtools sort -n -m 400M -@ "$NP" -T "$OUT/tmp_sort" \
   | samtools fixmate -m -@ "$NP" - - \
   | samtools sort -m 400M -@ "$NP" -T "$OUT/tmp_sort2" \
   | samtools markdup -@ "$NP" --write-index - "$OUT/markdup.bam.tmp" \
   && [ "$(cat "$OUT/pairs.txt" 2>/dev/null || echo 0)" -gt 1000000 ] \
   && mv "$OUT/markdup.bam.tmp" "$OUT/markdup.bam" && mv "$OUT/markdup.bam.tmp.csi" "$OUT/markdup.bam.csi" \
-  || { tail -3 "$OUT/fqd.log" "$OUT/bwa.log"; fail "align (pairs=$(cat "$OUT/pairs.txt" 2>/dev/null))"; }
+  || { tail -n 3 "$OUT/fqd.log" "$OUT/bwa.log"; fail "align (pairs=$(cat "$OUT/pairs.txt" 2>/dev/null))"; }
   rm -rf "$OUT/$run" "$OUT/tmp"
   echo "[$(date +%T)] pairs: $(cat "$OUT/pairs.txt")  BAM: $(du -sh "$OUT/markdup.bam" | cut -f1)"
 fi
@@ -86,7 +90,7 @@ bcftools mpileup -f "$REF" -T "$ALLELES" -q 30 -Q 20 -a AD,DP -Ou "$OUT/markdup.
 # 5. Check, record, delete the BAM.
 n=$(zcat "sra_full/$run.panel.tsv.gz" | wc -l)
 stats=$(zcat "sra_full/$run.panel.tsv.gz" | awk -F'\t' '{s+=$8; if($8>=8) c++; ch[$1]=1} END{n=0; for(k in ch) n++; printf "mean_dp=%.1f sites_dp8=%d chroms=%d", s/NR, c, n}')
-(( n > 100000 )) || fail "only $n panel sites"
+(( n >= 1000 )) || fail "only $n panel sites"   # low-pass runs are kept; the panel build applies the depth rules
 echo -e "$label\t$run\tpanel_sites=$n\t$stats\tgvcf=$(du -h "sra_full/$run.g.vcf.gz" | cut -f1)\tmin=$(( ($(date +%s)-t0)/60 ))" > "sra_full/$run.done"
 rm -rf "$OUT"
 echo "SRAFULL-DONE $run $label panel_sites=$n $stats min=$(( ($(date +%s)-t0)/60 ))"
