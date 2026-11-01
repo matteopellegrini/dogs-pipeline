@@ -3,10 +3,11 @@
 # (sra-download3.sh) left partial — coordinate-sorted submissions kept only the first chromosomes.
 # Since 2026-10-30 every SRA reference genome is processed this way (Matteo: full files, no caps).
 # One run per task: prefetch the whole run -> stream into bwa-mem2 -> markdup (as stages 3+4)
-# -> keep only the genotypes, then delete the .sra and BAM:
+# -> keep the genotypes and a candidate-gene BAM slice, then delete the .sra and full BAM:
 #   sra_full/<RUN>.g.vcf.gz      genome-wide gVCF (chr1-38, X, Y, M), for later panels/traits/relatives
 #   sra_full/<RUN>.panel.tsv.gz  breed-panel sites: CHROM POS REF ALT GT GQ AD DP (REF/ALT from canFam4;
 #                                hom-ref rows carry no GQ, so judge them by DP)
+#   sra_slices/<RUN>.bam         reads in the candidate-gene slices (logs/candidate_slices.bed), kept for re-genotyping
 #   sra_full/<RUN>.done          label + stats; written last, so its presence means the task finished
 #   qsub -t 1-N -tc 20 cluster/sra-full-genotype.sh logs/sra_full_runs.txt     (RUN<TAB>LABEL per line)
 #   highp copy alongside it: qsub -N sra_full_hp -t 1-N -tc 4 -l h_data=4G,h_rt=48:00:00,highp ...
@@ -87,7 +88,18 @@ bcftools mpileup -f "$REF" -T "$ALLELES" -q 30 -Q 20 -a AD,DP -Ou "$OUT/markdup.
   | bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t[%GT\t%GQ\t%AD\t%DP]\n' | gzip > "sra_full/$run.panel.tsv.gz.tmp" \
   && mv "sra_full/$run.panel.tsv.gz.tmp" "sra_full/$run.panel.tsv.gz" || fail panel
 
-# 5. Check, record, delete the BAM.
+# 5. Keep reads around candidate disease/trait genes (logs/candidate_slices.bed: gene bodies +-10 kb,
+# +-50 kb around catalogue sites, chrM; ~58 Mb), so variants added to the catalogue later -- structural
+# ones especially -- can be genotyped without re-downloading the run. Matteo 2026-11-01.
+SLICES=logs/candidate_slices.bed
+if [ -s "$SLICES" ]; then
+  mkdir -p sra_slices
+  samtools view -@ "$NP" -b -L "$SLICES" -o "sra_slices/$run.bam.tmp" "$OUT/markdup.bam" \
+    && samtools index "sra_slices/$run.bam.tmp" "sra_slices/$run.bam.bai" \
+    && mv "sra_slices/$run.bam.tmp" "sra_slices/$run.bam" || fail "slice"
+fi
+
+# 6. Check, record, delete the BAM.
 n=$(zcat "sra_full/$run.panel.tsv.gz" | wc -l)
 stats=$(zcat "sra_full/$run.panel.tsv.gz" | awk -F'\t' '{s+=$8; if($8>=8) c++; ch[$1]=1} END{n=0; for(k in ch) n++; printf "mean_dp=%.1f sites_dp8=%d chroms=%d", s/NR, c, n}')
 (( n >= 1000 )) || fail "only $n panel sites"   # low-pass runs are kept; the panel build applies the depth rules
