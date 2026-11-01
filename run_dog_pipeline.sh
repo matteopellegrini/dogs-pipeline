@@ -20,10 +20,11 @@ set -euo pipefail
 # ── Site profile ─────────────────────────────────────────────
 # One pipeline, several machines. A site profile supplies paths, tool locations
 # and parallelism for wherever this is running. An explicit DOGS_SITE always
-# wins; otherwise detect. $SGE_ROOT is set on Hoffman2 login and compute nodes.
+# wins; otherwise detect. $SGE_ROOT is set on Hoffman2 SGE nodes; Slurm nodes
+# (Hoffman2 moved to Slurm 2026-10) have no SGE_ROOT, so also key on the project dir.
 PIPELINE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOGS_SITE="${DOGS_SITE:-$(
-  if   [[ -n "${SGE_ROOT:-}" ]];      then echo hoffman
+  if   [[ -n "${SGE_ROOT:-}" || -d /u/project/pellegrini ]]; then echo hoffman
   elif [[ "$(uname -s)" == Darwin ]]; then echo mac
   else                                     echo generic
   fi)}"

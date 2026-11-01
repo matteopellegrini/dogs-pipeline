@@ -3,12 +3,15 @@
 # work dir — the same lists as rerun-8.sh / rerun-9-panel-v2.sh). Keeps coat_color.pre-<tag>.json and
 # traits_result.pre-<tag>.json once per tag. Nothing is uploaded; republish with cluster/republish_files.sh.
 #   qsub -t 1-N -tc 80 cluster/rerun-13-list.sh <list> <tag>
+#   Slurm: sbatch -J rerun13 -a 1-N%20 -p campus -c 1 --mem=4G -t 1:00:00 cluster/rerun-13-list.sh <list> <tag>
 #$ -cwd
 #$ -j y
 #$ -o logs/$JOB_NAME.$JOB_ID.$TASK_ID.log
 #$ -l h_data=4G,h_rt=1:00:00
 #$ -pe shared 1
+#SBATCH -o logs/%x.%A.%a.log
 set -uo pipefail
+if [ -n "${SLURM_JOB_ID:-}" ]; then SGE_TASK_ID=$SLURM_ARRAY_TASK_ID; SGE_O_WORKDIR=$SLURM_SUBMIT_DIR; fi
 export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 PYTHONIOENCODING=utf-8
 D="${SGE_O_WORKDIR:?run via qsub from the repo root}"
 LIST="${1:?usage: qsub -t 1-N cluster/rerun-13-list.sh <list> <tag>}"
