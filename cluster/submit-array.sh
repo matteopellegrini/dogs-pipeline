@@ -50,8 +50,20 @@
 #$ -o logs/$JOB_NAME.$JOB_ID.$TASK_ID.log
 #$ -l h_data=9G,h_rt=8:00:00
 #$ -pe shared 8
+#SBATCH -o logs/%x.%A.%a.log
+#SBATCH --requeue
+#
+# Slurm (the old SGE cluster retires mid-November 2026):
+#     sbatch -A pi_matteop -p campus -a 2-97%40 -c 8 --mem=72G -t 8:00:00 -J submit-array \
+#            cluster/submit-array.sh sample_sheet.hoffman.tsv [from_stage]
+# --mem is per job (8 slots x 9G under SGE).
 
 set -euo pipefail
+
+if [ -n "${SLURM_JOB_ID:-}" ]; then   # Slurm: map its variables onto the SGE names used below
+  JOB_ID=${SLURM_ARRAY_JOB_ID:-$SLURM_JOB_ID}; SGE_TASK_ID=${SLURM_ARRAY_TASK_ID:-}
+  SGE_O_WORKDIR=$SLURM_SUBMIT_DIR; NSLOTS=${SLURM_CPUS_PER_TASK:-8}; export NSLOTS
+fi
 
 SHEET="${1:?usage: qsub -t 2-N cluster/submit-array.sh <sample_sheet.tsv> [from_stage]}"
 # Optional resume point. Defaults to 1 (full run). Use it to pick a sample back
@@ -60,7 +72,7 @@ SHEET="${1:?usage: qsub -t 2-N cluster/submit-array.sh <sample_sheet.tsv> [from_
 # Resume only works when the intermediates still exist, so not for runs that
 # used local scratch — those are discarded with the job.
 FROM_STAGE="${2:-1}"
-ROW="${SGE_TASK_ID:?this script must be submitted as an array job (-t)}"
+ROW="${SGE_TASK_ID:?this script must be submitted as an array job (qsub -t / sbatch -a)}"
 
 export DOGS_SITE=hoffman
 
@@ -75,6 +87,11 @@ export DOGS_SITE=hoffman
 # would spin, so the message says plainly what is being tested.
 if [[ -r /proc/cpuinfo ]] && ! grep -qm1 '\bavx2\b' /proc/cpuinfo; then
   echo "NODE UNSUITABLE: $(hostname) lacks avx2, which GLIMPSE2 requires." >&2
+  if [ -n "${SLURM_JOB_ID:-}" ]; then
+    # Slurm has no exit-99 reschedule: resubmit this task with -x $(hostname).
+    echo "Resubmit task $ROW with: sbatch -x $(hostname) -a $ROW ..." >&2
+    exit 1
+  fi
   echo "Exiting 99 to reschedule task $ROW on another node." >&2
   exit 99
 fi
