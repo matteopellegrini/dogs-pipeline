@@ -30,16 +30,28 @@ def add(**k):
 # 1. current catalogue; 217 entries carry no alleles, 152 of them resolved from OMIA g. notation
 #    (analysis/omia/resolve_catalogue_alleles.py -> panel_v3/catalogue_alleles_resolved.tsv)
 RES = {r['site_id']: r for r in csv.DictReader(open(P / 'catalogue_alleles_resolved.tsv'), delimiter='\t')}
+# the other 65 curated by hand from OMIA/papers (analysis/omia/curate_catalogue_alleles.py): 22 small, 43 SV
+CUR = {r['site_id']: r for r in csv.DictReader(open(P / 'catalogue_alleles_curated.tsv'), delimiter='\t')}
+CUR_OMIA = {m for r in CUR.values() for m in re.findall(r'OMIA (\d+)', r['source'])}
 for i, v in enumerate(json.load(open(ROOT / 'reference_json/omia_variants.json'))['variants']):
-    sid = f'cat{i:03d}'; ref, alt = str(v['ref']).upper(), str(v['alt']).upper(); pos = v['pos']; status = 'live'
+    sid = f'cat{i:03d}'; ref, alt = str(v['ref']).upper(), str(v['alt']).upper(); pos = v['pos']; status = 'live'; chrom = v['chrom']
     if ref == 'NONE':
         r = RES.get(sid, {})
+        cu = CUR.get(sid)
         if r.get('ref'): pos, ref, alt, status = r['pos4'], r['ref'], r['alt'], f"live; alleles from OMIA variant {r['omia_variant_id']}"
+        elif cu:
+            chrom = cu['chrom']; pos, ref, alt = cu['pos'], cu['ref'], cu['alt']
+            status = f"live; curated 2026-11-01 from {cu['source']}" + (f"; {cu['note']}" if cu['note'] else '')
+            if cu['kind'] == 'sv':
+                add(site_id=sid, origin='catalogue', report_class={'coat': 'trait', 'trait': 'trait'}.get(v.get('category'), 'report'),
+                    gene=v['gene'], condition=v.get('trait', ''), chrom=chrom, pos=pos, end=cu['end'], ref='.', alt=alt, kind='sv',
+                    genotyping='read_based', status=status + f"; SVLEN={cu['svlen']}", refs=v.get('reference', ''))
+                continue
         else: ref, alt, status = '.', v.get('variant_type') or 'SV', f"live; needs alleles ({r.get('omia_g_or_reason', '')})"
     kd = kind_of(ref, alt)
     cat = v.get('category', 'disease')
     add(site_id=sid, origin='catalogue', report_class={'coat': 'trait', 'trait': 'trait'}.get(cat, 'report'),
-        gene=v['gene'], condition=v.get('trait', ''), chrom=v['chrom'], pos=pos, ref=ref, alt=alt, kind=kd,
+        gene=v['gene'], condition=v.get('trait', ''), chrom=chrom, pos=pos, ref=ref, alt=alt, kind=kd,
         genotyping=('needs_alleles' if ref == '.' else 'read_based') if kd == 'sv' else 'imputable_or_direct',
         status=status, refs=v.get('reference', ''))
 
@@ -73,6 +85,7 @@ for fn, origin, rc in [('t4_priority_curated.tsv', 'T4 needs coordinates (priori
 
 # 4. T3 structural and T6 traits
 for r in csv.DictReader(open(P / 't3_t6_sv_coords.tsv'), delimiter='\t'):
+    if r['omia_id'] in CUR_OMIA: continue  # already a catalogue entry, curated above
     t3 = r['tier'].startswith('T3')
     rc = 'trait' if (not t3 or 'merle' in r['condition'].lower()) else 'report'
     add(site_id=f"new_{r['gene']}_{r['omia_id'] or r['start']}", origin=r['tier'], report_class=rc, gene=r['gene'],
