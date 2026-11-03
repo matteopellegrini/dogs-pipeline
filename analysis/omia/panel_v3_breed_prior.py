@@ -37,7 +37,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 FASTA = os.path.join(ROOT, 'canFam4.fa')
 EPS = {'snv': 0.002, 'indel': 0.005, 'homopolymer': 0.03}
 HOMOPOLYMER_RUN = 6        # indel next to >= this many identical reference bases
-M_DOC, K_DOC = 0.05, 20.0  # documented breeds: prior mean, pseudo-alleles
+M_DOC, K_DOC = 0.05, float(os.environ.get('PV3_K_DOC', 5.0))  # documented breeds: prior mean, pseudo-alleles (20 held CDDY at 0.15 in Dachshunds whose reads say ~1; 5 validates as well or better)
 K_BG = 100.0               # other breeds: pseudo-alleles around the background frequency
 # Beta(0.5, B) on the background frequency. B=4000 under-predicted carriers 2-3x on the Dog10K validation sites
 # (P 0.11 -> observed 0.29); B=400 is calibrated (0.11 -> 0.09, 0.32 -> 0.33). Swept 2026-11-03.
@@ -53,11 +53,17 @@ MANUAL_BREEDS = {
     'NHEJ1': 'Collie, Shetland Sheepdog, Border Collie, Australian Shepherd, Nova Scotia Duck Tolling Retriever, '
              'Lancashire Heeler, Long-Haired Whippet, Boykin Spaniel',  # collie eye anomaly, Parker et al. 2007
 }
+# sites whose OMIA entry the gene-name join misses ("FGF4 retrogene in CFA12"): OMIA's breed list wins over ours
+SITE_OMIA = {'cat093': '855', 'cat469': '694'}
 K_EPS = 500.0  # indels: per-site read error estimated by EM, shrunk to EPS[kind] with this many pseudo-reads
 # Held out of calls until their coordinates/alleles are re-curated: cohort frequencies impossible for a disease allele
 HOLD = {
     'new_ABCB1_442': 'ABCB1 A>C at 38% across breeds: CanFam3 -> canFam4 position or allele under review',
     'cat159': 'BTBD17 insG at 20-28% across breeds: OMIA-resolved allele under review',
+    'cat396': 'IDUA 270-bp deletion: both breakpoints sit in a GC-rich tandem repeat, so repeat-length variation in '
+              'every breed mimics the junction in short reads; needs a targeted assay',
+    'new_CYTB_52': 'm.14474G>A homoplasmic in ~7% of dogs across 27 breeds (pit bulls, chihuahuas, shepherds) and in none '
+                   'of 32 cattle dogs and shelties: a maternal-lineage polymorphism, not a reportable disease variant',
 }
 
 # ── inputs ────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -83,7 +89,7 @@ def site_breeds():
         t = row['Variant Type']
         return ('substitution' in t) if kind == 'snv' else ('(<=20)' in t) if kind == 'indel' else ('gross' in t or '(>20)' in t)
     def omia_breeds(sid, s):
-        oid = resolved.get(sid) or (sid.split('_')[-1] if not sid.startswith('cat') else '')
+        oid = SITE_OMIA.get(sid) or resolved.get(sid) or (sid.split('_')[-1] if not sid.startswith('cat') else '')
         if oid in omia_by_id:
             return omia_by_id[oid]['Breed(s)'], f'OMIA variant {oid}'
         gene = {'FVII': 'F7', 'MOP': 'MPO', 'FGF4 retrogene': 'FGF4', 'IGF1-AS (LOC111090066)': 'IGF1'}.get(s['gene'], s['gene'])
@@ -99,7 +105,7 @@ def site_breeds():
         else:
             b = by_omia.get(sid.split('_')[-1]) or curated.get((s['gene'], s['pos'])) or ''
         src = 'catalogue' if b.strip() else ''
-        if not b.strip():
+        if not b.strip() or sid in SITE_OMIA:
             b, src = omia_breeds(sid, s)
         if not b.strip() and s['gene'] in MANUAL_BREEDS:
             b, src = MANUAL_BREEDS[s['gene']], 'manual'
@@ -317,29 +323,79 @@ def call_of(p, hap=None):
     return np.where(pc >= CALL_HI, hi, np.where(pc <= CALL_LO, 'clear', 'uncertain'))
 
 # ── structural variants ───────────────────────────────────────────────────────────────────────────────────────
-EPS_SV, K_EPS_SV = 0.01, 200.0   # breakpoint fragments: clip noise in non-carriers, shrunk to EPS_SV
-DEPTH_TAU = 0.10                 # extra sd of the depth ratio beyond Poisson (GC, mappability)
+EPS_SV, K_EPS_SV = 0.01, 200.0   # breakpoint fragments: junction-read noise in non-carriers, shrunk to EPS_SV
+DEPTH_MIN_LEN, FLANK_MAX = 2000, 50000
+DEPTH_PCS = 3                    # shared depth components removed (GC / library biases that move many loci at once)
+DEPTH_WINSOR = 0.35              # |log ratio| beyond this is left out of the component fit (a real CNV, or noise)
+DEPTH_DF = 4                     # Student-t tails: one odd window must not make a carrier on its own
 
-def sv_lik_factory(ka, kr, din, dfl, length, svtype, flank_len):
-    """Per-dog likelihood over 0/1/2 copies of the SV allele from breakpoint fragments and, for long DEL/DUP,
-    the depth ratio inside/flanks normalised to the cohort's reference-like dogs."""
-    use_depth = (svtype in ('DEL', 'DUP')) & np.isfinite(din) & np.isfinite(dfl) & (dfl > 0)
-    mu = np.where(use_depth, dfl * length / np.maximum(flank_len, 1), np.nan)
-    ratio = np.where(use_depth, din / np.where(mu > 0, mu, 1), np.nan)
-    norm = np.nanmedian(ratio[(ka == 0) & use_depth]) if np.any((ka == 0) & use_depth) else np.nan
-    if np.isfinite(norm) and norm > 0:
-        ratio = ratio / norm
-    copies = np.array([1.0, 0.5, 0.01]) if svtype == 'DEL' else np.array([1.0, 1.5, 2.0])
+def depth_model(svs, ev, n):
+    """Log depth ratio inside/flanks for every long DEL/DUP and every kit, with shared biases removed.
+
+    Per site the raw ratio is centred on its cohort median. The top DEPTH_PCS components of the winsorised
+    (site x kit) matrix are biases that move many loci together in one kit (GC, library, batch: the FGF3/4/19
+    duplication region read 2-4x in whole batches of non-Ridgebacks). Each kit's loading is fitted by weighted
+    least squares over its sites, excluding its own outliers, so a real event in one dog does not cancel itself.
+    Returns {site_id: (residual log ratio, variance, expected log ratio of a homozygous deletion)}."""
+    rows, sids = [], []
+    for sv in svs:
+        length = int(sv['end']) - int(sv['start'])
+        if sv['type'] not in ('DEL', 'DUP') or length < DEPTH_MIN_LEN:
+            continue
+        e = ev[sv['site_id']]
+        din, dfl = e[:, 3], e[:, 4]
+        mu = dfl * length / (2 * min(length, FLANK_MAX))
+        ok = np.isfinite(din) & np.isfinite(dfl) & (dfl > 0)
+        lr = np.where(ok, np.log((np.nan_to_num(din) + 0.5) / (np.nan_to_num(mu) + 0.5)), np.nan)
+        pv = np.where(ok, 1 / (np.nan_to_num(din) + 0.5) + 1 / (np.nan_to_num(dfl) + 0.5), np.nan)
+        rows.append((lr, pv, np.where(ok, np.log(0.5 / (np.nan_to_num(mu) + 0.5)), np.nan)))
+        sids.append(sv['site_id'])
+    if not rows:
+        return {}
+    LR = np.array([r[0] for r in rows]); PV = np.array([r[1] for r in rows]); HOM = np.array([r[2] for r in rows])
+    centre = np.nanmedian(LR, axis=1, keepdims=True)
+    LR, HOM = LR - centre, HOM - centre
+    ok = np.isfinite(LR)
+    W = np.where(ok & (np.abs(LR) <= DEPTH_WINSOR), 1 / np.where(ok, PV + 0.01, 1), 0.0)
+    X = np.where(W > 0, LR, 0.0)
+    deep = (W > 0).mean(0) > 0.8
+    k = min(DEPTH_PCS, len(sids) - 1)
+    U = np.linalg.svd(X[:, deep] * np.sqrt(W[:, deep]), full_matrices=False)[0][:, :k] if k > 0 else np.zeros((len(sids), 0))
+    R = np.full_like(LR, np.nan)
+    for j in range(n):
+        w = W[:, j]
+        if k and (w > 0).sum() > k + 2:
+            A = U * np.sqrt(w)[:, None]
+            sc = np.linalg.lstsq(A, X[:, j] * np.sqrt(w), rcond=None)[0]
+            R[:, j] = LR[:, j] - U @ sc
+        else:
+            R[:, j] = LR[:, j]
+    mad = lambda x: 1.4826 * np.nanmedian(np.abs(x - np.nanmedian(x)))
+    tau_site = np.array([max(0.002, mad(R[i]) ** 2 - np.nanmedian(PV[i])) for i in range(len(sids))])
+    base = PV + tau_site[:, None]
+    tau_kit = np.maximum(0.0, np.nanmedian(R ** 2, axis=0) / 0.455 - np.nanmedian(base, axis=0))
+    V = base + np.nan_to_num(tau_kit)[None, :]
+    return {sid: (R[i], V[i], HOM[i]) for i, sid in enumerate(sids)}
+
+def sv_lik_factory(ka, kr, svtype, depth):
+    """Per-dog likelihood over 0/1/2 copies of the SV allele from junction fragments and, for long DEL/DUP,
+    the bias-corrected depth ratio (Student-t on the log scale)."""
+    if depth is not None:
+        lr, var, hom = depth
+        use_depth = np.isfinite(lr) & np.isfinite(var)
+        means = (np.stack([np.zeros_like(lr), np.full_like(lr, np.log(0.5)), np.nan_to_num(hom)], 1) if svtype == 'DEL'
+                 else np.tile(np.log([1.0, 1.5, 2.0]), (len(lr), 1)))
+    else:
+        use_depth = np.zeros(len(ka), bool)
     def lik(eps, rows):
         L = read_lik(kr[rows], ka[rows], eps)
         if use_depth[rows].any():
-            rr, mm = ratio[rows], mu[rows]
-            sd = np.sqrt(1 / np.maximum(np.nan_to_num(mm, nan=1.0), 1.0) + DEPTH_TAU ** 2)
-            ld = np.exp(-0.5 * ((rr[:, None] - copies[None, :]) / sd[:, None]) ** 2)
-            ld = np.where(np.isfinite(rr)[:, None], ld / np.maximum(ld.max(1, keepdims=True), 1e-300), 1.0)
+            z2 = (np.nan_to_num(lr[rows])[:, None] - means[rows]) ** 2 / np.nan_to_num(var[rows], nan=1.0)[:, None]
+            ld = (1 + z2 / DEPTH_DF) ** (-(DEPTH_DF + 1) / 2)
+            ld = np.where(use_depth[rows][:, None], ld / np.maximum(ld.max(1, keepdims=True), 1e-300), 1.0)
             L = L * ld
         return L / np.maximum(L.max(1, keepdims=True), 1e-300)
-    return lik, use_depth, ratio
+    return lik, use_depth
 
 def cmd_sv(work):
     D = load(work)
@@ -353,17 +409,17 @@ def cmd_sv(work):
         if len(p) < 8 or p[0] not in col: continue
         ev[p[1]][col[p[0]]] = [float(x) if x != '' else np.nan for x in p[2:7]]
     cidx = {c: i for i, c in enumerate(D['codes'])}
+    depth = depth_model(svs, ev, n)
     p_all = np.zeros((len(svs), n), np.float32); calls_all = np.empty((len(svs), n), dtype='U11')
     with open(os.path.join(work, 'bp_sv_sites.tsv'), 'w') as fo:
         fo.write('site_id\tgene\tcondition\treport_class\ttype\tlength\tdocumented_breeds\tbackground_af\tbreakpoint_error\t'
-                 'depth_used\ttop_breed_af\tkits_with_evidence\tcarrier\ttwo_copies\themizygous\tuncertain\tclear\n')
+                 'depth_used\ttop_breed_af\tkits_with_evidence\tcarrier\ttwo_copies\themizygous\tuncertain\tclear\theld\n')
         for i, sv in enumerate(svs):
             sid, c, t = sv['site_id'], sv['chrom'], sv['type']
             e = ev[sid]
             ka = np.nan_to_num(e[:, 0]) + np.nan_to_num(e[:, 2]); kr = np.nan_to_num(e[:, 1])
             length = int(sv['end']) - int(sv['start'])
-            lik_fn, use_depth, ratio = sv_lik_factory(ka, kr, e[:, 3], e[:, 4], length, t,
-                                                      2 * min(length, 50000))
+            lik_fn, use_depth = sv_lik_factory(ka, kr, t, depth.get(sid))
             meta, names = sb.get(sid, ({}, []))
             doc, mixed = set(), False
             for nm in names:
@@ -380,13 +436,16 @@ def cmd_sv(work):
             post = lik_fn(eps, np.arange(n)) * prior
             post /= post.sum(1, keepdims=True)
             p_all[i] = post[:, 1] + post[:, 2]
-            cl = call_of(post, hap); calls_all[i] = cl
+            cl = call_of(post, hap)
+            if sid in HOLD:
+                cl[:] = 'held'
+            calls_all[i] = cl
             cnt = collections.Counter(cl); top = np.argsort(-f)[:3]
             fo.write('\t'.join(map(str, [sid, sv['gene'], meta.get('condition', ''), meta.get('report_class', ''), t, length,
                      ','.join(sorted(doc)), f'{beta:.2e}', f'{eps:.4f}', int(use_depth.sum()),
                      '; '.join(f"{D['names'].get(D['codes'][j], D['codes'][j])} {f[j]:.3f}" for j in top),
                      int(informative.sum()), cnt['carrier'], cnt['two_copies'], cnt['hemizygous'], cnt['uncertain'],
-                     cnt['clear']])) + '\n')
+                     cnt['clear'], cnt['held']])) + '\n')
     np.savez_compressed(os.path.join(work, 'bp_sv.npz'), p=p_all, call=calls_all, samples=np.array(D['samples']),
                         sid=np.array([s['site_id'] for s in svs]))
     print(f'sv: {len(svs)} sites x {n} kits -> {work}/bp_sv_sites.tsv, bp_sv.npz')

@@ -24,7 +24,9 @@ while IFS=$'\t' read -r pk barcode pub work; do
       | bcftools query -f '%REF\t%ALT\t[%AD]\n' 2>/dev/null \
       | awk -v k="$pk" -v c="$c" -v p="$p" -v r="$ref" -v a="$alt" -F'\t' '
           $1==r { n=split($2,al,","); split($3,ad,","); x=0; for(i=1;i<=n;i++) if(al[i]==a) x=ad[i+1]; print k"\t"c"\t"p"\t"r"\t"a"\t"ad[1]"\t"x; found=1 }
-          END { if(!found) print k"\t"c"\t"p"\t"r"\t"a"\t0\t0" }' >> "$O/chrM_counts.tsv"
+          # an indel site with no indel record means no read carried it: every read at the base record is reference
+          length($1)==1 && length(r)>1 { m=split($3,ad,","); d=0; for(i=1;i<=m;i++) d+=ad[i] }
+          END { if(!found) print k"\t"c"\t"p"\t"r"\t"a"\t"d+0"\t0" }' >> "$O/chrM_counts.tsv"
   done < "$O/chrM.alleles.tsv"
 done < "${1:?manifest}"
 echo "PV3-CHRM-DONE $(wc -l < "$O/kit_sex.tsv") kits"
