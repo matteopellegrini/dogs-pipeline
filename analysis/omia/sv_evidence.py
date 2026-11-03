@@ -11,7 +11,9 @@ For each SV with known breakpoints (known_variants/panel_v3/panel_v3_sites.tsv, 
                     turned up in 2-3 fragments per dog at several loci in every breed. Clips need a >= 30 bp anchor;
                     a fragment with any alt evidence is alt.
   disc              read pairs whose mates straddle the event with the orientation it predicts (DEL: FR pair
-                    spanning start..end; DUP: RF pair inside; INV: same-strand pair across one breakpoint).
+                    spanning start..end; DUP: RF pair inside; INV: same-strand pair across one breakpoint); for
+                    insertions copied from a known gene (SOURCE), pairs pointing at the insertion with the mate in
+                    the source gene. Pairs straddling a >= 1 kb insertion with a normal insert add to bp_ref.
   depth_in / depth_flank
                     MAPQ>=20 read starts inside the event and in equal-sized flanking windows (DEL/DUP >= 2 kb),
                     so a deletion shows as depth_in/depth_flank ~0.5 (one copy) or ~0, a duplication as ~1.5.
@@ -24,6 +26,11 @@ import csv, os, re, sys
 
 MIN_MQ, WINDOW, MIN_CLIP, MIN_ANCHOR = 20, 15, 8, 30
 DEPTH_MIN_LEN, FLANK_MAX = 2000, 50000
+# insertions copied from a known gene (retrogenes): read pairs with one read beside the insertion and the mate in the
+# source gene are alt evidence. Parental FGF4 in canFam4: Cosmo's 18 retrogene mates land at chr18:48,869,203-48,873,308.
+SOURCE = {'cat093': ('chr18', 48868700, 48873800), 'cat469': ('chr18', 48868700, 48873800)}
+PAIR_MAX = 1000          # largest insert of a normal pair; also how far from the insertion a pair's anchor read may sit
+SPAN_MIN_INS = 1000      # pairs straddling an insertion this long can only come from the reference allele
 
 def sv_type(alt, status):
     a = (alt or '').lower()
@@ -37,7 +44,7 @@ def sv_type(alt, status):
 def sites():
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
     w = csv.writer(sys.stdout, delimiter='\t', lineterminator='\n')
-    w.writerow(['site_id', 'gene', 'chrom', 'start', 'end', 'type', 'svlen', 'ref', 'alt'])
+    w.writerow(['site_id', 'gene', 'chrom', 'start', 'end', 'type', 'svlen', 'ref', 'alt', 'source'])
     for s in csv.DictReader(open(os.path.join(root, 'known_variants/panel_v3/panel_v3_sites.tsv')), delimiter='\t'):
         if s['kind'] != 'sv' or s['status'] == 'gene_span_only' or not s['pos'].isdigit():
             continue
@@ -52,7 +59,8 @@ def sites():
             end = start + len(s['ref']) - 1
         if t in ('INS', 'DUP') and svlen <= 1:
             svlen = 0   # "gross insertion" / duplication of unrecorded size: breakpoint clips only, no size match
-        w.writerow([s['site_id'], s['gene'], s['chrom'], start, end, t, svlen, s['ref'][:60], s['alt'][:60]])
+        src = '%s:%d-%d' % SOURCE[s['site_id']] if s['site_id'] in SOURCE else ''
+        w.writerow([s['site_id'], s['gene'], s['chrom'], start, end, t, svlen, s['ref'][:60], s['alt'][:60], src])
 
 def mismatches(a, b):
     return sum(x != y for x, y in zip(a, b)) + abs(len(a) - len(b))
@@ -149,7 +157,26 @@ def breakpoint_counts(bam, fa, chrom, bps, t, svlen, start, end):
     # a reference fragment must span a breakpoint without alt evidence anywhere; for two-breakpoint events either
     # breakpoint counts (each spans independently on a reference haplotype)
     ref = set().union(*span_at.values()) - alt
-    return len(alt), len(ref)
+    return alt, ref
+
+def insertion_pairs(bam, chrom, bp, svlen, source):
+    """Read-pair evidence at an insertion. alt: pairs anchored within PAIR_MAX of the insertion, pointing at it,
+    whose mate lies in the source gene. ref: normal-insert pairs straddling the insertion point, for insertions of
+    >= SPAN_MIN_INS (a fragment cannot reach across one on the alt allele)."""
+    alt, ref = set(), set()
+    for r in bam.fetch(chrom, max(0, bp - PAIR_MAX), bp + PAIR_MAX):
+        if (r.is_unmapped or r.mate_is_unmapped or r.mapping_quality < MIN_MQ or r.is_secondary
+                or r.is_supplementary):
+            continue
+        left = r.reference_end is not None and r.reference_end <= bp + 10
+        toward = (left and not r.is_reverse) or (not left and r.is_reverse and r.reference_start >= bp - 10)
+        if source and toward and r.next_reference_name == source[0] and source[1] <= r.next_reference_start <= source[2]:
+            alt.add(r.query_name)
+        elif (svlen >= SPAN_MIN_INS and r.next_reference_name == chrom and not r.is_reverse and r.mate_is_reverse
+              and r.reference_end is not None and r.reference_end < bp - 10 and r.next_reference_start > bp + 10
+              and 0 < r.template_length <= PAIR_MAX):
+            ref.add(r.query_name)
+    return alt, ref - alt
 
 def discordant(bam, chrom, start, end, t, insert_max=1000):
     if t not in ('DEL', 'DUP', 'INV') or end - start < 300:
@@ -190,8 +217,16 @@ def count(sites_tsv, kit, bam_path, fasta=None):
         bps = [start] if t == 'INS' or end - start <= 60 else [start, end]
         t_bp = 'INS' if t == 'DUP' and 2 <= svlen <= 60 else t   # a short tandem dup reads as an insertion
         try:
-            a, r = breakpoint_counts(bam, fa, c, bps, t_bp, svlen, start, end)
-            d = discordant(bam, c, start, end, t)
+            alt, ref = breakpoint_counts(bam, fa, c, bps, t_bp, svlen, start, end)
+            if t == 'INS':   # pair evidence goes in 'disc'; bp_alt keeps the junction-only fragments (no double count)
+                src = s.get('source', '')
+                src = (src.split(':')[0], *map(int, src.split(':')[1].split('-'))) if src else None
+                palt, pref = insertion_pairs(bam, c, start, svlen, src)
+                alt -= palt
+                ref = (ref | pref) - alt - palt
+                a, r, d = len(alt), len(ref), len(palt)
+            else:
+                a, r, d = len(alt), len(ref), discordant(bam, c, start, end, t)
             di, df = depth(bam, c, start, end, t)
         except (ValueError, KeyError):   # contig absent from this BAM
             continue
