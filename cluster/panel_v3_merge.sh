@@ -10,7 +10,8 @@ export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
 PATH="$D/envs/genomics/bin:$PATH"
 O="$D/work_panel_v3"
 ulimit -n 8192 2>/dev/null || true
-ls "$O"/kits/*.reads.bcf > "$O/reads.list"; ls "$O"/kits/*.imp.bcf > "$O/imp.list"
+K="${KITS:-$O/kits}"
+ls "$K"/*.reads.bcf > "$O/reads.list"; ls "$K"/*.imp.bcf > "$O/imp.list"
 bcftools merge -m none --file-list "$O/reads.list" -Ob -o "$O/cohort_reads.bcf" --threads 2
 bcftools index -f "$O/cohort_reads.bcf"
 bcftools merge -m none --file-list "$O/imp.list" -Ob -o "$O/cohort_imputed.bcf" --threads 2

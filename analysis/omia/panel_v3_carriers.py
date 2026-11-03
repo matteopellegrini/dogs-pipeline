@@ -28,11 +28,9 @@ def load_matrix(path):
             sites.append(tuple(p[:4]))
             r, a = [], []
             for ad in p[4:]:
-                v = ad.split(',')
-                if len(v) < 2 or v[0] == '.':
-                    r.append(0); a.append(0)
-                else:
-                    r.append(int(v[0])); a.append(sum(int(x) for x in v[1:] if x != '.'))
+                # AD is "." (kit absent), "7" (hom-ref record, no ALT) or "ref,alt[,alt2]" ("." for unseen alleles)
+                v = [0 if x == '.' else int(x) for x in ad.split(',')]
+                r.append(v[0]); a.append(sum(v[1:]))
             ref_c.append(r); alt_c.append(a)
     return samples, sites, np.array(ref_c, dtype=np.int32), np.array(alt_c, dtype=np.int32)
 
