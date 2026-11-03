@@ -21,6 +21,7 @@ Calls per dog and site: carrier if P(>=1 copy) >= CALL_HI, clear if P(>=1 copy) 
 
   python3 panel_v3_breed_prior.py fit      WORK_DIR   # cohort fit + calls -> WORK_DIR/bp_*.tsv
   python3 panel_v3_breed_prior.py validate WORK_DIR   # Dog10K sites vs GLIMPSE, and read thinning of deep kits
+  python3 panel_v3_breed_prior.py sv       WORK_DIR   # structural variants from sv_counts.tsv (sv_evidence.py)
 
 WORK_DIR holds the step-2a outputs (cohort_reads.tsv.gz, cohort_imputed.tsv.gz, v3_small.norm_ids.tsv,
 kit_inputs.json, panel_v23_breeds.txt, d10k_match.pos).
@@ -41,9 +42,23 @@ K_BG = 100.0               # other breeds: pseudo-alleles around the background 
 # Beta(0.5, B) on the background frequency. B=4000 under-predicted carriers 2-3x on the Dog10K validation sites
 # (P 0.11 -> observed 0.29); B=400 is calibrated (0.11 -> 0.09, 0.32 -> 0.33). Swept 2026-11-03.
 B_HYPER = {'none': 400.0, 'documented': 400.0, 'mixed': 400.0}
+B_HYPER_HOMOPOLYMER = 40000.0
 # CALL_LO 0.002: on Dog10K rare sites 15/268 true carriers fall under it (75 at 0.01); clear-call error 0.017%.
 CALL_HI, CALL_LO = 0.95, 0.002
 EM_ITERS = 100
+X_PAR_END = 6_650_000      # canFam4 chrX pseudoautosomal region; males are hemizygous beyond it
+MT_MIN_DEPTH, MT_HOMOPLASMIC, MT_CLEAR = 20, 0.8, 0.05  # chrM: allele fraction calls, no prior
+# Breed lists for entries with none in the catalogue or OMIA (OMIA 632 lists no breeds)
+MANUAL_BREEDS = {
+    'NHEJ1': 'Collie, Shetland Sheepdog, Border Collie, Australian Shepherd, Nova Scotia Duck Tolling Retriever, '
+             'Lancashire Heeler, Long-Haired Whippet, Boykin Spaniel',  # collie eye anomaly, Parker et al. 2007
+}
+K_EPS = 500.0  # indels: per-site read error estimated by EM, shrunk to EPS[kind] with this many pseudo-reads
+# Held out of calls until their coordinates/alleles are re-curated: cohort frequencies impossible for a disease allele
+HOLD = {
+    'new_ABCB1_442': 'ABCB1 A>C at 38% across breeds: CanFam3 -> canFam4 position or allele under review',
+    'cat159': 'BTBD17 insG at 20-28% across breeds: OMIA-resolved allele under review',
+}
 
 # ── inputs ────────────────────────────────────────────────────────────────────────────────────────────────────
 def site_breeds():
@@ -56,6 +71,26 @@ def site_breeds():
     for f in ('t4_priority_curated.tsv', 't5_curated.tsv'):
         for r in csv.DictReader(open(os.path.join(kv, 'panel_v3', f)), delimiter='\t'):
             curated[(r['gene'], r['pos'])] = r['breeds']
+    # OMIA's dog variant table (download of 2026-11-01): breed lists for entries where ours are empty
+    omia = list(csv.DictReader(open(os.path.join(kv, 'omia_download_2026-11-01/omia_dog_variants.tsv')), delimiter='\t'))
+    omia_by_id = {r['OMIA Variant ID']: r for r in omia}
+    omia_by_gene = collections.defaultdict(list)
+    for r in omia:
+        omia_by_gene[r['Gene']].append(r)
+    resolved = {r['site_id']: r['omia_variant_id'] for r in
+                csv.DictReader(open(os.path.join(kv, 'panel_v3/catalogue_alleles_resolved.tsv')), delimiter='\t')}
+    def omia_type_ok(row, kind):
+        t = row['Variant Type']
+        return ('substitution' in t) if kind == 'snv' else ('(<=20)' in t) if kind == 'indel' else ('gross' in t or '(>20)' in t)
+    def omia_breeds(sid, s):
+        oid = resolved.get(sid) or (sid.split('_')[-1] if not sid.startswith('cat') else '')
+        if oid in omia_by_id:
+            return omia_by_id[oid]['Breed(s)'], f'OMIA variant {oid}'
+        gene = {'FVII': 'F7', 'MOP': 'MPO', 'FGF4 retrogene': 'FGF4', 'IGF1-AS (LOC111090066)': 'IGF1'}.get(s['gene'], s['gene'])
+        rows = [r for r in omia_by_gene.get(gene, []) if omia_type_ok(r, s['kind'])] or omia_by_gene.get(gene, [])
+        if rows:
+            return ' '.join(r['Breed(s)'] for r in rows), 'OMIA gene ' + ','.join(r['OMIA Variant ID'] for r in rows)
+        return '', ''
     out = {}
     for s in csv.DictReader(open(os.path.join(kv, 'panel_v3/panel_v3_sites.tsv')), delimiter='\t'):
         sid = s['site_id']
@@ -63,7 +98,13 @@ def site_breeds():
             b = cat[int(sid[3:])].get('variant_breed') or ''
         else:
             b = by_omia.get(sid.split('_')[-1]) or curated.get((s['gene'], s['pos'])) or ''
-        out[sid] = (s, [x.strip() for x in re.split(r'[;,]\s*', b) if x.strip()])
+        src = 'catalogue' if b.strip() else ''
+        if not b.strip():
+            b, src = omia_breeds(sid, s)
+        if not b.strip() and s['gene'] in MANUAL_BREEDS:
+            b, src = MANUAL_BREEDS[s['gene']], 'manual'
+        s = dict(s, breed_source=src)
+        out[sid] = (s, [x.strip() for x in re.split(r'\(Dog\)|[;,]', b) if x.strip()])
     return out
 
 def homopolymer_len(chrom, pos, ref, alt):
@@ -95,8 +136,26 @@ def load(work):
     ids = {}
     for line in open(os.path.join(work, 'v3_small.norm_ids.tsv')):
         c, p, ref, alt, sid = line.rstrip('\n').split('\t')[:5]
-        ids[(c, p, ref, alt)] = sid
-    sid = [ids.get(s) for s in sites]
+        ids[(c, p, ref.upper(), alt.upper())] = sid  # soft-masked reference gives lowercase alleles (cat083)
+    sid = [ids.get((c, p, ref.upper(), alt.upper())) for c, p, ref, alt in sites]
+    # chrM sites: counts taken without the MAPQ filter (cluster/panel_v3_chrM.sh), the cohort matrix has none
+    mt = os.path.join(work, 'chrM_counts.tsv')
+    if os.path.exists(mt):
+        col = {x: j for j, x in enumerate(samples)}
+        cnt = collections.defaultdict(dict)
+        for line in open(mt):
+            k, c, p, ref, alt, nr, na = line.rstrip('\n').split('\t')
+            cnt[(c, p, ref.upper(), alt.upper())][k] = (int(nr), int(na))
+        for key, per in cnt.items():
+            sid_mt = ids.get(key)
+            if key not in [(c, p, r.upper(), a.upper()) for c, p, r, a in sites]:
+                sites.append(key); sid.append(sid_mt)
+                R = np.vstack([R, np.zeros(len(samples), R.dtype)]); A = np.vstack([A, np.zeros(len(samples), A.dtype)])
+            i = [(c, p, r.upper(), a.upper()) for c, p, r, a in sites].index(key)
+            R[i] = 0; A[i] = 0
+            for k, (nr, na) in per.items():
+                if k in col:
+                    R[i, col[k]], A[i, col[k]] = nr, na
     ki = json.load(open(os.path.join(work, 'kit_inputs.json')))
     names = dict(ki['breed_names'])
     codes = open(os.path.join(work, 'panel_v23_breeds.txt')).read().split()
@@ -117,7 +176,19 @@ def load(work):
         depth[j] = k.get('depth') or np.nan
     tot = W.sum(1, keepdims=True)
     W = np.where(tot > 0, W / np.where(tot > 0, tot, 1), 1.0 / len(codes))  # no breed result -> flat
-    return dict(samples=samples, sites=sites, sid=sid, R=R, A=A, W=W, F=F, depth=depth, codes=codes, names=names)
+    male = np.zeros(len(samples), bool)
+    sx = os.path.join(work, 'kit_sex.tsv')
+    if os.path.exists(sx):
+        sexes = dict(line.rstrip('\n').split('\t')[:2] for line in open(sx) if '\t' in line)
+        male = np.array([sexes.get(x) == 'M' for x in samples])
+    return dict(samples=samples, sites=sites, sid=sid, R=R, A=A, W=W, F=F, depth=depth, codes=codes, names=names,
+                male=male)
+
+def hemizygous(D, chrom, pos):
+    """Rows (dogs) that carry one copy of this site: males beyond the X pseudoautosomal region."""
+    if chrom == 'chrX' and int(pos) > X_PAR_END:
+        return D['male']
+    return np.zeros(len(D['samples']), bool)
 
 # ── model ─────────────────────────────────────────────────────────────────────────────────────────────────────
 def read_lik(r, a, eps):
@@ -126,38 +197,90 @@ def read_lik(r, a, eps):
     ll -= ll.max(1, keepdims=True)
     return np.exp(ll)
 
-def geno_prior(q, F):
+def geno_prior(q, F, hap=None):
+    """Columns: 0, 1, 2 alt copies. Hemizygous rows (hap) use column 2 for their single alt copy."""
     q = np.clip(q, 1e-9, 1 - 1e-9)
-    return np.stack([(1 - q) ** 2 * (1 - F) + (1 - q) * F, 2 * q * (1 - q) * (1 - F), q ** 2 * (1 - F) + q * F], 1)
+    pr = np.stack([(1 - q) ** 2 * (1 - F) + (1 - q) * F, 2 * q * (1 - q) * (1 - F), q ** 2 * (1 - F) + q * F], 1)
+    if hap is not None and hap.any():
+        pr[hap] = np.stack([1 - q[hap], np.zeros(hap.sum()), q[hap]], 1)
+    return pr
 
-def fit_site(r, a, W, F, eps, doc_mask, hyper_b, fit_rows=None):
-    """EM for per-breed allele frequencies. Returns f (n_breeds,), background beta."""
-    m = (r + a) > 0 if fit_rows is None else ((r + a) > 0) & fit_rows
-    r, a, W, F = r[m], a[m], W[m], F[m]
-    lik = read_lik(r, a, eps)
+def fit_site(r, a, W, F, eps, doc_mask, hyper_b, fit_rows=None, hap=None, fit_eps=False, lik_fn=None, informative=None):
+    """EM for per-breed allele frequencies (and, for indels, the site's read error).
+    lik_fn(eps, rows) -> (n_rows x 3) replaces the read likelihood (structural variants: breakpoints x depth);
+    informative marks dogs with any evidence (default: >= 1 read). Returns f (n_breeds,), background beta, eps."""
+    eps0 = eps
+    inf = ((r + a) > 0) if informative is None else informative
+    m = inf if fit_rows is None else inf & fit_rows
+    rows = np.where(m)[0]
+    hap = np.zeros(len(r), bool) if hap is None else hap
+    r, a, W, F, hap = r[m], a[m], W[m], F[m], hap[m]
+    lik_of = (lambda e: lik_fn(e, rows)) if lik_fn is not None else (lambda e: read_lik(r, a, e))
+    lik = lik_of(eps)
+    n_al = np.where(hap, 1.0, 2.0)
     beta = 1e-4
     f = np.where(doc_mask, M_DOC, beta)
     for _ in range(EM_ITERS):
         q = W @ f
-        post = lik * geno_prior(q, F)
+        if fit_eps:
+            lik = lik_of(eps)
+        post = lik * geno_prior(q, F, hap)
         post /= post.sum(1, keepdims=True)
-        e_alt = post[:, 1] + 2 * post[:, 2]
+        e_alt = np.where(hap, post[:, 2], post[:, 1] + 2 * post[:, 2])
         qc = np.clip(q, 1e-12, 1 - 1e-12)
         alt_b = (e_alt / qc) @ W * f
-        ref_b = ((2 - e_alt) / (1 - qc)) @ W * (1 - f)
+        ref_b = ((n_al - e_alt) / (1 - qc)) @ W * (1 - f)
         bg = ~doc_mask
         beta = (alt_b[bg].sum() + 0.5) / (alt_b[bg].sum() + ref_b[bg].sum() + 0.5 + hyper_b)
         prior_mean = np.where(doc_mask, M_DOC, beta)
         k = np.where(doc_mask, K_DOC, K_BG)
         f_new = (alt_b + k * prior_mean) / (alt_b + ref_b + k)
+        if fit_eps:  # reads disagreeing with a homozygous genotype are errors
+            err = (post[:, 0] * a).sum() + (post[:, 2] * r).sum()
+            tot = ((post[:, 0] + post[:, 2]) * (r + a)).sum()
+            eps = float(np.clip((err + K_EPS * eps0) / (tot + K_EPS), 1e-4, 0.2))
         if np.max(np.abs(f_new - f)) < 1e-7:
             f = f_new; break
         f = f_new
-    return f, beta
+    return f, beta, eps
 
-def posterior(r, a, W, F, eps, f):
-    post = read_lik(r, a, eps) * geno_prior(W @ f, F)
+def posterior(r, a, W, F, eps, f, hap=None):
+    post = read_lik(r, a, eps) * geno_prior(W @ f, F, hap)
     return post / post.sum(1, keepdims=True)
+
+def mt_posterior(r, a):
+    """chrM: one (heteroplasmic) genome per dog. Column 2 = homoplasmic alt, column 1 = heteroplasmic."""
+    n = r + a
+    frac = np.where(n > 0, a / np.maximum(n, 1), 0.0)
+    post = np.zeros((len(r), 3))
+    deep = n >= MT_MIN_DEPTH
+    post[deep & (frac >= MT_HOMOPLASMIC), 2] = 1
+    post[deep & (frac <= MT_CLEAR), 0] = 1
+    het = deep & (frac > MT_CLEAR) & (frac < MT_HOMOPLASMIC)
+    post[het, 1] = 1
+    post[~deep] = [0.5, 0.25, 0.25]  # too few reads: uncertain
+    return post
+
+def imputed_gp(work, samples):
+    """(chrom,pos,ref,alt) -> (n_kits x 3 GLIMPSE genotype probabilities, has-GP mask)."""
+    path = os.path.join(work, 'cohort_imputed.tsv.gz')
+    out = {}
+    if not os.path.exists(path):
+        return out
+    with gzip.open(path, 'rt') as f:
+        col = {x: i for i, x in enumerate(f.readline().rstrip('\n').split('\t'))}
+        for line in f:
+            p = line.rstrip('\n').split('\t')
+            gp = np.zeros((len(samples), 3)); ok = np.zeros(len(samples), bool)
+            for j, x in enumerate(samples):
+                v = p[col[x]] if x in col else '.'
+                if ':' not in v: continue
+                try:
+                    gp[j] = [float(y) for y in v.split(':')[1].split(',')][:3]; ok[j] = True
+                except ValueError:
+                    pass
+            out[(p[0], p[1], p[2].upper(), p[3].upper())] = (gp, ok)
+    return out
 
 def site_setup(D, bm, sb):
     """Per row: (eps, doc_mask, hyper key, documented codes, variant kind)."""
@@ -181,10 +304,92 @@ def site_setup(D, bm, sb):
         out.append(dict(eps=eps, mask=mask, hyper=hyper, doc=sorted(doc), kind=kind))
     return out
 
-def call_of(p):
+def hyper_b(s):
+    # homopolymer indels: sporadic alt reads outside the documented breeds are slippage, not a background allele
+    # (with B=400 the EM put AP3B1 cyclic neutropenia at 0.5% in every breed and left 96% of dogs uncertain)
+    return B_HYPER_HOMOPOLYMER if s['kind'] == 'homopolymer' else B_HYPER[s['hyper']]
+
+def call_of(p, hap=None):
     pc = p[:, 1] + p[:, 2]
-    return np.where(pc >= CALL_HI, np.where(p[:, 2] >= 0.9, 'two_copies', 'carrier'),
-                    np.where(pc <= CALL_LO, 'clear', 'uncertain'))
+    hi = np.where(p[:, 2] >= 0.9, 'two_copies', 'carrier')
+    if hap is not None:
+        hi = np.where(hap, 'hemizygous', hi)  # a male's single X copy carries it: affected for X-linked recessive
+    return np.where(pc >= CALL_HI, hi, np.where(pc <= CALL_LO, 'clear', 'uncertain'))
+
+# ── structural variants ───────────────────────────────────────────────────────────────────────────────────────
+EPS_SV, K_EPS_SV = 0.01, 200.0   # breakpoint fragments: clip noise in non-carriers, shrunk to EPS_SV
+DEPTH_TAU = 0.10                 # extra sd of the depth ratio beyond Poisson (GC, mappability)
+
+def sv_lik_factory(ka, kr, din, dfl, length, svtype, flank_len):
+    """Per-dog likelihood over 0/1/2 copies of the SV allele from breakpoint fragments and, for long DEL/DUP,
+    the depth ratio inside/flanks normalised to the cohort's reference-like dogs."""
+    use_depth = (svtype in ('DEL', 'DUP')) & np.isfinite(din) & np.isfinite(dfl) & (dfl > 0)
+    mu = np.where(use_depth, dfl * length / np.maximum(flank_len, 1), np.nan)
+    ratio = np.where(use_depth, din / np.where(mu > 0, mu, 1), np.nan)
+    norm = np.nanmedian(ratio[(ka == 0) & use_depth]) if np.any((ka == 0) & use_depth) else np.nan
+    if np.isfinite(norm) and norm > 0:
+        ratio = ratio / norm
+    copies = np.array([1.0, 0.5, 0.01]) if svtype == 'DEL' else np.array([1.0, 1.5, 2.0])
+    def lik(eps, rows):
+        L = read_lik(kr[rows], ka[rows], eps)
+        if use_depth[rows].any():
+            rr, mm = ratio[rows], mu[rows]
+            sd = np.sqrt(1 / np.maximum(np.nan_to_num(mm, nan=1.0), 1.0) + DEPTH_TAU ** 2)
+            ld = np.exp(-0.5 * ((rr[:, None] - copies[None, :]) / sd[:, None]) ** 2)
+            ld = np.where(np.isfinite(rr)[:, None], ld / np.maximum(ld.max(1, keepdims=True), 1e-300), 1.0)
+            L = L * ld
+        return L / np.maximum(L.max(1, keepdims=True), 1e-300)
+    return lik, use_depth, ratio
+
+def cmd_sv(work):
+    D = load(work)
+    sb = site_breeds(); bm = BreedMatcher(D['names'])
+    col = {x: j for j, x in enumerate(D['samples'])}
+    n = len(D['samples'])
+    svs = list(csv.DictReader(open(os.path.join(work, 'sv_sites.tsv')), delimiter='\t'))
+    ev = collections.defaultdict(lambda: np.full((n, 5), np.nan))
+    for line in open(os.path.join(work, 'sv_counts.tsv')):
+        p = line.rstrip('\n').split('\t')
+        if len(p) < 8 or p[0] not in col: continue
+        ev[p[1]][col[p[0]]] = [float(x) if x != '' else np.nan for x in p[2:7]]
+    cidx = {c: i for i, c in enumerate(D['codes'])}
+    p_all = np.zeros((len(svs), n), np.float32); calls_all = np.empty((len(svs), n), dtype='U11')
+    with open(os.path.join(work, 'bp_sv_sites.tsv'), 'w') as fo:
+        fo.write('site_id\tgene\tcondition\treport_class\ttype\tlength\tdocumented_breeds\tbackground_af\tbreakpoint_error\t'
+                 'depth_used\ttop_breed_af\tkits_with_evidence\tcarrier\ttwo_copies\themizygous\tuncertain\tclear\n')
+        for i, sv in enumerate(svs):
+            sid, c, t = sv['site_id'], sv['chrom'], sv['type']
+            e = ev[sid]
+            ka = np.nan_to_num(e[:, 0]) + np.nan_to_num(e[:, 2]); kr = np.nan_to_num(e[:, 1])
+            length = int(sv['end']) - int(sv['start'])
+            lik_fn, use_depth, ratio = sv_lik_factory(ka, kr, e[:, 3], e[:, 4], length, t,
+                                                      2 * min(length, 50000))
+            meta, names = sb.get(sid, ({}, []))
+            doc, mixed = set(), False
+            for nm in names:
+                hit = bm.match(nm); mixed |= MIXED in hit; doc |= {h for h in hit if h != MIXED}
+            mask = np.zeros(len(D['codes']), bool)
+            for h in doc:
+                if h in cidx: mask[cidx[h]] = True
+            hap = hemizygous(D, c, sv['start'])
+            informative = ((ka + kr) > 0) | use_depth
+            f, beta, eps = fit_site(kr, ka, D['W'], D['F'], EPS_SV, mask,
+                                    B_HYPER['mixed' if mixed else ('documented' if doc else 'none')],
+                                    hap=hap, fit_eps=True, lik_fn=lik_fn, informative=informative)
+            prior = geno_prior(D['W'] @ f, D['F'], hap)
+            post = lik_fn(eps, np.arange(n)) * prior
+            post /= post.sum(1, keepdims=True)
+            p_all[i] = post[:, 1] + post[:, 2]
+            cl = call_of(post, hap); calls_all[i] = cl
+            cnt = collections.Counter(cl); top = np.argsort(-f)[:3]
+            fo.write('\t'.join(map(str, [sid, sv['gene'], meta.get('condition', ''), meta.get('report_class', ''), t, length,
+                     ','.join(sorted(doc)), f'{beta:.2e}', f'{eps:.4f}', int(use_depth.sum()),
+                     '; '.join(f"{D['names'].get(D['codes'][j], D['codes'][j])} {f[j]:.3f}" for j in top),
+                     int(informative.sum()), cnt['carrier'], cnt['two_copies'], cnt['hemizygous'], cnt['uncertain'],
+                     cnt['clear']])) + '\n')
+    np.savez_compressed(os.path.join(work, 'bp_sv.npz'), p=p_all, call=calls_all, samples=np.array(D['samples']),
+                        sid=np.array([s['site_id'] for s in svs]))
+    print(f'sv: {len(svs)} sites x {n} kits -> {work}/bp_sv_sites.tsv, bp_sv.npz')
 
 # ── commands ──────────────────────────────────────────────────────────────────────────────────────────────────
 def cmd_fit(work):
@@ -193,26 +398,42 @@ def cmd_fit(work):
     bm = BreedMatcher(D['names'])
     setup = site_setup(D, bm, sb)
     n = len(D['samples'])
+    gps = imputed_gp(work, D['samples'])
     pc_all = np.zeros((len(D['sites']), n), np.float32)
+    calls_all = np.empty((len(D['sites']), n), dtype='U11')
     with open(os.path.join(work, 'bp_sites.tsv'), 'w') as fo:
-        fo.write('site_id\tchrom\tpos\tref\talt\tgene\tcondition\treport_class\tkind\tdocumented_breeds\tprior\t'
-                 'background_af\ttop_breed_af\tkits_with_reads\tcarrier\ttwo_copies\tuncertain\tclear\n')
+        fo.write('site_id\tchrom\tpos\tref\talt\tgene\tcondition\treport_class\tkind\tsource\tdocumented_breeds\t'
+                 'prior\tbackground_af\tread_error\ttop_breed_af\tkits_with_reads\tcarrier\ttwo_copies\themizygous\tuncertain\tclear\t'
+                 'held\n')
         for i, ((c, p, ref, alt), sid) in enumerate(zip(D['sites'], D['sid'])):
             s = setup[i]
             r, a = D['R'][i], D['A'][i]
-            f, beta = fit_site(r, a, D['W'], D['F'], s['eps'], s['mask'], B_HYPER[s['hyper']])
-            post = posterior(r, a, D['W'], D['F'], s['eps'], f)
+            hap = hemizygous(D, c, p)
+            f, beta, eps = fit_site(r, a, D['W'], D['F'], s['eps'], s['mask'], hyper_b(s), hap=hap,
+                                    fit_eps=s['kind'] != 'snv')
+            if c == 'chrM':
+                post, source = mt_posterior(r, a), 'chrM allele fraction'
+            else:
+                post, source = posterior(r, a, D['W'], D['F'], eps, f, hap), 'reads + breed prior'
+                g = gps.get((c, p, ref.upper(), alt.upper()))
+                if g is not None and g[1].any():  # in the Dog10K panel: GLIMPSE posterior wherever the kit has one
+                    post[g[1]] = g[0][g[1]]; source = 'GLIMPSE (Dog10K)'
             pc_all[i] = post[:, 1] + post[:, 2]
-            calls = collections.Counter(call_of(post))
+            cl = call_of(post, hap)
+            if sid in HOLD:
+                cl[:] = 'held'
+            calls_all[i] = cl
+            calls = collections.Counter(cl)
             top = np.argsort(-f)[:3]
             meta = sb.get(sid, ({}, []))[0] if sid else {}
             fo.write('\t'.join(map(str, [sid or '', c, p, ref, alt, meta.get('gene', ''), meta.get('condition', ''),
-                     meta.get('report_class', ''), s['kind'], ','.join(s['doc']), s['hyper'], f'{beta:.2e}',
+                     meta.get('report_class', ''), s['kind'], source, ','.join(s['doc']), s['hyper'], f'{beta:.2e}', f'{eps:.4f}',
                      '; '.join(f"{D['names'].get(D['codes'][t], D['codes'][t])} {f[t]:.3f}" for t in top),
-                     int(((r + a) > 0).sum()), calls['carrier'], calls['two_copies'], calls['uncertain'],
-                     calls['clear']])) + '\n')
-    np.savez_compressed(os.path.join(work, 'bp_p_carrier.npz'), p=pc_all, samples=np.array(D['samples']),
-                        sid=np.array([x or '' for x in D['sid']]))
+                     int(((r + a) > 0).sum()), calls['carrier'], calls['two_copies'], calls['hemizygous'],
+                     calls['uncertain'], calls['clear'], calls['held']])) + '\n')
+    np.savez_compressed(os.path.join(work, 'bp_p_carrier.npz'), p=pc_all, call=calls_all,
+                        samples=np.array(D['samples']), sid=np.array([x or '' for x in D['sid']]),
+                        reads=(D['R'] + D['A']).astype(np.int32))
     print(f"fit {len(D['sites'])} sites x {n} kits -> {work}/bp_sites.tsv, bp_p_carrier.npz")
 
 def gp_truth(work, samples):
@@ -251,8 +472,8 @@ def cmd_validate(work):
         s = setup[i]
         r, a = D['R'][i], D['A'][i]
         # A. Dog10K sites vs GLIMPSE: fit on everybody's reads (as in production), score dogs with a confident GLIMPSE call
-        f, _ = fit_site(r, a, D['W'], D['F'], s['eps'], s['mask'], B_HYPER[s['hyper']])
-        post = posterior(r, a, D['W'], D['F'], s['eps'], f)
+        f, _, eps = fit_site(r, a, D['W'], D['F'], s['eps'], s['mask'], hyper_b(s), fit_eps=s['kind'] != 'snv')
+        post = posterior(r, a, D['W'], D['F'], eps, f)
         calls = call_of(post); ok = t >= 0
         rare = (t[ok] > 0).mean() < 0.02  # carrier frequency like a founder mutation
         for c, g in zip(calls[ok], t[ok]):
@@ -261,10 +482,11 @@ def cmd_validate(work):
                 rep['glimpse_rare_sites'][(c, 'truth_carrier' if g > 0 else 'truth_clear')] += 1
         cal += list(zip(post[ok, 1] + post[ok, 2], t[ok] > 0))
         # B. deep kits thinned to ~1x; frequencies refitted without them so they cannot inform their own prior
-        f2, _ = fit_site(r, a, D['W'], D['F'], s['eps'], s['mask'], B_HYPER[s['hyper']], fit_rows=~deep)
+        f2, _, eps2 = fit_site(r, a, D['W'], D['F'], s['eps'], s['mask'], hyper_b(s), fit_rows=~deep,
+                               fit_eps=s['kind'] != 'snv')
         keep = 1.0 / np.maximum(np.nan_to_num(D['depth'], nan=1.0), 1.0)
         rt = rng.binomial(r, keep); at = rng.binomial(a, keep)
-        pt = posterior(rt, at, D['W'], D['F'], s['eps'], f2)
+        pt = posterior(rt, at, D['W'], D['F'], eps2, f2)
         ct = call_of(pt); okd = deep & ok
         for c, g in zip(ct[okd], t[okd]):
             rep['thinned_deep'][(c, 'truth_carrier' if g > 0 else 'truth_clear')] += 1
@@ -293,4 +515,4 @@ def cmd_validate(work):
 
 if __name__ == '__main__':
     cmd, work = sys.argv[1], sys.argv[2]
-    {'fit': cmd_fit, 'validate': cmd_validate}[cmd](work)
+    {'fit': cmd_fit, 'validate': cmd_validate, 'sv': cmd_sv}[cmd](work)
