@@ -6,6 +6,9 @@
 # panel (v2.1, 2026-10-29: qsub -v PANEL=breed_panel_v21,TAG=v21 ...).
 #
 #   qsub -t 1-1872 -tc 50 cluster/rerun-9-panel-v2.sh cluster/repass9b_list.txt
+# Slurm (v2.3, 2026-11-02):
+#   sbatch -A pi_matteop -p campus -a 1-1872%50 -c 2 --mem=16G -t 2:00:00 -J rerun9 \
+#          --export=ALL,PANEL=breed_panel_v23,TAG=v23 cluster/rerun-9-panel-v2.sh cluster/repass9b_list.txt
 #
 # Rows: name, barcode, pub dir, work dir (same list as the LAI backfill).
 # Nothing is uploaded here; republish from a login node afterwards.
@@ -14,7 +17,9 @@
 #$ -o logs/$JOB_NAME.$JOB_ID.$TASK_ID.log
 #$ -l h_data=8G,h_rt=2:00:00
 #$ -pe shared 2
+#SBATCH -o logs/%x.%A.%a.log
 set -uo pipefail
+if [ -n "${SLURM_JOB_ID:-}" ]; then SGE_TASK_ID=$SLURM_ARRAY_TASK_ID; SGE_O_WORKDIR=$SLURM_SUBMIT_DIR; fi
 export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 PYTHONIOENCODING=utf-8
 D="${SGE_O_WORKDIR:?run via qsub from the repo root}"
 LIST="${1:?usage: qsub -t 1-N cluster/rerun-9-panel-v2.sh <list>}"
