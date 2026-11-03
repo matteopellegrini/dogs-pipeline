@@ -11,7 +11,10 @@ Per site, with a per-read error rate EPS:
   * kits with alt reads, total alt reads, expected carriers (sum of posteriors), carrier breeds.
 A site whose expected carrier count is ~0 cannot be imputed from the cohort; it stays read-only.
 
-  python3 panel_v3_carriers.py cohort_reads.tsv.gz manifest.tsv sites.tsv OUT_PREFIX
+  python3 panel_v3_carriers.py cohort_reads.tsv.gz manifest.tsv sites.tsv OUT_PREFIX [norm_ids.tsv]
+
+norm_ids.tsv (CHROM POS REF ALT ID of the left-normalised site VCF) joins rows back to site_id: the sites
+table keeps the catalogue's original coordinates, which differ for indels that normalisation shifted.
 """
 import gzip, json, os, sys, collections
 import numpy as np
@@ -62,7 +65,7 @@ def top_breed(pub):
     except Exception:
         return 'unknown'
 
-def main(matrix, manifest, sites_tsv, out):
+def main(matrix, manifest, sites_tsv, out, norm_ids=None):
     samples, sites, R, A = load_matrix(matrix)
     pubs = {}
     for line in open(manifest):
@@ -76,26 +79,32 @@ def main(matrix, manifest, sites_tsv, out):
         if p[0] == 'site_id':
             cols = p; continue
         row = dict(zip(cols, p))
-        meta[(row['chrom'], row['pos'])] = row
+        meta[row['site_id']] = row
+        meta.setdefault((row['chrom'], row['pos']), row)
+    if norm_ids:
+        for line in open(norm_ids):
+            c, pos, ref, alt, sid = line.rstrip('\n').split('\t')[:5]
+            if sid in meta:
+                meta[(c, pos, ref, alt)] = meta[sid]
     with open(out + '.sites.tsv', 'w') as fo, open(out + '.carriers.tsv', 'w') as fc:
-        fo.write('chrom\tpos\tref\talt\tgene\tcondition\treport_class\tkits_covered\tkits_alt_reads\talt_reads'
+        fo.write('site_id\tchrom\tpos\tref\talt\tgene\tcondition\treport_class\tkits_covered\tkits_alt_reads\talt_reads'
                  '\ttotal_reads\tcohort_af\texpected_carriers\tconfident_carriers\tcarrier_breeds\n')
-        fc.write('chrom\tpos\tgene\tkit\tbreed\tref_reads\talt_reads\tp_carrier\n')
+        fc.write('site_id\tchrom\tpos\tgene\tkit\tbreed\tref_reads\talt_reads\tp_carrier\n')
         for i, (c, pos, ref, alt) in enumerate(sites):
             r, a = R[i], A[i]
             q, post = em_af(genotype_lik(r, a))
             pc = post[:, 1] + post[:, 2]
-            m = meta.get((c, pos), {})
+            m = meta.get((c, pos, ref, alt)) or meta.get((c, pos), {})
             idx = np.where((a > 0) | (pc > 0.5))[0]
             bc = collections.Counter(breeds[j].rsplit(' ', 1)[0] for j in idx if pc[j] > 0.5)
-            fo.write('\t'.join(map(str, [c, pos, ref, alt, m.get('gene', ''), m.get('condition', ''),
+            fo.write('\t'.join(map(str, [m.get('site_id', ''), c, pos, ref, alt, m.get('gene', ''), m.get('condition', ''),
                      m.get('report_class', ''), int(((r + a) > 0).sum()), int((a > 0).sum()), int(a.sum()),
                      int((r + a).sum()), f'{q:.5f}', f'{pc.sum():.1f}', int((pc > 0.9).sum()),
                      '; '.join(f'{k} x{v}' for k, v in bc.most_common(6))])) + '\n')
             for j in idx:
-                fc.write('\t'.join(map(str, [c, pos, m.get('gene', ''), samples[j], breeds[j],
+                fc.write('\t'.join(map(str, [m.get('site_id', ''), c, pos, m.get('gene', ''), samples[j], breeds[j],
                          int(r[j]), int(a[j]), f'{pc[j]:.3f}'])) + '\n')
     print(f'{len(sites)} sites x {len(samples)} kits -> {out}.sites.tsv, {out}.carriers.tsv')
 
 if __name__ == '__main__':
-    main(*sys.argv[1:5])
+    main(*sys.argv[1:6])
