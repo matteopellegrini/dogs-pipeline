@@ -1,0 +1,64 @@
+gene	name	mode	category	description
+TNNI3	Hypertrophic cardiomyopathy (TNNI3)	AR		A heart-muscle disease in which the wall of the left ventricle thickens abnormally; in the Golden Retriever family where it was found, affected puppies died suddenly before two years of age. Recessive.
+ITPR3	Charcot-Marie-Tooth disease 1J with amelogenesis imperfecta	AR		A combination of poorly formed, easily worn tooth enamel and slowed nerve conduction (a mild peripheral neuropathy), described in Lancashire Heelers. Recessive.
+GTPBP2	Progressive retinal atrophy (GTPBP2)	AR		A form of progressive retinal atrophy, in which the light-sensing cells of the retina degenerate and vision is gradually lost; found in a Labrador Retriever family. Recessive.
+TG	Hypothyroidism and dwarfism	AR		Thyroglobulin deficiency: the thyroid cannot make normal hormone, causing dwarfism, limb deformities, thick skin and slow development in puppies. Described in Rottweilers. Recessive.
+PDGFRA	Bifid nose	AR	trait	The split (double) nose that is a hallmark of the Turkish Çatalburun breed; a physical trait, not a disease.
+GJC2	Hypomyelinating leukodystrophy (GJC2)	AR		A disorder of the brain's nerve insulation (myelin) causing head and body tremors from birth; described in Toy Poodles. Recessive.
+HIVEP3	Progressive retinal atrophy, Miniature Schnauzer, type 1	AR		A form of progressive retinal atrophy in Miniature Schnauzers: the retina gradually degenerates, with night blindness first and later loss of day vision. Recessive.
+RNF170	Neuroaxonal dystrophy (RNF170)	AR		A slowly progressive degeneration of nerve fibres causing hind-limb weakness and an unsteady gait in young adult dogs; described in Miniature American Shepherds. Recessive.
+MECR	Polioencephalopathy	AR		An inherited metabolic brain disease causing early-onset movement disorders (unsteady gait, abnormal limb movements) in young Eurasier dogs. Recessive.
+EMC1	Cerebellar cortical degeneration, granuloprival	AD		Degeneration of the cerebellum (the brain's coordination centre) causing a progressive wobbly gait and head tremors in puppies. Reported in a single mixed-breed dog with one copy of a new (de novo) variant.
+MAN2B1	Mannosidosis, alpha	AR		A lysosomal storage disease: a missing sugar-processing enzyme lets waste build up in cells, causing progressive neurological decline in young dogs. Reported in a Doberman Pinscher. Recessive.
+NDUFS7	Leigh syndrome	AR		A mitochondrial energy disorder of the brain causing progressive unsteadiness and abnormal muscle tone in puppies; found in a Jack Russell Terrier x Chihuahua litter. Recessive.
+MTMR2	Hypomyelinating polyneuropathy (MTMR2)	AR		A congenital disorder of the insulation around peripheral nerves, causing weakness from a young age; described in Golden Retrievers. Recessive.
+RBCK1	Glycogen storage disease myopathy	AR		Abnormal glycogen (sugar store) builds up in heart and other muscles; described in young adult Basset Hounds. Recessive.
+GJB6	Paw pad hyperkeratosis (GJB6)	AD		Thickened, hard paw pads on all feet. Reported in a single Labrador Retriever with one copy of a new (de novo) variant.
+LOC477558	GST-theta enzyme deficiency (drug metabolism)	AR		Low activity of a liver detoxifying enzyme (GSTT5). Not a disease, but dogs with two copies may process some drugs and chemicals differently; common in Beagles and Pembroke Welsh Corgis. Recessive.
+ABCC9	Dilated cardiomyopathy and sudden death (ABCC9)	AR		An inherited heart-muscle disease in which puppies can die suddenly; found in Manchester Terriers. Recessive with complete penetrance: dogs with two copies are affected.
+RESF1	Addison's disease and multiple autoimmune syndrome	AR		Juvenile-onset Addison's disease (adrenal gland failure), often with other autoimmune problems, in Nova Scotia Duck Tolling Retrievers. Recessive; about three in four dogs with two copies develop early-onset disease.
+RB1CC1	Degenerative encephalopathy	AR		A slowly progressive brain disease of Nova Scotia Duck Tolling Retrievers, with violent movements during sleep, anxiety, noise sensitivity and later cognitive and gait problems. Recessive.
+GATM	Myopathy, creatine deficiency (GATM)	AR		A muscle disease caused by a lack of creatine, with muscle wasting, exercise intolerance and an enlarged oesophagus; in the reported family, signs improved with creatine supplements. Recessive.
+CYP1A2	Slow drug metabolism (CYP1A2)	AR		Dogs with two copies lack a working CYP1A2 liver enzyme and clear certain drugs slowly. Not a disease, but worth sharing with your vet; first found in Beagles. Recessive.
+CASR	Familial hypocalciuric hypercalcemia (CASR)	AR		Persistently high blood calcium with low calcium in the urine, caused by a faulty calcium-sensing receptor; reported in a Border Collie cross. Knowing about it can spare a dog unnecessary parathyroid surgery. Recessive.
+F13A1	Factor XIII deficiency	AR		A rare bleeding disorder in which blood clots are unstable, causing spontaneous or prolonged bleeding; reported in a Black and Tan Coonhound. Recessive.
+DSP	Ichthyosis, syndromic (DSP)	AD		Generalised scaly, thickened skin with paw pad, hair and tooth abnormalities. Reported in a single Miniature Poodle with one copy of a new (de novo) variant.
+ALOXE3	Ichthyosis, ALOXE3-related	AR		An inherited skin disorder with generalised scaling from puppyhood; reported in a Chihuahua. Recessive.
+AGRN	Congenital myasthenic syndrome (AGRN)	AR		A disorder of the nerve-muscle junction behind 'dancing Doberman' and 'duck walking' gaits: hind-limb weakness, muscle wasting and fatigue in Doberman Pinschers. Recessive.
+CARMIL2	Immunodeficiency, CARMIL2-related	AR		An inherited immune deficiency causing pneumonia (including Pneumocystis), gut and skin disease; found in Cavalier King Charles Spaniels. Recessive.
+AMPD2	Cirneco oculo-neurological syndrome	AR		Retinal degeneration together with tremors and episodes resembling seizures; described in Cirneco dell'Etna dogs. Recessive.
+PCK2	Paroxysmal exercise-induced dyskinesia	AD		Episodes of muscle stiffness and abnormal movement triggered by exercise or stress, in Shetland Sheepdogs. Dominant: one copy can cause it.
+PCYT2	PCYT2 deficiency	AR		A disorder of cell-membrane fat production causing progressive retinal, brain and nerve degeneration; described in Saarloos Wolfdogs. Recessive.
+CNP	Lysosomal storage disease, CNP-related	SD		A slowly progressive neurological disease of adult Weimaraners, with incoordination, weakness and cognitive decline.
+CARD9	Mycobacterium avium susceptibility (CARD9)	AR		An immune deficiency that leaves dogs vulnerable to systemic infection with Mycobacterium avium, a germ that rarely harms other dogs; found in Miniature Schnauzers. Recessive.
+SETX	Ataxia, SETX-related	AR		A slowly progressive stiff, high-stepping gait in an adult Jack Russell Terrier. Recessive.
+SUV39H1	Phloiokeratosis	XD		Patches of thick, tree-bark-like skin. X-linked: one copy can cause it in females (often in streaks along the body) and males with the variant are affected.
+CACNA1F	Progressive retinal atrophy, X-linked (CACNA1F)	XR		An X-linked form of progressive retinal atrophy in English Cocker Spaniels: affected males lose vision from about 3-4 years of age; females with one copy are carriers.
+SACS	Spastic ataxia (SACS)	AR		A progressive degeneration of the brain, spinal cord and nerves causing incoordination and stiffness from a few months of age; described in Great Pyrenees. Recessive.
+FOXI3	Hairlessness (canine ectodermal dysplasia)	AD	trait	The variant that makes Chinese Crested, Peruvian Hairless and Xoloitzcuintli dogs hairless, often with missing teeth. One copy gives the hairless type; two copies are thought to be lethal before birth, so hairless dogs carry one copy.
+SOD1	Juvenile paroxysmal dyskinesia (SOD1)	AR		A severe neurological disease of puppies (weakness, cramping and falling) found in the Markiesje (Dutch Tulip Hound). Different from degenerative myelopathy, which involves another SOD1 variant. Recessive.
+ANTXR1	GAPO syndrome	AR		Growth retardation, hair loss, unerupted teeth and eye abnormalities, including glaucoma; described in Segugio Italiano dogs. Recessive.
+CLPX	Anemia with spinocerebellar ataxia	AR		Progressive incoordination with retinal degeneration and severe anemia; reported in a single mixed-breed dog. Recessive.
+RSPO2	Bilateral anterior amelia	AR		Puppies born without front legs; described in Chihuahuas. Recessive. The screen reads the three linked variants reported for it.
+SIRT6	Primary hyperparathyroidism (Keeshond)	AD		Overactive parathyroid glands raising blood calcium, usually in older Keeshonden (over 8 years); treatable once found. Dominant with high age-related penetrance: one copy raises the risk.
+IGFBP5	Bald thigh syndrome (risk)	complex		Hair loss on the thighs of sighthounds such as Greyhounds and Whippets. The variant is a risk factor found in nearly all Greyhounds; cosmetic, not painful.
+KIRREL2	Protein-losing nephropathy (KIRREL2 component, with NPHS1)	complex		A kidney disease in which protein leaks into the urine, mostly in adult Soft-Coated Wheaten Terriers. This variant is one of two linked risk markers (with NPHS1); risk is highest with two copies of both.
+CRHR1	Pituitary-dependent Cushing's disease risk (CRHR1)	complex		A risk marker for pituitary-dependent hyperadrenocorticism (Cushing's disease: excess cortisol causing thirst, appetite and coat changes), found in Poodles. Raises risk; not a diagnosis.
+TNXB	Ehlers-Danlos syndrome (TNXB)	AR		A connective-tissue disorder with fragile, overly stretchy skin that tears easily; found in Chihuahuas and Poodles. Recessive.
+OLFML3	Goniodysgenesis and glaucoma (OLFML3)	AR		Malformed drainage angle of the eye (pectinate ligament dysplasia) that can lead to painful, sight-threatening glaucoma; found in Border Collies. Recessive.
+BLVRA	Biliverdinuria	AR		Life-long green urine caused by a missing bile-pigment enzyme; reported in mixed-breed dogs. Usually harmless on its own. Recessive.
+DNAJC21	Congenital microphthalmos with hematopoietic defects	AR		Small eyes from birth together with stunted growth, enamel defects, anemia and low platelets; found in Portuguese Water Dogs. Recessive.
+EFNB3	Congenital mirror movement disorder 1	AR		Puppies move their legs in synchrony (a hopping, 'bunny hop' gait) instead of alternating; described in Weimaraners. Recessive.
+FAS	Autoimmune lymphoproliferative syndrome	AR		Defective removal of immune cells, causing enlarged lymph nodes and spleen and low blood-cell counts in young Boerboels. Recessive.
+FBN1	Marfan syndrome	AD		A connective-tissue disorder (fibrillin) affecting the heart, joints and lungs; reported in a single Golden Retriever puppy carrying one copy of a deletion.
+MFSD8	Neuronal ceroid lipofuscinosis 7 (NCL7)	AR		A fatal lysosomal storage disease causing progressive loss of vision, coordination and cognition, starting around one year of age. Recessive.
+PNPLA1	Ichthyosis (Golden Retriever type)	AR		A scaly-skin disorder: dogs develop flaky, dark scales, usually mild and lifelong. Common in Golden Retrievers; another variant in the same gene occurs in Labradors. Recessive.
+RS1	X-linked retinoschisis (RS1)	XR		A candidate cause of splitting of the retinal layers that can impair vision, found in a Pomeranian. X-linked: affected males; females with one copy are carriers.
+SERPINE1	Hyperfibrinolysis (SERPINE1)	AR		Blood clots dissolve too quickly, causing spontaneous or post-surgical bleeding; found in English and Welsh Springer Spaniels. Tell your vet before any surgery. Recessive.
+SPAG1	Primary ciliary dyskinesia (SPAG1)	AR		The tiny hairs (cilia) that clear the airways do not beat properly, causing chronic cough, nasal discharge and pneumonia from puppyhood; found in Cocker Spaniels. Recessive.
+TTPA	Retinopathy with vitamin E deficiency	AR		Low vitamin E causes retinal degeneration and sometimes unsteadiness in English Cocker Spaniels; early vitamin E supplementation may help. Recessive.
+ATP7A	Menkes-like disease	XR		A disorder of copper transport; reported in a Cavalier King Charles Spaniel with kidney (Fanconi) problems, poor growth and incoordination. X-linked: males with one copy are affected.
+SPATA7	Cone-rod dystrophy (SPATA7)	AR		Early loss of day vision (cone-rod dystrophy) in Standard Poodles. Recessive.
+LAMA3	Junctional epidermolysis bullosa (LAMA3)	AR		A severe skin-fragility disease: the skin and mouth lining blister and erode at the slightest friction. Recessive.
+SLC45A2	Oculocutaneous albinism	AR		Very pale coat, skin and eyes with light sensitivity ('white Doberman' and similar), caused by a pigment transporter defect. Recessive.
+RAB24	Ataxia, cerebellar, RAB24-related			

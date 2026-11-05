@@ -10,6 +10,9 @@ entry by entry), new_* are the panel v3 additions. A new site enters the catalog
   * it is not a live catalogue site under another name (same chrom, pos and gene).
 A new site in a gene whose live entries are all coat or trait variants takes that category (FGF5 long hair, TYR
 Himalayan), so a new allele does not turn an existing coat or trait condition into a disease.
+Sites in MANUAL_HOLD are held after review even though the model calls them. Names, modes, categories and
+plain-language descriptions for the new sites come from known_variants/panel_v3/new_site_text.tsv (by gene; modes
+checked against the source papers, since OMIA lists none for most of these recent conditions).
 Metadata (breeds, OMIA ids, PubMed ids, HGVS) comes from known_variants/catalogue_expansion_candidates.tsv, joined by
 OMIA variant id (the site_id suffix), else by gene and canFam4 position, else by gene.
 
@@ -21,6 +24,12 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 P = ROOT / 'known_variants/panel_v3'
 W = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / 'work_panel_v3'
 DOG_KEYS = ('cosmo', 'nelk')
+# Held after review: called by the model, but the call cannot be trusted yet.
+MANUAL_HOLD = {
+    # chrM 1-bp deletion: high alt fractions could be heteroplasmy or nuclear (NUMT) reads; one kit came out at risk
+    # (90% of 48 reads) and another 50% uncertain (2026-11-05).
+    'new_MT-TY_11072',
+}
 
 def tsv(path):
     return list(csv.DictReader(open(path), delimiter='\t'))
@@ -34,6 +43,8 @@ def main():
             called.add(r['site_id'])
             if r['held'] != '0' and int(r['held']) >= int(r.get('kits_with_reads') or r.get('kits_with_evidence') or 1):
                 held.add(r['site_id'])
+    held |= MANUAL_HOLD & called
+    text = {r['gene']: r for r in tsv(P / 'new_site_text.tsv')}
     cand = tsv(ROOT / 'known_variants/catalogue_expansion_candidates.tsv')
     by_omia = {c['omia_id']: c for c in cand if c['omia_id']}
     by_pos = {(c['gene'], c['canfam4']): c for c in cand if c['canfam4']}
@@ -70,6 +81,12 @@ def main():
              'variant_breed': re.sub(r'\s*\(Dog\)', '', c.get('breeds', '')),
              'category': category,
              'source': f"panel_v3 {s['origin']}"}
+        t = text.get(s['gene'], {})
+        if t.get('name'):
+            e['trait'] = e['phene_name'] = t['name']
+        for f in ('mode', 'category', 'description'):
+            if t.get(f):
+                e[f] = t[f]
         if sv:
             e['pos_end'] = int(s['end'])
         hg = c.get('variant', '')
