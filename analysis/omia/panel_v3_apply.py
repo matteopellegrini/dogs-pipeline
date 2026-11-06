@@ -77,11 +77,13 @@ def main(work, catalogue, sample, old_path, out_path):
     old_v = old['variants'] if old else []
     key = next((k for v in old_v for k, x in v.items() if is_gt(x) and k not in DOG_KEYS), sample.lower())
     variants, n = [], {'panel_v3': 0, 'kept': 0, 'none': 0}
-    for i, e in enumerate(cat['variants']):
+    for e in cat['variants']:
         sid = e['site_id']
         base = dict(e)
-        if sid.startswith('cat') and i < len(old_v) and old_v[i].get('gene') == e['gene'] and str(old_v[i].get('pos')) == str(e['pos']):
-            base = dict(old_v[i]); base['site_id'] = sid
+        # catNNN is the live catalogue index, which is also the entry's position in a report written from it.
+        k = int(sid[3:]) if sid.startswith('cat') else -1
+        if 0 <= k < len(old_v) and old_v[k].get('gene') == e['gene'] and str(old_v[k].get('pos')) == str(e['pos']):
+            base = dict(old_v[k]); base['site_id'] = sid
         c = calls.get(sid)
         if c and c[0] != 'held':
             base[key] = genotype(*c)

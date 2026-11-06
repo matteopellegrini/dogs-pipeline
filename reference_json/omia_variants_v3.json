@@ -7,6 +7,9 @@
   "new_CYTB_52",
   "new_MT-TY_11072"
  ],
+ "dropped": [
+  "cat275"
+ ],
  "variants": [
   {
    "gene": "TYRP1",
@@ -4999,25 +5002,6 @@
    "ins_len": 1,
    "evidence": "cigar",
    "site_id": "cat274"
-  },
-  {
-   "variant_id": "739",
-   "gene": "JAK2",
-   "chrom": "chr1",
-   "pos": 94091480,
-   "ref": null,
-   "alt": null,
-   "hgvs_c": "c.1849_1853delinsTTCCT",
-   "hgvs_p": "p.(V617_C618delinsFL)",
-   "phene_name": "",
-   "omia_id": "",
-   "deleterious": "yes",
-   "characterised": "",
-   "mol_gen": "",
-   "clinical_note": "",
-   "source": "OMIA",
-   "category": "disease",
-   "site_id": "cat275"
   },
   {
    "variant_id": "570",

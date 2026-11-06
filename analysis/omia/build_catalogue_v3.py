@@ -10,6 +10,7 @@ entry by entry), new_* are the panel v3 additions. A new site enters the catalog
   * it is not a live catalogue site under another name (same chrom, pos and gene).
 A new site in a gene whose live entries are all coat or trait variants takes that category (FGF5 long hair, TYR
 Himalayan), so a new allele does not turn an existing coat or trait condition into a disease.
+Live entries in DROPPED leave the screen (their catNNN ids stay, so the remaining ids keep the live index).
 Sites in MANUAL_HOLD are held after review even though the model calls them. Names, modes, categories and
 plain-language descriptions for the new sites come from known_variants/panel_v3/new_site_text.tsv (by gene; modes
 checked against the source papers, since OMIA lists none for most of these recent conditions).
@@ -29,6 +30,11 @@ MANUAL_HOLD = {
     # chrM 1-bp deletion: high alt fractions could be heteroplasmy or nuclear (NUMT) reads; one kit came out at risk
     # (90% of 48 reads) and another 50% uncertain (2026-11-05).
     'new_MT-TY_11072',
+}
+
+# Removed from the screen: not inherited, so a cheek-swab genotype says little (the app hides them on older reports).
+DROPPED = {
+    'cat275',  # JAK2 V617F polycythemia: arises in the bone marrow during life (2026-11-05)
 }
 
 def tsv(path):
@@ -61,7 +67,8 @@ def main():
     for i, v in enumerate(live['variants']):
         e = {k: x for k, x in v.items() if k not in DOG_KEYS}
         e['site_id'] = f'cat{i:03d}'
-        out.append(e)
+        if e['site_id'] not in DROPPED:
+            out.append(e)
     n_new = 0
     for sid, s in sites.items():
         if sid.startswith('cat') or sid not in called or sid in held or s['report_class'] not in ('report', 'trait'):
@@ -105,8 +112,8 @@ def main():
         n_new += 1
     path = ROOT / 'reference_json/omia_variants_v3.json'
     json.dump({'method': 'Panel v3 catalogue: live catalogue (site_id catNNN = live index) + panel v3 additions (new_*)',
-               'held': sorted(held), 'variants': out}, open(path, 'w'), indent=1)
-    print(f'{len(live["variants"])} live + {n_new} new = {len(out)} entries -> {path}; held: {sorted(held)}')
+               'held': sorted(held), 'dropped': sorted(DROPPED), 'variants': out}, open(path, 'w'), indent=1)
+    print(f'{len(live["variants"]) - len(DROPPED)} live + {n_new} new = {len(out)} entries -> {path}; held: {sorted(held)}')
 
 if __name__ == '__main__':
     main()
