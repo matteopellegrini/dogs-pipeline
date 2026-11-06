@@ -333,6 +333,29 @@ DEPTH_PCS = 3                    # shared depth components removed (GC / library
 DEPTH_WINSOR = 0.35              # |log ratio| beyond this is left out of the component fit (a real CNV, or noise)
 DEPTH_DF = 4                     # Student-t tails: one odd window must not make a carrier on its own
 
+def sv_confirmable(sv):
+    """Whether junction reads can confirm a copy. Not for an insertion of unknown sequence (the only alt evidence is
+    a clipped tail foreign to the locus, which adapters, chimeric reads or a mobile element elsewhere also give)
+    unless it fits inside a read (2-60 bp, seen as a CIGAR insertion of the catalogue size), and not for an event
+    catalogued without its size (no second breakpoint to match). 2 such reads made a confident dominant
+    Ehlers-Danlos and a Darier call (2026-11-06). There a copy is never called, only clear or uncertain; retrogenes
+    (sv_evidence.SOURCE) are the exception, their mate pairs land in the parental gene."""
+    from sv_evidence import SOURCE
+    svlen = int(sv.get('svlen') or 0)
+    if sv['site_id'] in SOURCE:
+        return True
+    if sv['type'] == 'INS':
+        return 2 <= svlen <= 60
+    return int(sv['end']) > int(sv['start']) or 2 <= svlen <= 60
+
+def sv_call(post, hap, sv):
+    """Calls and P(>=1 copy). Where reads cannot confirm a copy (sv_confirmable), a would-be copy is 'uncertain' and
+    its chance is capped at 50%: the report must not say 'over 90% chance' about evidence it does not trust."""
+    cl, pc = call_of(post, hap), post[:, 1] + post[:, 2]
+    if sv_confirmable(sv):
+        return cl, pc
+    return np.where(cl == 'clear', 'clear', 'uncertain'), np.where(cl == 'clear', pc, np.minimum(pc, 0.5))
+
 def depth_model(svs, ev, n):
     """Log depth ratio inside/flanks for every long DEL/DUP and every kit, with shared biases removed.
 
@@ -471,8 +494,7 @@ def cmd_sv(work):
             prior = geno_prior(D['W'] @ f, D['F'], hap)
             post = lik_fn(eps, np.arange(n)) * prior
             post /= post.sum(1, keepdims=True)
-            p_all[i] = post[:, 1] + post[:, 2]
-            cl = call_of(post, hap)
+            cl, p_all[i] = sv_call(post, hap, sv)
             if sid in HOLD:
                 cl[:] = 'held'
             calls_all[i] = cl
@@ -617,8 +639,7 @@ def cmd_score(work, kit_dir, out):
         hap = hemizygous(K, sv['chrom'], sv['start'])
         post = lik_fn(S['eps'][i], np.arange(1)) * geno_prior(W @ S['f'][i], F, hap)
         post /= post.sum(1, keepdims=True)
-        p_v[i] = post[:, 1] + post[:, 2]
-        cl = call_of(post, hap)
+        cl, p_v[i] = sv_call(post, hap, sv)
         if sid in HOLD:
             cl[:] = 'held'
         c_v[i] = cl
