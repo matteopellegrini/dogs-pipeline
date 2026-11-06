@@ -2661,6 +2661,17 @@ log "=== Stage 10: SnpEff annotation ==="
 ANN_DIR="$OUT/snpeff"
 mkdir -p "$ANN_DIR"
 
+BCFTOOLS_BIN="$ENV_GENOMICS/bin/bcftools"
+BGZIP_BIN="$ENV_GENOMICS/bin/bgzip"
+# The imputed BCF carries exactly the Dog10K panel sites, so their snpEff annotation is the same for every dog: it is
+# computed once (cluster/dog10k_annotate.sh: same snpEff, database and -canon; reference_panel/dog10k_ann) and
+# copied in by position and alleles, which gives the same annotated VCF without a per-dog snpEff run.
+SNPEFF_ANN_REF="${SNPEFF_ANN_REF:-$D/reference_panel/dog10k_ann/dog10k_sites.ann.bcf}"
+if [[ -s "$SNPEFF_ANN_REF" && -s "$SNPEFF_ANN_REF.csi" ]]; then
+log "SnpEff: precomputed Dog10K panel annotation ($SNPEFF_ANN_REF)"
+"$BCFTOOLS_BIN" annotate -a "$SNPEFF_ANN_REF" -c INFO/ANN,INFO/LOF,INFO/NMD -Ov "$IMPUTED_BCF" 2>"$ANN_DIR/snpeff.log" \
+  | "$BGZIP_BIN" -c > "$ANN_DIR/${DOG_LOWER}_annotated.vcf.gz"
+else
 # snpEff wrapper (conda python script) needs python + java in PATH
 # openjdk lands in lib/jvm/bin on macOS conda but bin/ on Linux conda — check
 # both inside the pinned env before falling back to whatever is on PATH.
@@ -2677,9 +2688,7 @@ log "Java: $SNPEFF_JAVA"
 # -noLog: suppress usage reporting
 # SnpEff cannot read BCF; pipe bcftools view to convert on the fly
 # Use explicit paths to avoid $MM env-prefix issues with PATH inheritance
-BCFTOOLS_BIN="$ENV_GENOMICS/bin/bcftools"
 SNPEFF_BIN="$ENV_GENOMICS/bin/snpEff"
-BGZIP_BIN="$ENV_GENOMICS/bin/bgzip"
 "$BCFTOOLS_BIN" view "$IMPUTED_BCF" \
   | "$SNPEFF_BIN" ann \
       -canon \
@@ -2689,6 +2698,7 @@ BGZIP_BIN="$ENV_GENOMICS/bin/bgzip"
       "$SNPEFF_DB" \
       2>"$ANN_DIR/snpeff.log" \
   | "$BGZIP_BIN" -c > "$ANN_DIR/${DOG_LOWER}_annotated.vcf.gz"
+fi
 "$BCFTOOLS_BIN" index -t "$ANN_DIR/${DOG_LOWER}_annotated.vcf.gz"
 log "SnpEff done: $(wc -l < $ANN_DIR/snpeff.log) log lines"
 
