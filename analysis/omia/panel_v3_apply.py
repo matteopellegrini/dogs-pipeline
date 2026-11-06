@@ -40,8 +40,9 @@ def genotype(call, p, basis, extra):
 
 def main(work, catalogue, sample, old_path, out_path):
     cat = json.load(open(catalogue))
-    small = np.load(f'{work}/bp_p_carrier.npz')
-    sv = np.load(f'{work}/bp_sv.npz')
+    # dict(): an NpzFile decompresses an array again on every item access, i.e. per site
+    small = dict(np.load(f'{work}/bp_p_carrier.npz'))
+    sv = dict(np.load(f'{work}/bp_sv.npz'))
     col = {s: i for i, s in enumerate(small['samples'])}
     if sample not in col:
         sys.exit(f'{sample} is not in the panel v3 cohort run')
