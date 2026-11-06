@@ -5037,6 +5037,28 @@ if [[ -s "$REF_JSON/trait_catalog.json" && ( -s "$IMPUTED_BCF" || -s "$TRAIT_BAM
 else log "  trait catalogue or inputs missing — traits skipped"; fi
 fi # end stage 13b
 
+if (( FROM_STAGE <= 13 && TO_STAGE >= 13 )); then
+# ── Stage 13c: panel v3 genetic-health calls (PANEL_V3=1; off until the panel v3 rollout) ───
+# Scores this kit against the frozen cohort fit in reference_panel/panel_v3 (per-breed allele frequencies, read
+# errors, SV depth components: analysis/omia/panel_v3_breed_prior.py score) and rewrites omia_result.json against
+# reference_json/omia_variants_v3.json. Turn on only once the app's condition catalogue is the panel v3 one,
+# otherwise the new conditions show on reports under derived names. Stage 8's file is kept as
+# $OUT/omia_result.stage8.json, so a stage-13 rerun starts again from it.
+if [[ "${PANEL_V3:-0}" == "1" ]]; then
+    log "=== Stage 13c: Panel v3 genetic-health calls ==="
+    PV3_MODEL="${PANEL_V3_MODEL:-$D/reference_panel/panel_v3}"
+    PV3_BAM="$OUT/markdup.bam"
+    if [[ -s "$PV3_BAM" && -s "$PV3_MODEL/bp_model.npz" && -s "$REF_JSON/omia_variants_v3.json" && -s "$PUB/omia_result.json" ]]; then
+        # a stage-8 file has no panel v3 calls yet: (re)take it as the base
+        grep -q '"panel_v3"' "$PUB/omia_result.json" || cp "$PUB/omia_result.json" "$OUT/omia_result.stage8.json"
+        if FASTA="$FASTA" DATA_PYTHON="$DATA_PYTHON" bash "$D/analysis/omia/panel_v3_kit.sh" "$DOG_LOWER" "$PV3_BAM"                "$IMPUTED_BCF" "$PUB" "$PV3_MODEL" "$OUT/panel_v3/kit"            && "$DATA_PYTHON" "$D/analysis/omia/panel_v3_breed_prior.py" score "$PV3_MODEL" "$OUT/panel_v3/kit" "$OUT/panel_v3/score"            && "$DATA_PYTHON" "$D/analysis/omia/panel_v3_apply.py" "$OUT/panel_v3/score" "$REF_JSON/omia_variants_v3.json"                "$DOG_LOWER" "$OUT/omia_result.stage8.json" "$OUT/panel_v3/omia_result.json"; then
+            cp "$OUT/panel_v3/omia_result.json" "$PUB/omia_result.json"
+            log "  omia_result.json rewritten with panel v3 calls"
+        else log "  WARNING: panel v3 scoring failed — omia_result.json left as stage 8 wrote it"; fi
+    else log "  panel v3 model, catalogue, markdup.bam or omia_result.json missing — panel v3 skipped"; fi
+fi
+fi # end stage 13c
+
 # Stages 15-17 had no FROM_STAGE guard at all, so they ran on every resume
 # regardless of what was asked. TO_STAGE could not stop them either.
 if (( FROM_STAGE <= 15 && TO_STAGE >= 15 )); then

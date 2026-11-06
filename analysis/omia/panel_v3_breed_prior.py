@@ -22,6 +22,10 @@ Calls per dog and site: carrier if P(>=1 copy) >= CALL_HI, clear if P(>=1 copy) 
   python3 panel_v3_breed_prior.py fit      WORK_DIR   # cohort fit + calls -> WORK_DIR/bp_*.tsv
   python3 panel_v3_breed_prior.py validate WORK_DIR   # Dog10K sites vs GLIMPSE, and read thinning of deep kits
   python3 panel_v3_breed_prior.py sv       WORK_DIR   # structural variants from sv_counts.tsv (sv_evidence.py)
+  python3 panel_v3_breed_prior.py score    WORK_DIR KIT_DIR OUT_DIR   # one new kit against the frozen cohort fit
+
+fit and sv also freeze what they fitted (bp_model.npz, bp_sv_model.npz: per-breed frequencies, read error, the SV
+depth components), so a kit sequenced after the cohort run is scored by `score` without refitting; see cmd_score.
 
 WORK_DIR holds the step-2a outputs (cohort_reads.tsv.gz, cohort_imputed.tsv.gz, v3_small.norm_ids.tsv,
 kit_inputs.json, panel_v23_breeds.txt, d10k_match.pos).
@@ -267,9 +271,9 @@ def mt_posterior(r, a):
     post[~deep] = [0.5, 0.25, 0.25]  # too few reads: uncertain
     return post
 
-def imputed_gp(work, samples):
+def imputed_gp(work, samples, name='cohort_imputed.tsv.gz'):
     """(chrom,pos,ref,alt) -> (n_kits x 3 GLIMPSE genotype probabilities, has-GP mask)."""
-    path = os.path.join(work, 'cohort_imputed.tsv.gz')
+    path = os.path.join(work, name)
     out = {}
     if not os.path.exists(path):
         return out
@@ -375,7 +379,37 @@ def depth_model(svs, ev, n):
     base = PV + tau_site[:, None]
     tau_kit = np.maximum(0.0, np.nanmedian(R ** 2, axis=0) / 0.455 - np.nanmedian(base, axis=0))
     V = base + np.nan_to_num(tau_kit)[None, :]
-    return {sid: (R[i], V[i], HOM[i]) for i, sid in enumerate(sids)}
+    frozen = dict(depth_sid=np.array(sids), depth_centre=centre[:, 0], depth_U=U, depth_tau_site=tau_site)
+    return {sid: (R[i], V[i], HOM[i]) for i, sid in enumerate(sids)}, frozen
+
+def depth_one_kit(svs, ev1, fz):
+    """depth_model for one kit against the cohort's frozen centres, bias components and site variances."""
+    sids = [str(x) for x in fz['depth_sid']]
+    if not sids:
+        return {}
+    by = {sv['site_id']: sv for sv in svs}
+    LR, PV, HOM = (np.full(len(sids), np.nan) for _ in range(3))
+    for i, sid in enumerate(sids):
+        sv, e = by[sid], ev1.get(sid, np.full(5, np.nan))
+        length = int(sv['end']) - int(sv['start'])
+        din, dfl = e[3], e[4]
+        if not (np.isfinite(din) and np.isfinite(dfl) and dfl > 0):
+            continue
+        mu = dfl * length / (2 * min(length, FLANK_MAX))
+        LR[i] = np.log((din + 0.5) / (mu + 0.5)); PV[i] = 1 / (din + 0.5) + 1 / (dfl + 0.5); HOM[i] = np.log(0.5 / (mu + 0.5))
+    LR, HOM = LR - fz['depth_centre'], HOM - fz['depth_centre']
+    U = fz['depth_U']; k = U.shape[1]
+    ok = np.isfinite(LR)
+    w = np.where(ok & (np.abs(LR) <= DEPTH_WINSOR), 1 / np.where(ok, PV + 0.01, 1), 0.0)
+    X = np.where(w > 0, LR, 0.0)
+    R = LR
+    if k and (w > 0).sum() > k + 2:
+        sc = np.linalg.lstsq(U * np.sqrt(w)[:, None], X * np.sqrt(w), rcond=None)[0]
+        R = LR - U @ sc
+    base = PV + fz['depth_tau_site']
+    tau_kit = max(0.0, np.nanmedian(R ** 2) / 0.455 - np.nanmedian(base)) if ok.any() else 0.0
+    V = base + tau_kit
+    return {sid: (R[i:i + 1], V[i:i + 1], HOM[i:i + 1]) for i, sid in enumerate(sids)}
 
 def sv_lik_factory(ka, kr, svtype, depth):
     """Per-dog likelihood over 0/1/2 copies of the SV allele from junction fragments and, for long DEL/DUP,
@@ -409,8 +443,9 @@ def cmd_sv(work):
         if len(p) < 8 or p[0] not in col: continue
         ev[p[1]][col[p[0]]] = [float(x) if x != '' else np.nan for x in p[2:7]]
     cidx = {c: i for i, c in enumerate(D['codes'])}
-    depth = depth_model(svs, ev, n)
+    depth, frozen = depth_model(svs, ev, n)
     p_all = np.zeros((len(svs), n), np.float32); calls_all = np.empty((len(svs), n), dtype='U11')
+    f_all = np.zeros((len(svs), len(D['codes']))); eps_all = np.zeros(len(svs))
     with open(os.path.join(work, 'bp_sv_sites.tsv'), 'w') as fo:
         fo.write('site_id\tgene\tcondition\treport_class\ttype\tlength\tdocumented_breeds\tbackground_af\tbreakpoint_error\t'
                  'depth_used\ttop_breed_af\tkits_with_evidence\tcarrier\ttwo_copies\themizygous\tuncertain\tclear\theld\n')
@@ -432,6 +467,7 @@ def cmd_sv(work):
             f, beta, eps = fit_site(kr, ka, D['W'], D['F'], EPS_SV, mask,
                                     B_HYPER['mixed' if mixed else ('documented' if doc else 'none')],
                                     hap=hap, fit_eps=True, lik_fn=lik_fn, informative=informative)
+            f_all[i], eps_all[i] = f, eps
             prior = geno_prior(D['W'] @ f, D['F'], hap)
             post = lik_fn(eps, np.arange(n)) * prior
             post /= post.sum(1, keepdims=True)
@@ -448,7 +484,9 @@ def cmd_sv(work):
                      cnt['clear'], cnt['held']])) + '\n')
     np.savez_compressed(os.path.join(work, 'bp_sv.npz'), p=p_all, call=calls_all, samples=np.array(D['samples']),
                         sid=np.array([s['site_id'] for s in svs]))
-    print(f'sv: {len(svs)} sites x {n} kits -> {work}/bp_sv_sites.tsv, bp_sv.npz')
+    np.savez_compressed(os.path.join(work, 'bp_sv_model.npz'), sid=np.array([s['site_id'] for s in svs]), f=f_all,
+                        eps=eps_all, codes=np.array(D['codes']), **frozen)
+    print(f'sv: {len(svs)} sites x {n} kits -> {work}/bp_sv_sites.tsv, bp_sv.npz, bp_sv_model.npz')
 
 # ── commands ──────────────────────────────────────────────────────────────────────────────────────────────────
 def cmd_fit(work):
@@ -460,6 +498,7 @@ def cmd_fit(work):
     gps = imputed_gp(work, D['samples'])
     pc_all = np.zeros((len(D['sites']), n), np.float32)
     calls_all = np.empty((len(D['sites']), n), dtype='U11')
+    f_all = np.zeros((len(D['sites']), len(D['codes']))); eps_all = np.zeros(len(D['sites']))
     with open(os.path.join(work, 'bp_sites.tsv'), 'w') as fo:
         fo.write('site_id\tchrom\tpos\tref\talt\tgene\tcondition\treport_class\tkind\tsource\tdocumented_breeds\t'
                  'prior\tbackground_af\tread_error\ttop_breed_af\tkits_with_reads\tcarrier\ttwo_copies\themizygous\tuncertain\tclear\t'
@@ -470,6 +509,7 @@ def cmd_fit(work):
             hap = hemizygous(D, c, p)
             f, beta, eps = fit_site(r, a, D['W'], D['F'], s['eps'], s['mask'], hyper_b(s), hap=hap,
                                     fit_eps=s['kind'] != 'snv')
+            f_all[i], eps_all[i] = f, eps
             if c == 'chrM':
                 post, source = mt_posterior(r, a), 'chrM allele fraction'
             else:
@@ -493,7 +533,102 @@ def cmd_fit(work):
     np.savez_compressed(os.path.join(work, 'bp_p_carrier.npz'), p=pc_all, call=calls_all,
                         samples=np.array(D['samples']), sid=np.array([x or '' for x in D['sid']]),
                         reads=(D['R'] + D['A']).astype(np.int32))
-    print(f"fit {len(D['sites'])} sites x {n} kits -> {work}/bp_sites.tsv, bp_p_carrier.npz")
+    np.savez_compressed(os.path.join(work, 'bp_model.npz'), sites=np.array(D['sites']),
+                        sid=np.array([x or '' for x in D['sid']]), f=f_all, eps=eps_all, codes=np.array(D['codes']))
+    print(f"fit {len(D['sites'])} sites x {n} kits -> {work}/bp_sites.tsv, bp_p_carrier.npz, bp_model.npz")
+
+def cmd_score(work, kit_dir, out):
+    """One kit sequenced after the cohort run, scored against the cohort's frozen fit (bp_model.npz, bp_sv_model.npz):
+    the same posterior as fit/sv, with the kit's breed mix, F_ROH and sex, its own reads, GLIMPSE posteriors and SV
+    evidence, and the cohort's per-breed frequencies, read errors and depth bias components. A cohort kit scored this
+    way reproduces its cohort call; a new kit simply does not feed back into the frequencies.
+
+    KIT_DIR (written by cluster/panel_v3_kit.sh): kit.json {sample, breeds {v2.3 code: proportion}, f_roh, depth,
+    sex M/F}, reads.tsv.gz and imputed.tsv.gz (CHROM POS REF ALT <sample>, with AD / GT:GP as in the cohort
+    matrices), chrM_counts.tsv and sv.tsv (as in the cohort run). OUT_DIR gets bp_p_carrier.npz, bp_sv.npz and
+    sv_counts.tsv for this one kit, plus copies of bp_sites.tsv and glimpse_sites_af.tsv, so that
+    panel_v3_apply.py OUT_DIR ... writes the report file exactly as for a cohort kit."""
+    import shutil
+    M = np.load(os.path.join(work, 'bp_model.npz')); S = np.load(os.path.join(work, 'bp_sv_model.npz'))
+    codes = [str(c) for c in M['codes']]
+    if codes != [str(c) for c in S['codes']]:
+        sys.exit('bp_model.npz and bp_sv_model.npz come from different cohort runs')
+    kit = json.load(open(os.path.join(kit_dir, 'kit.json')))
+    sample = kit['sample']
+    ci = {c: i for i, c in enumerate(codes)}
+    w = np.zeros(len(codes))
+    for c, x in (kit.get('breeds') or {}).items():
+        if c in ci:
+            w[ci[c]] += x
+    W = (w / w.sum() if w.sum() > 0 else np.full(len(codes), 1.0 / len(codes)))[None, :]  # no breed result -> flat
+    F = np.array([min(max(kit.get('f_roh') or 0.0, 0.0), 0.5)])
+    K = dict(samples=[sample], male=np.array([kit.get('sex') == 'M']))
+    key = lambda c, p, r, a: (c, str(p), r.upper(), a.upper())
+
+    _, ks, kr, ka = load_matrix(os.path.join(kit_dir, 'reads.tsv.gz'))
+    rd = {key(*x): (int(r), int(a)) for x, r, a in zip(ks, kr[:, 0], ka[:, 0])}
+    mt = {}
+    if os.path.exists(os.path.join(kit_dir, 'chrM_counts.tsv')):
+        for line in open(os.path.join(kit_dir, 'chrM_counts.tsv')):
+            _, c, p, ref, alt, nr, na = line.rstrip('\n').split('\t')
+            mt[key(c, p, ref, alt)] = (int(nr), int(na))
+    gps = imputed_gp(kit_dir, [sample], 'imputed.tsv.gz')
+    sites, sids = [tuple(str(y) for y in x) for x in M['sites']], [str(x) for x in M['sid']]
+    p_s = np.zeros((len(sites), 1), np.float32); c_s = np.empty((len(sites), 1), dtype='U11')
+    n_s = np.zeros((len(sites), 1), np.int32)
+    for i, ((c, p, ref, alt), sid) in enumerate(zip(sites, sids)):
+        k = key(c, p, ref, alt)
+        r, a = (np.array([x]) for x in ((mt if c == 'chrM' else rd).get(k, (0, 0))))  # chrM: MAPQ-0 counts only
+        hap = hemizygous(K, c, p)
+        if c == 'chrM':
+            post = mt_posterior(r, a)
+        else:
+            post = posterior(r, a, W, F, M['eps'][i], M['f'][i], hap)
+            g = gps.get(k)
+            if g is not None and g[1].any():
+                post[g[1]] = g[0][g[1]]
+        p_s[i] = post[:, 1] + post[:, 2]
+        cl = call_of(post, hap)
+        if sid in HOLD:
+            cl[:] = 'held'
+        c_s[i], n_s[i] = cl, r + a
+    os.makedirs(out, exist_ok=True)
+    np.savez_compressed(os.path.join(out, 'bp_p_carrier.npz'), p=p_s, call=c_s, samples=np.array([sample]),
+                        sid=np.array(sids), reads=n_s)
+
+    svs = list(csv.DictReader(open(os.path.join(work, 'sv_sites.tsv')), delimiter='\t'))
+    if [sv['site_id'] for sv in svs] != [str(x) for x in S['sid']]:
+        sys.exit('sv_sites.tsv does not match bp_sv_model.npz')
+    ev1 = {}
+    with open(os.path.join(out, 'sv_counts.tsv'), 'w') as fo:
+        for line in open(os.path.join(kit_dir, 'sv.tsv')):
+            q = line.rstrip('\n').split('\t')
+            if len(q) < 8:
+                continue
+            ev1[q[1]] = np.array([float(x) if x != '' else np.nan for x in q[2:7]])
+            fo.write('\t'.join([sample] + q[1:]) + '\n')
+    depth = depth_one_kit(svs, ev1, S)
+    p_v = np.zeros((len(svs), 1), np.float32); c_v = np.empty((len(svs), 1), dtype='U11')
+    for i, sv in enumerate(svs):
+        sid = sv['site_id']
+        e = ev1.get(sid, np.full(5, np.nan))
+        ka1 = np.array([np.nan_to_num(e[0]) + np.nan_to_num(e[2])]); kr1 = np.array([np.nan_to_num(e[1])])
+        lik_fn, _ = sv_lik_factory(ka1, kr1, sv['type'], depth.get(sid))
+        hap = hemizygous(K, sv['chrom'], sv['start'])
+        post = lik_fn(S['eps'][i], np.arange(1)) * geno_prior(W @ S['f'][i], F, hap)
+        post /= post.sum(1, keepdims=True)
+        p_v[i] = post[:, 1] + post[:, 2]
+        cl = call_of(post, hap)
+        if sid in HOLD:
+            cl[:] = 'held'
+        c_v[i] = cl
+    np.savez_compressed(os.path.join(out, 'bp_sv.npz'), p=p_v, call=c_v, samples=np.array([sample]),
+                        sid=np.array([sv['site_id'] for sv in svs]))
+    for f in ('bp_sites.tsv', 'bp_sv_sites.tsv', 'glimpse_sites_af.tsv'):
+        shutil.copy(os.path.join(work, f), os.path.join(out, f))
+    cnt = collections.Counter(c_s[:, 0]) + collections.Counter(c_v[:, 0])
+    print(f'score {sample}: {len(sites)} small + {len(svs)} SV sites -> {out}; ' +
+          ', '.join(f'{k} {v}' for k, v in cnt.most_common()))
 
 def gp_truth(work, samples):
     """(chrom,pos) -> array of GLIMPSE genotypes (0/1/2, -1 when max GP < 0.99) aligned to samples."""
@@ -574,4 +709,7 @@ def cmd_validate(work):
 
 if __name__ == '__main__':
     cmd, work = sys.argv[1], sys.argv[2]
-    {'fit': cmd_fit, 'validate': cmd_validate, 'sv': cmd_sv}[cmd](work)
+    if cmd == 'score':
+        cmd_score(work, *sys.argv[3:5])
+    else:
+        {'fit': cmd_fit, 'validate': cmd_validate, 'sv': cmd_sv}[cmd](work)
