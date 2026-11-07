@@ -1,5 +1,5 @@
 {
- "version": "2026-09-13",
+ "version": "2026-11-07",
  "method": "Single-gene physical traits from Dog10K-imputed genotypes (GP >= 0.8) with read-level calls for indels, insertions and copy-number events (canFam4 coordinates from OMIA and flank-mapped literature positions; see analysis/traits/).",
  "traits": [
   {
@@ -434,6 +434,125 @@
      "chrom": "chr17",
      "pos": 19497254,
      "len": 14
+    }
+   ]
+  },
+  {
+   "id": "cocoa",
+   "name": "Dark brown pigment (cocoa)",
+   "group": "coat",
+   "gene": "HPS3",
+   "description": "A change in HPS3 (c.2420G>A) found in French Bulldogs turns black pigment a dark chocolate brown when a dog has two copies. It is separate from the classic brown (B locus) colour and only shows where the coat would otherwise be black.",
+   "rule": "recessive",
+   "alt_label": "co",
+   "ref_label": "N",
+   "pheno_alt2": "Likely dark brown (cocoa) instead of black",
+   "pheno_het": "Black pigment unchanged; carries one cocoa copy",
+   "pheno_ref2": "Black pigment unchanged",
+   "loci": [
+    {
+     "id": "HPS3 c.2420G>A (cocoa)",
+     "type": "snp",
+     "chrom": "chr23",
+     "pos": 44487038,
+     "ref": "G",
+     "alt": "A"
+    }
+   ],
+   "source": "OMIA variant 1215"
+  },
+  {
+   "id": "albinism_oca2",
+   "name": "Albinism (OCA2 type)",
+   "group": "coat",
+   "gene": "OCA2",
+   "description": "A change in OCA2 reported in German Spitz causes oculocutaneous albinism (very light coat, skin and eyes) with two copies. It is a different gene from the Doberman-type albinism.",
+   "rule": "recessive",
+   "alt_label": "a",
+   "ref_label": "N",
+   "pheno_alt2": "Likely albino (oculocutaneous albinism, OCA2 type)",
+   "pheno_het": "Not albino, carries the variant",
+   "pheno_ref2": "Likely not albino",
+   "loci": [
+    {
+     "id": "OCA2 (German Spitz) canFam3 chr3:31715704 A>C",
+     "type": "snp",
+     "chrom": "chr3",
+     "pos": 32515468,
+     "ref": "T",
+     "alt": "G"
+    }
+   ],
+   "source": "OMIA variant 846"
+  },
+  {
+   "id": "size_stc2",
+   "name": "Body size 3",
+   "gene": "STC2",
+   "group": "size",
+   "rule": "additive",
+   "pheno_alt2": "Smaller",
+   "pheno_het": "Intermediate",
+   "pheno_ref2": "Larger",
+   "alt_label": "A",
+   "ref_label": "T",
+   "description": "A marker just downstream of STC2, one of the genes that separate small and large breeds (Rimbault 2013); the A allele is common in toy breeds (Papillon, Pomeranian) and absent in giants. Each copy points to a smaller adult size.",
+   "source": "Rimbault et al. 2013, Genome Res (PMID 24026177); canFam3 chr4:39182836",
+   "loci": [
+    {
+     "id": "STC2 downstream marker",
+     "type": "snp",
+     "chrom": "chr4",
+     "pos": 40070215,
+     "ref": "T",
+     "alt": "A"
+    }
+   ]
+  },
+  {
+   "id": "size_hmga2",
+   "name": "Body size 6",
+   "gene": "HMGA2",
+   "group": "size",
+   "rule": "additive",
+   "pheno_alt2": "Smaller",
+   "pheno_het": "Intermediate",
+   "pheno_ref2": "Larger",
+   "alt_label": "A",
+   "ref_label": "G",
+   "description": "A change in the HMGA2 gene, a size gene in dogs and people; the A allele is near-universal in Yorkshire Terriers and Pomeranians and absent in giant breeds. Each copy points to a smaller adult size.",
+   "source": "Rimbault et al. 2013, Genome Res (PMID 24026177); canFam3 chr10:8348804",
+   "loci": [
+    {
+     "id": "HMGA2 5'UTR",
+     "type": "snp",
+     "chrom": "chr10",
+     "pos": 8703415,
+     "ref": "G",
+     "alt": "A"
+    }
+   ]
+  },
+  {
+   "id": "panda",
+   "name": "Panda white spotting",
+   "group": "coat",
+   "gene": "KIT",
+   "rule": "dominant",
+   "alt_label": "P",
+   "ref_label": "N",
+   "pheno_alt2": "Likely panda white spotting",
+   "pheno_het": "",
+   "pheno_ref2": "No panda spotting variant",
+   "description": "A one-letter insertion in KIT that arose in one German Shepherd family causes white spotting on the face, chest and legs. One copy gives the pattern; two copies have never been seen and are thought not to be viable.",
+   "source": "Wong et al. 2013, Anim Genet (PMID 23134432); canFam3 chr13:47144513dup (KIT c.140dup)",
+   "loci": [
+    {
+     "id": "KIT c.140dup (panda)",
+     "type": "ins",
+     "chrom": "chr13",
+     "pos": 47906539,
+     "len": 1
     }
    ]
   }

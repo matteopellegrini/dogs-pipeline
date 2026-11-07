@@ -14,8 +14,10 @@ Genotyping engines (chosen per locus by its `type`):
                       soft-clipped at it, vs reads spanning it cleanly.
   cnv_dup / cnv_del   mean depth over the event vs the flanks (BAM), copy-number
                       ratio -> 1.0 normal, ~1.5 het dup, ~0.5 het del, ~0 hom del.
-Each trait's interpretation is a rule in TRAIT_RULES keyed by trait id; the
-catalogue carries coordinates, alleles and copy. Calls carry a confidence and
+Each trait's interpretation is a rule in interpret() keyed by trait id, or, for
+catalogue-driven traits, the entry's own `rule` (recessive / dominant / additive)
+with alt_label, ref_label and pheno_alt2 / pheno_het / pheno_ref2; the catalogue
+carries coordinates, alleles and copy. Calls carry a confidence and
 the evidence (source, reads, GP) so the report can say how sure we are.
 """
 import json, sys, math
@@ -237,6 +239,15 @@ def interpret(trait, calls, ctx):
         return rule_dominant(calls, 'A', 'G', 'Enhanced tolerance of low oxygen (high altitude)', 'Normal altitude tolerance')
     if tid == 'appetite':
         return rule_dominant(calls, 'D', 'N', 'Higher food motivation (POMC deletion) — prone to overeating and weight gain', 'Normal food motivation')
+    # Catalogue-driven traits (no code per trait): rule + labels + phenotype text come from the catalogue entry.
+    rule = trait.get('rule')
+    a, r = trait.get('alt_label', 'A'), trait.get('ref_label', 'N')
+    if rule == 'recessive':
+        return rule_recessive(calls, a, r, trait['pheno_alt2'], trait['pheno_het'], trait['pheno_ref2'])
+    if rule == 'dominant':
+        return rule_dominant(calls, a, r, trait['pheno_alt2'], trait['pheno_ref2'])
+    if rule == 'additive':
+        return rule_additive3(calls, a, r, trait['pheno_alt2'], trait['pheno_het'], trait['pheno_ref2'])
     return None
 
 
