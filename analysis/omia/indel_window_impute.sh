@@ -7,7 +7,8 @@ set -euo pipefail
 R=$1; C=$2; P=$3; REF=$4; ALT=$5; BAM=$6; TMPD=${7:-${TMPDIR:-/tmp}}
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 export PATH="$ROOT/envs/genomics/bin:$PATH" OPENBLAS_NUM_THREADS=1
-lo=$(bcftools view -H "$R" | head -1 | cut -f2); hi=$(bcftools view -H "$R" | tail -1 | cut -f2)
+# (no `| head`: with pipefail its early exit fails the script)
+read -r lo hi < <(bcftools query -f '%POS\n' "$R" | awk 'NR==1{f=$1} {l=$1} END{print f, l}')
 olo=$(( P - 250000 > lo ? P - 250000 : lo )); ohi=$(( P + 250000 < hi ? P + 250000 : hi ))
 T=$(mktemp -d "$TMPD/indelimp.XXXX")
 "$ROOT/envs/glimpse/bin/GLIMPSE2_phase" --bam-file "$BAM" --reference "$R" --fasta "$ROOT/canFam4_plusY.fa" \

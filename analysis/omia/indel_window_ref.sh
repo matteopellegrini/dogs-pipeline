@@ -29,7 +29,9 @@ bcftools query -f '[%SAMPLE\t%GT\n]' "$T/indel.vcf.gz" | awk '$2 ~ /1/' > "$O/$N
 bcftools concat -a -Oz -o "$T/merged.vcf.gz" "$T/snv.vcf.gz" "$T/indel.vcf.gz"
 bcftools index -t "$T/merged.vcf.gz"
 "$ROOT/envs/beagle/bin/beagle" -Xmx8g gt="$T/merged.vcf.gz" out="$T/phased" nthreads=${BEAGLE_THREADS:-4} > "$T/beagle.log" 2>&1
-bcftools view -Ob -o "$O/$NAME.ref.bcf" "$T/phased.vcf.gz"
+# Beagle writes no ##contig lines, which BCF needs
+# and GLIMPSE2 needs AC/AN on a reference panel
+bcftools reheader --fai "$FASTA.fai" "$T/phased.vcf.gz" | bcftools +fill-tags -Ob -o "$O/$NAME.ref.bcf" -- -t AC,AN
 bcftools index -f "$O/$NAME.ref.bcf"
 # carrier haplotypes before/after phasing must agree in number
 before=$(awk '{n+=gsub(/1/,"",$2)} END{print n+0}' "$O/$NAME.carriers.tsv")
