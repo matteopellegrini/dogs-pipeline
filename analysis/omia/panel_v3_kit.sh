@@ -6,6 +6,7 @@
 #   KIT_DIR/imputed.tsv.gz   GLIMPSE GT:GP at the v3 sites that are in the Dog10K panel
 #   KIT_DIR/chrM_counts.tsv  allele counts at the mitochondrial sites, MAPQ 0 allowed (NUMTs make every read MAPQ 0)
 #   KIT_DIR/sv.tsv           structural-variant read evidence (analysis/omia/sv_evidence.py count)
+#   KIT_DIR/indel_imputed.tsv.gz  GT:GP of the disease indels imputed from their haplotype (analysis/omia/indel_window_*)
 #   KIT_DIR/kit.json         breed mix (breed_composition_raw), F_ROH, depth, inferred sex from the kit's report files
 #
 #   analysis/omia/panel_v3_kit.sh SAMPLE BAM IMPUTED_BCF PUB_DIR MODEL_DIR KIT_DIR
@@ -47,6 +48,14 @@ zcat "$M/v3_small.alleles.tsv.gz" | awk '$1=="chrM"' | while IFS=$'\t' read -r c
         length($1)==1 && length(r)>1 { m=split($3,ad,","); d=0; for(i=1;i<=m;i++) d+=ad[i] }
         END { if(!found) print k"\t"c"\t"p"\t"r"\t"a"\t"d+0"\t0" }' >> "$K/chrM_counts.tsv"
 done
+
+# disease indels imputed from their haplotype (reference_panel/indel_windows: NAME CHROM POS REF ALT per window)
+{ printf 'CHROM\tPOS\tREF\tALT\t%s\n' "$SAMPLE"
+  while IFS=$'\t' read -r wn wc wp wr wa; do
+    [[ -s "$M/../indel_windows/$wn.ref.bcf" ]] || continue
+    bash "$ROOT/analysis/omia/indel_window_impute.sh" "$M/../indel_windows/$wn.ref.bcf" "$wc" "$wp" "$wr" "$wa" "$BAM" "$K" 2>/dev/null || true
+  done < "$M/../indel_windows/windows.tsv"
+} | gzip > "$K/indel_imputed.tsv.gz"
 
 "$PY" "$ROOT/analysis/omia/sv_evidence.py" count "$M/sv_sites.tsv" "$SAMPLE" "$BAM" "$FASTA" > "$K/sv.tsv.tmp"
 mv "$K/sv.tsv.tmp" "$K/sv.tsv"

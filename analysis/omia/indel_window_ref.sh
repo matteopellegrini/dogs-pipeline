@@ -15,7 +15,8 @@ FASTA="$ROOT/canFam4_plusY.fa"
 mkdir -p "$O"; T=$(mktemp -d "$O/.$NAME.XXXX")
 bcftools query -l "$PANEL" > "$T/samples.txt"
 lo=$(( P > F ? P - F : 1 )); hi=$(( P + F ))
-bcftools view -r "$C:$lo-$hi" -S "$T/samples.txt" -m2 -M2 -v snps -Oz -o "$T/snv.vcf.gz" "$PANEL"
+# exact duplicates exist in the "plus_disease" panel (chr32:34700601 C>G); Beagle refuses them
+bcftools view -r "$C:$lo-$hi" -S "$T/samples.txt" -m2 -M2 -v snps -Ou "$PANEL" | bcftools norm -d exact -Oz -o "$T/snv.vcf.gz"
 bcftools index -t "$T/snv.vcf.gz"
 # the indel: left-normalised, split from any multiallelic record, exactly the catalogue allele; same dogs, same order
 bcftools view -r "$C:$P" -S "$T/samples.txt" "$INDELS" -Ou 2>/dev/null \

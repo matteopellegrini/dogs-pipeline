@@ -13,6 +13,7 @@ For every site the cohort model calls (work_panel_v3/bp_p_carrier.npz, bp_sv.npz
   uncertain    uncertain   in between: too few reads to decide; p_carrier says how likely a copy is
 
 Each panel v3 genotype has source 'panel_v3', p_carrier, and basis: 'imputed' (GLIMPSE posterior at a Dog10K site),
+'haplotype' (a disease indel imputed from its Dog10K haplotype, combined with the dog's reads at it),
 'reads' (the dog's own reads at the site, combined with the breed prior), 'breed_prior' (no reads at the site, so
 the call rests on the dog's breed mix), 'allele_fraction' (mitochondrial) or 'structural' (breakpoint reads, read
 pairs and depth). Held sites and sites the model does not call keep the previous call.
@@ -60,10 +61,10 @@ def main(work, catalogue, sample, old_path, out_path):
     for i, sid in enumerate(small['sid']):
         c, p, n = str(small['call'][i, j]), float(small['p'][i, j]), int(small['reads'][i, j])
         src = source.get(str(sid), '')
-        basis = ('imputed' if src.startswith('GLIMPSE') else 'allele_fraction' if src.startswith('chrM')
-                 else 'reads' if n > 0 else 'breed_prior')
+        basis = ('imputed' if src.startswith('GLIMPSE') else 'haplotype' if src.startswith('Haplotype')
+                 else 'allele_fraction' if src.startswith('chrM') else 'reads' if n > 0 else 'breed_prior')
         extra = {'site_reads': n}
-        if basis == 'imputed' and site_af.get(str(sid)) is not None:
+        if basis in ('imputed', 'haplotype') and site_af.get(str(sid)) is not None:
             extra['af_dog10k'] = round(site_af[str(sid)], 4)
         calls[str(sid)] = (c, p, basis, extra)
     svj = {s: i for i, s in enumerate(sv['samples'])}[sample]

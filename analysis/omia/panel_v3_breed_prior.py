@@ -258,6 +258,17 @@ def posterior(r, a, W, F, eps, f, hap=None):
     post = read_lik(r, a, eps) * geno_prior(W @ f, F, hap)
     return post / post.sum(1, keepdims=True)
 
+def haplotype_posterior(gp, r, a, eps):
+    """Disease indels imputed from the haplotype they sit on (analysis/omia/indel_window_ref.sh, Dog10K indel calls
+    phased into the panel): the imputed genotype probabilities are the prior and the dog's own reads at the indel
+    update them. GLIMPSE2 takes read likelihoods only at the window's SNVs, so the two are independent. The reads
+    catch a carrier whose haplotype no Dog10K carrier shares (MDR1, 93-kit check 2026-11-06: imputation alone gave
+    two read-confirmed carriers 18-28%, imputation x reads kept all 6 carriers and all 27 read-clear dogs). GP is
+    floored at 0.1% (it is printed to 3 decimals) so that reads can always overrule the haplotype."""
+    gp = 0.997 * gp + 0.001
+    post = gp * read_lik(r, a, eps)
+    return post / post.sum(1, keepdims=True)
+
 def mt_posterior(r, a):
     """chrM: one (heteroplasmic) genome per dog. Column 2 = homoplasmic alt, column 1 = heteroplasmic."""
     n = r + a
@@ -518,6 +529,7 @@ def cmd_fit(work):
     setup = site_setup(D, bm, sb)
     n = len(D['samples'])
     gps = imputed_gp(work, D['samples'])
+    igps = imputed_gp(work, D['samples'], 'indel_imputed.tsv.gz')  # disease indels imputed from their haplotype
     pc_all = np.zeros((len(D['sites']), n), np.float32)
     calls_all = np.empty((len(D['sites']), n), dtype='U11')
     f_all = np.zeros((len(D['sites']), len(D['codes']))); eps_all = np.zeros(len(D['sites']))
@@ -539,6 +551,10 @@ def cmd_fit(work):
                 g = gps.get((c, p, ref.upper(), alt.upper()))
                 if g is not None and g[1].any():  # in the Dog10K panel: GLIMPSE posterior wherever the kit has one
                     post[g[1]] = g[0][g[1]]; source = 'GLIMPSE (Dog10K)'
+                h = igps.get((c, p, ref.upper(), alt.upper()))
+                if h is not None and h[1].any():
+                    m = h[1]
+                    post[m] = haplotype_posterior(h[0][m], r[m], a[m], eps); source = 'Haplotype imputation (Dog10K indels) + reads'
             pc_all[i] = post[:, 1] + post[:, 2]
             cl = call_of(post, hap)
             if sid in HOLD:
@@ -595,6 +611,7 @@ def cmd_score(work, kit_dir, out):
             _, c, p, ref, alt, nr, na = line.rstrip('\n').split('\t')
             mt[key(c, p, ref, alt)] = (int(nr), int(na))
     gps = imputed_gp(kit_dir, [sample], 'imputed.tsv.gz')
+    igps = imputed_gp(kit_dir, [sample], 'indel_imputed.tsv.gz')
     sites, sids = [tuple(str(y) for y in x) for x in M['sites']], [str(x) for x in M['sid']]
     p_s = np.zeros((len(sites), 1), np.float32); c_s = np.empty((len(sites), 1), dtype='U11')
     n_s = np.zeros((len(sites), 1), np.int32)
@@ -609,6 +626,9 @@ def cmd_score(work, kit_dir, out):
             g = gps.get(k)
             if g is not None and g[1].any():
                 post[g[1]] = g[0][g[1]]
+            h = igps.get(k)
+            if h is not None and h[1].any():
+                post = haplotype_posterior(h[0], r, a, M['eps'][i])
         p_s[i] = post[:, 1] + post[:, 2]
         cl = call_of(post, hap)
         if sid in HOLD:
