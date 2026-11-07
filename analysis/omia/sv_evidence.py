@@ -17,6 +17,10 @@ For each SV with known breakpoints (known_variants/panel_v3/panel_v3_sites.tsv, 
   depth_in / depth_flank
                     MAPQ>=20 read starts inside the event and in equal-sized flanking windows (DEL/DUP >= 2 kb),
                     so a deletion shows as depth_in/depth_flank ~0.5 (one copy) or ~0, a duplication as ~1.5.
+Depth-only sites (known_variants/panel_v3/depth_only_cnv.tsv: CNVs whose breakpoints were never published, so the
+interval is a gene span or an approximate extent) get no breakpoint or pair counts (0, 0, 0): reads crossing a guessed
+boundary would count against a copy. Their depth_flank comes from two distant reference windows (column flanks),
+not the adjacent sequence, which a deletion of unknown extent may also remove.
 The likelihood model is in panel_v3_breed_prior.py (sv mode); this file only counts.
 
   python3 sv_evidence.py sites  > sv_sites.tsv                 # the SV list with types and breakpoints
@@ -43,8 +47,10 @@ def sv_type(alt, status):
 
 def sites():
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    flanks = {f"new_{r['gene']}_{r['omia_id']}": f"{r['flank_left']};{r['flank_right']}" for r in csv.DictReader(
+        open(os.path.join(root, 'known_variants/panel_v3/depth_only_cnv.tsv')), delimiter='\t')}
     w = csv.writer(sys.stdout, delimiter='\t', lineterminator='\n')
-    w.writerow(['site_id', 'gene', 'chrom', 'start', 'end', 'type', 'svlen', 'ref', 'alt', 'source'])
+    w.writerow(['site_id', 'gene', 'chrom', 'start', 'end', 'type', 'svlen', 'ref', 'alt', 'source', 'flanks'])
     for s in csv.DictReader(open(os.path.join(root, 'known_variants/panel_v3/panel_v3_sites.tsv')), delimiter='\t'):
         if s['kind'] != 'sv' or s['status'] == 'gene_span_only' or not s['pos'].isdigit():
             continue
@@ -60,7 +66,8 @@ def sites():
         if t in ('INS', 'DUP') and svlen <= 1:
             svlen = 0   # "gross insertion" / duplication of unrecorded size: breakpoint clips only, no size match
         src = '%s:%d-%d' % SOURCE[s['site_id']] if s['site_id'] in SOURCE else ''
-        w.writerow([s['site_id'], s['gene'], s['chrom'], start, end, t, svlen, s['ref'][:60], s['alt'][:60], src])
+        w.writerow([s['site_id'], s['gene'], s['chrom'], start, end, t, svlen, s['ref'][:60], s['alt'][:60], src,
+                    flanks.get(s['site_id'], '')])
 
 def mismatches(a, b):
     return sum(x != y for x, y in zip(a, b)) + abs(len(a) - len(b))
@@ -198,14 +205,18 @@ def discordant(bam, chrom, start, end, t, insert_max=1000):
             names.add(r.query_name)
     return len(names)
 
-def depth(bam, chrom, start, end, t):
+def depth(bam, chrom, start, end, t, flanks=''):
+    """Read starts inside and in the flanks; flanks 'chrom:a-b;chrom:c-d' (1-based) replaces the adjacent windows."""
     if t not in ('DEL', 'DUP') or end - start < DEPTH_MIN_LEN:
         return '', ''
-    def starts(a, b):
-        return sum(1 for r in bam.fetch(chrom, max(0, a), b) if not r.is_unmapped and r.mapping_quality >= MIN_MQ
+    def starts(c, a, b):
+        return sum(1 for r in bam.fetch(c, max(0, a), b) if not r.is_unmapped and r.mapping_quality >= MIN_MQ
                    and not r.is_secondary and not r.is_supplementary and a <= r.reference_start < b)
+    if flanks:
+        wins = [re.match(r'(\w+):(\d+)-(\d+)$', f).groups() for f in flanks.split(';')]
+        return starts(chrom, start, end), sum(starts(c, int(a) - 1, int(b)) for c, a, b in wins)
     flank = min(end - start, FLANK_MAX)
-    return starts(start, end), starts(start - flank, start) + starts(end, end + flank)
+    return starts(chrom, start, end), starts(chrom, start - flank, start) + starts(chrom, end, end + flank)
 
 def count(sites_tsv, kit, bam_path, fasta=None):
     import pysam
@@ -217,6 +228,9 @@ def count(sites_tsv, kit, bam_path, fasta=None):
         bps = [start] if t == 'INS' or end - start <= 60 else [start, end]
         t_bp = 'INS' if t == 'DUP' and 2 <= svlen <= 60 else t   # a short tandem dup reads as an insertion
         try:
+            if s.get('flanks'):   # depth-only: no junction to look for
+                w.writerow([kit, s['site_id'], 0, 0, 0, *depth(bam, c, start, end, t, s['flanks']), end - start])
+                continue
             alt, ref = breakpoint_counts(bam, fa, c, bps, t_bp, svlen, start, end)
             if t == 'INS':   # pair evidence goes in 'disc'; bp_alt keeps the junction-only fragments (no double count)
                 src = s.get('source', '')

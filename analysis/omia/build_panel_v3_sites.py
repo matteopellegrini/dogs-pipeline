@@ -7,6 +7,8 @@ Inputs (known_variants/):
   panel_v3/t4_priority_curated.tsv              T4 priority rows curated from the papers
   panel_v3/t5_curated.tsv                       T5 (panel-only risk) rows with coordinates
   panel_v3/t3_t6_sv_coords.tsv                  T3 structural + T6 trait rows (coords or gene span)
+  panel_v3/depth_only_cnv.tsv                   CNVs without published breakpoints, genotyped from depth alone
+                                                (canFam4 interval + distant reference windows; analysis/cnv catalogue)
 Outputs (known_variants/panel_v3/):
   panel_v3_sites.tsv        every site, with report class and genotyping route
   panel_v3_small.vcf.gz     small variants with resolved alleles (imputation / direct-call targets)
@@ -84,13 +86,18 @@ for fn, origin, rc in [('t4_priority_curated.tsv', 'T4 needs coordinates (priori
             status=r['status'], refs=r['pmid'], note=r['note'])
 
 # 4. T3 structural and T6 traits
+# CNVs whose breakpoints were never published get a curated canFam4 interval instead of the gene span; they are
+# genotyped from depth against distant reference windows (sv_evidence.py reads the windows from the same table).
+DEPTH = {r['omia_id']: r for r in csv.DictReader(open(P / 'depth_only_cnv.tsv'), delimiter='\t')}
 for r in csv.DictReader(open(P / 't3_t6_sv_coords.tsv'), delimiter='\t'):
     if r['omia_id'] in CUR_OMIA: continue  # already a catalogue entry, curated above
     t3 = r['tier'].startswith('T3')
     rc = 'trait' if (not t3 or 'merle' in r['condition'].lower()) else 'report'
+    d = DEPTH.get(r['omia_id'])
     add(site_id=f"new_{r['gene']}_{r['omia_id'] or r['start']}", origin=r['tier'], report_class=rc, gene=r['gene'],
-        condition=r['condition'], chrom=r['chrom'], pos=r['start'], end=r['end'], ref='.', alt=r['type'] or 'SV', kind='sv',
-        genotyping='read_based', status=r['status'], refs=r['omia_id'] and f"OMIA variant {r['omia_id']}",
+        condition=r['condition'], chrom=r['chrom'], pos=d['start'] if d else r['start'], end=d['end'] if d else r['end'],
+        ref='.', alt=r['type'] or 'SV', kind='sv', genotyping='read_based',
+        status=f"depth_only; {d['basis']}" if d else r['status'], refs=r['omia_id'] and f"OMIA variant {r['omia_id']}",
         note='trait loci already genotyped in stages 13/13b are not duplicated there' if not t3 else '')
 
 # 5. T5 rows without coordinates and T4 non-priority: listed so nothing is lost, not genotyped yet
@@ -101,7 +108,13 @@ for r in cand:
     if t == 'T5' and (g, 'T5') not in have:
         add(site_id=f"todo_{g}", origin=r['tier'], report_class='panel_only', gene=r['gene'], condition=r['condition'],
             chrom='', pos='', kind='', genotyping='needs_coordinates', status='later', refs=r['pmid'], note=r['variant'][:150])
-    if r['tier'] == 'T4 needs coordinates':
+    if r['tier'] == 'T4 needs coordinates' and r['omia_id'] in DEPTH:
+        d = DEPTH[r['omia_id']]
+        add(site_id=f"new_{d['gene']}_{r['omia_id']}", origin=r['tier'], report_class='report', gene=d['gene'],
+            condition=r['condition'], chrom=d['chrom'], pos=d['start'], end=d['end'], ref='.',
+            alt={'DEL': 'deletion, gross (>20)', 'DUP': 'duplication'}[d['type']], kind='sv', genotyping='read_based',
+            status=f"depth_only; {d['basis']}", refs=f"OMIA variant {r['omia_id']}")
+    elif r['tier'] == 'T4 needs coordinates':
         add(site_id=f"todo_{g}_{len(rows)}", origin=r['tier'], report_class='report', gene=r['gene'], condition=r['condition'],
             chrom='', pos='', kind='', genotyping='needs_coordinates', status='later', refs=r['pmid'], note=r['variant'][:150])
 

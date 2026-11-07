@@ -66,6 +66,8 @@ HOLD = {
     'cat159': 'BTBD17 insG at 20-28% across breeds: OMIA-resolved allele under review',
     'cat396': 'IDUA 270-bp deletion: both breakpoints sit in a GC-rich tandem repeat, so repeat-length variation in '
               'every breed mimics the junction in short reads; needs a targeted assay',
+    'new_PTEN_698': 'PTEN duplication: one Great Dane puppy, found by quantitative PCR, no breakpoints or inheritance; '
+                    'depth over PTEN (+0.41 log for one extra copy, residual sd ~0.10) cannot reach a confident call',
     'new_CYTB_52': 'm.14474G>A homoplasmic in ~7% of dogs across 27 breeds (pit bulls, chihuahuas, shepherds) and in none '
                    'of 32 cattle dogs and shelties: a maternal-lineage polymorphism, not a reportable disease variant',
 }
@@ -374,8 +376,12 @@ def depth_model(svs, ev, n):
     (site x kit) matrix are biases that move many loci together in one kit (GC, library, batch: the FGF3/4/19
     duplication region read 2-4x in whole batches of non-Ridgebacks). Each kit's loading is fitted by weighted
     least squares over its sites, excluding its own outliers, so a real event in one dog does not cancel itself.
+    Depth-only sites (sv_sites.tsv column flanks: no published breakpoints, distant reference windows) are not
+    core: the components, each kit's loadings and its extra variance come from the core sites alone, and a
+    depth-only site only takes its own centre, component weights (regressed on the kit loadings) and variance, so
+    adding one leaves every core site's depth term unchanged.
     Returns {site_id: (residual log ratio, variance, expected log ratio of a homozygous deletion)}."""
-    rows, sids = [], []
+    rows, sids, core = [], [], []
     for sv in svs:
         length = int(sv['end']) - int(sv['start'])
         if sv['type'] not in ('DEL', 'DUP') or length < DEPTH_MIN_LEN:
@@ -388,32 +394,41 @@ def depth_model(svs, ev, n):
         pv = np.where(ok, 1 / (np.nan_to_num(din) + 0.5) + 1 / (np.nan_to_num(dfl) + 0.5), np.nan)
         rows.append((lr, pv, np.where(ok, np.log(0.5 / (np.nan_to_num(mu) + 0.5)), np.nan)))
         sids.append(sv['site_id'])
+        core.append(not sv.get('flanks'))
     if not rows:
         return {}
     LR = np.array([r[0] for r in rows]); PV = np.array([r[1] for r in rows]); HOM = np.array([r[2] for r in rows])
+    core = np.array(core)
     centre = np.nanmedian(LR, axis=1, keepdims=True)
     LR, HOM = LR - centre, HOM - centre
     ok = np.isfinite(LR)
     W = np.where(ok & (np.abs(LR) <= DEPTH_WINSOR), 1 / np.where(ok, PV + 0.01, 1), 0.0)
     X = np.where(W > 0, LR, 0.0)
-    deep = (W > 0).mean(0) > 0.8
-    k = min(DEPTH_PCS, len(sids) - 1)
-    U = np.linalg.svd(X[:, deep] * np.sqrt(W[:, deep]), full_matrices=False)[0][:, :k] if k > 0 else np.zeros((len(sids), 0))
-    R = np.full_like(LR, np.nan)
+    Wc, Xc = W[core], X[core]
+    deep = (Wc > 0).mean(0) > 0.8
+    k = min(DEPTH_PCS, int(core.sum()) - 1)
+    U = np.zeros((len(sids), max(k, 0)))
+    if k > 0:
+        U[core] = np.linalg.svd(Xc[:, deep] * np.sqrt(Wc[:, deep]), full_matrices=False)[0][:, :k]
+    SC = np.zeros((max(k, 0), n)); fit = np.zeros(n, bool)
     for j in range(n):
-        w = W[:, j]
+        w = Wc[:, j]
         if k and (w > 0).sum() > k + 2:
-            A = U * np.sqrt(w)[:, None]
-            sc = np.linalg.lstsq(A, X[:, j] * np.sqrt(w), rcond=None)[0]
-            R[:, j] = LR[:, j] - U @ sc
-        else:
-            R[:, j] = LR[:, j]
+            A = U[core] * np.sqrt(w)[:, None]
+            SC[:, j] = np.linalg.lstsq(A, Xc[:, j] * np.sqrt(w), rcond=None)[0]
+            fit[j] = True
+    for i in np.where(~core)[0]:   # a depth-only site's weights on the core components, from the kits' loadings
+        w = W[i] * fit
+        if k and (w > 0).sum() > k + 2:
+            U[i] = np.linalg.lstsq(SC.T * np.sqrt(w)[:, None], X[i] * np.sqrt(w), rcond=None)[0]
+    R = np.where(fit[None, :], LR - U @ SC, LR)
     mad = lambda x: 1.4826 * np.nanmedian(np.abs(x - np.nanmedian(x)))
     tau_site = np.array([max(0.002, mad(R[i]) ** 2 - np.nanmedian(PV[i])) for i in range(len(sids))])
     base = PV + tau_site[:, None]
-    tau_kit = np.maximum(0.0, np.nanmedian(R ** 2, axis=0) / 0.455 - np.nanmedian(base, axis=0))
+    tau_kit = np.maximum(0.0, np.nanmedian(R[core] ** 2, axis=0) / 0.455 - np.nanmedian(base[core], axis=0))
     V = base + np.nan_to_num(tau_kit)[None, :]
-    frozen = dict(depth_sid=np.array(sids), depth_centre=centre[:, 0], depth_U=U, depth_tau_site=tau_site)
+    frozen = dict(depth_sid=np.array(sids), depth_centre=centre[:, 0], depth_U=U, depth_tau_site=tau_site,
+                  depth_core=core)
     return {sid: (R[i], V[i], HOM[i]) for i, sid in enumerate(sids)}, frozen
 
 def depth_one_kit(svs, ev1, fz):
@@ -433,15 +448,17 @@ def depth_one_kit(svs, ev1, fz):
         LR[i] = np.log((din + 0.5) / (mu + 0.5)); PV[i] = 1 / (din + 0.5) + 1 / (dfl + 0.5); HOM[i] = np.log(0.5 / (mu + 0.5))
     LR, HOM = LR - fz['depth_centre'], HOM - fz['depth_centre']
     U = fz['depth_U']; k = U.shape[1]
+    core = fz['depth_core'] if 'depth_core' in fz else np.ones(len(sids), bool)   # models frozen before depth-only sites
     ok = np.isfinite(LR)
-    w = np.where(ok & (np.abs(LR) <= DEPTH_WINSOR), 1 / np.where(ok, PV + 0.01, 1), 0.0)
+    w = np.where(ok & (np.abs(LR) <= DEPTH_WINSOR) & core, 1 / np.where(ok, PV + 0.01, 1), 0.0)
     X = np.where(w > 0, LR, 0.0)
     R = LR
     if k and (w > 0).sum() > k + 2:
         sc = np.linalg.lstsq(U * np.sqrt(w)[:, None], X * np.sqrt(w), rcond=None)[0]
         R = LR - U @ sc
     base = PV + fz['depth_tau_site']
-    tau_kit = max(0.0, np.nanmedian(R ** 2) / 0.455 - np.nanmedian(base)) if ok.any() else 0.0
+    okc = ok & core
+    tau_kit = max(0.0, np.nanmedian(R[okc] ** 2) / 0.455 - np.nanmedian(base[okc])) if okc.any() else 0.0
     V = base + tau_kit
     return {sid: (R[i:i + 1], V[i:i + 1], HOM[i:i + 1]) for i, sid in enumerate(sids)}
 
