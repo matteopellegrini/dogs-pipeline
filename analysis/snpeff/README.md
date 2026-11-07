@@ -56,6 +56,16 @@ The canFam4 versions are in `app_assets_canFam4/`:
 - HIGH rows: 4,191,130 to **613,497**. Homozygous HIGH rows: 1,435,334 to 202,302. Every report's list changes.
 - Rows listed by default (OmiaTable PredictedVariants, `listed_rows.py`): **75 rows on 66 reports, 14 inside the named gene, become 7 rows on 7 reports, 7 inside**. The 7 are FICD, MASP2 x2, NFATC1 x2, ANAPC1 and CA12 stop-gain or splice-site changes. See `listed_rows/`.
 
+## Rollout (approved and run 2026-11-07)
+- Merged to `dogs` main (53d0a97). Scripts synced to Hoffman2.
+- Panel swapped: `dog10k_sites.ann.bcf` is now canFam4_NCBI_AR106; the old one is kept as `dog10k_sites.ann.ROS_Cfam_1.115.bcf` (+ .csi).
+- All 1,978 published `functional_variants.json` replaced from `snpeff_build/fv_new/` (identical panel + parser), each with `functional_variants.pre-snp1107.json` beside it.
+- dogs-app 6dfba8e: new `lib/panelHomLof.json` + `lib/cohortHomCounts.json`, deployed to production.
+- Files-only republish tag `snp1107` (log: `logs/republish_snp1107.log` on Hoffman2).
+- Not done: clearing cached AI text (step 5 below).
+
+Rollback: move the ROS BCF back, copy each `functional_variants.pre-snp1107.json` over `functional_variants.json`, revert dogs-app 6dfba8e, republish.
+
 ## Rollout plan (each step needs approval)
 1. Merge this branch. Copy `run_dog_pipeline.sh`, `analysis/snpeff/functional_variants.py` and the cluster scripts to Hoffman2. Then move the canFam4 panel BCF into place as `dog10k_sites.ann.bcf`, keeping the old one as `dog10k_sites.ann.ROS_Cfam_1.115.bcf`. New kits are correct from then on.
 2. Rebuild the published kits in place:
