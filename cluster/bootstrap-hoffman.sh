@@ -109,8 +109,12 @@ else
 fi
 
 step "SnpEff dog database"
-"$ENVS/genomics/bin/snpEff" download -v ROS_Cfam_1.115 || \
-  echo "   WARNING: snpEff download failed — copy \$ENV/share/snpeff*/data from the Mac instead"
+# Built on canFam4 from NCBI RefSeq (the downloadable ROS_Cfam_1.115 is a different assembly)
+if ls "$ENVS"/genomics/share/snpeff-*/data/canFam4_NCBI_AR106/snpEffectPredictor.bin >/dev/null 2>&1; then
+  ok "present"
+else
+  echo "   run: sbatch -A pi_matteop -p campus -c 2 --mem=24G -t 4:00:00 -J snpeffdb cluster/build_snpeff_canfam4.sh"
+fi
 
 step "Reference data that must be copied from the Mac"
 mkdir -p "$D"
