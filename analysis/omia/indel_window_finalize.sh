@@ -8,7 +8,9 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 export PATH="$ROOT/envs/genomics/bin:$PATH" OPENBLAS_NUM_THREADS=1
 T=$(ls -d "$O/.$NAME".* | head -1)
 [[ -s "$T/phased.vcf.gz" ]] || { echo "ERROR: no Beagle output in $T"; exit 1; }
-bcftools reheader --fai "$ROOT/canFam4_plusY.fa.fai" "$T/phased.vcf.gz" | bcftools +fill-tags -Ob -o "$O/$NAME.ref.bcf" -- -t AC,AN
+# GLIMPSE2 rejects a site every reference dog carries (AC == AN: a fixed difference from the reference genome)
+bcftools reheader --fai "$ROOT/canFam4_plusY.fa.fai" "$T/phased.vcf.gz" | bcftools +fill-tags -Ou -- -t AC,AN \
+  | bcftools view -e 'INFO/AC==0 || INFO/AC==INFO/AN' -Ob -o "$O/$NAME.ref.bcf"
 bcftools index -f "$O/$NAME.ref.bcf"
 before=$(awk '{n+=gsub(/1/,"",$2)} END{print n+0}' "$O/$NAME.carriers.tsv")
 after=$(bcftools query -i "POS=$P && REF=\"$REF\"" -f '[%GT\n]' "$O/$NAME.ref.bcf" | awk '{n+=gsub(/1/,"")} END{print n+0}')
