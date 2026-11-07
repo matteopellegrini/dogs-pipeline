@@ -62,7 +62,7 @@ The canFam4 versions are in `app_assets_canFam4/`:
 - All 1,978 published `functional_variants.json` replaced from `snpeff_build/fv_new/` (identical panel + parser), each with `functional_variants.pre-snp1107.json` beside it.
 - dogs-app 6dfba8e: new `lib/panelHomLof.json` + `lib/cohortHomCounts.json`, deployed to production.
 - Files-only republish tag `snp1107` (log: `logs/republish_snp1107.log` on Hoffman2).
-- Not done: clearing cached AI text (step 5 below).
+- Cached AI text: the republish itself deletes every kit's `ai_summary_<tab>.json` and bumps `report_uploaded_at` (so dashboards go stale and regenerate on view). For the 60 published reports that listed rows by default (`ai_cache_cleared_barcodes.txt`), both were also cleared outright via `DELETE /api/admin/summaries {barcodes, dashboard:true}` (dogs-app 8928808): 300 summary keys, 1 dashboard row (the only one cached).
 
 Rollback: move the ROS BCF back, copy each `functional_variants.pre-snp1107.json` over `functional_variants.json`, revert dogs-app 6dfba8e, republish.
 
