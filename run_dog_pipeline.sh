@@ -4906,6 +4906,17 @@ else log "  trait catalogue or inputs missing — traits skipped"; fi
 fi # end stage 13b
 
 if (( FROM_STAGE <= 13 && TO_STAGE >= 13 )); then
+# ── Stage 13b2: AMY2B (pancreatic amylase) copy number from read depth ───
+# Diploid copies of the ~15 kb amylase unit vs GC-matched two-copy windows on chr6
+# (analysis/traits/amy2b.py). Needs the full markdup.bam: sites.bam lacks the control windows.
+log "=== Stage 13b2: AMY2B copy number ==="
+if [[ -s "$OUT/markdup.bam" ]]; then
+    "$DATA_PYTHON" "$D/analysis/traits/amy2b.py" "$OUT/markdup.bam" "$PUB/amy2b_result.json" --fasta "$FASTA" \
+      || log "  WARNING: AMY2B stage failed — amy2b_result.json not written"
+else log "  markdup.bam missing — AMY2B skipped"; fi
+fi # end stage 13b2
+
+if (( FROM_STAGE <= 13 && TO_STAGE >= 13 )); then
 # ── Stage 13c: panel v3 genetic-health calls (PANEL_V3=1; off until the panel v3 rollout) ───
 # Scores this kit against the frozen cohort fit in reference_panel/panel_v3 (per-breed allele frequencies, read
 # errors, SV depth components: analysis/omia/panel_v3_breed_prior.py score) and rewrites omia_result.json against
