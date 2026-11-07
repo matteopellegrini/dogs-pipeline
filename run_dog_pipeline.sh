@@ -1504,8 +1504,9 @@ else:
 
     # Gene overlap for reported segments (reference gene table; chrom keys
     # are bare numbers, X included).
-    # Genome-wide gene spans (built once from the snpEff GTF — the per-sample
-    # cnv_genes.json copies only cover chromosomes the legacy caller touched).
+    # Genome-wide canFam4 gene spans: Ensembl ROS_Cfam_1.0 genes lifted to
+    # canFam4 (analysis/genes/build_genes_canfam4.py) — the per-sample
+    # cnv_genes.json copies only cover chromosomes the legacy caller touched.
     gene_map = {}
     try:
         gene_map = json.load(open("$REF_JSON/genes_canFam4.json"))
@@ -2702,11 +2703,14 @@ fi
 "$BCFTOOLS_BIN" index -t "$ANN_DIR/${DOG_LOWER}_annotated.vcf.gz"
 log "SnpEff done: $(wc -l < $ANN_DIR/snpeff.log) log lines"
 
-# ── Rebuild cnv_genes.json from annotated VCF (genome-wide, this sample) ──
+# ── Rebuild cnv_genes.json genome-wide for this sample ──
 # Stage 6 uses a static reference cnv_genes.json that only covers chromosomes
-# with CNVs in the reference dog. Re-annotate now using this sample's SnpEff
-# output, which covers all chromosomes, then patch cnv_homdel.json.
-log "  Rebuilding cnv_genes.json from SnpEff annotation…"
+# with CNVs in the reference dog. Gene spans come from the lifted canFam4 table
+# ($REF_JSON/genes_canFam4.json); the snpEff database (ROS_Cfam_1.115) places
+# genes in ROS_Cfam_1.0 coordinates, up to ~400 kb off on canFam4, so its ANN
+# positions are used only for each gene's biotype (a property of the gene, not
+# its position). No exon-level overlap is claimed: the table carries no exons.
+log "  Rebuilding cnv_genes.json from the canFam4 gene table…"
 "$DATA_PYTHON" - << PYEOF
 import gzip, json, re
 from collections import defaultdict
@@ -2715,74 +2719,28 @@ ANN_VCF  = "$ANN_DIR/${DOG_LOWER}_annotated.vcf.gz"
 CNV_JSON = "$PUB/cnv_homdel.json"
 PUB      = "$PUB"
 
-# Effect types that indicate a variant falls in an exon
-EXONIC_EFFECTS = {
-    'exon_variant', 'missense_variant', 'synonymous_variant',
-    'stop_gained', 'stop_lost', 'start_lost', 'frameshift_variant',
-    'splice_acceptor_variant', 'splice_donor_variant',
-    'protein_protein_contact', 'structural_interaction_variant',
-    'inframe_insertion', 'inframe_deletion',
-    'stop_retained_variant', 'start_retained_variant',
-    'coding_sequence_variant', '5_prime_UTR_variant', '3_prime_UTR_variant',
-}
-
-# Parse ANN fields: build gene coordinate map and track per-gene exonic positions
-gene_by_id = {}   # gene_id -> gene dict with exonic_positions set
+biotype = {}
 with gzip.open(ANN_VCF, 'rt') as f:
     for line in f:
         if line.startswith('#'): continue
-        cols = line.split('\t')
-        if len(cols) < 8: continue
-        chrom, pos = cols[0], int(cols[1])
-        ann_match = re.search(r'ANN=([^;]+)', cols[7])
-        if not ann_match: continue
-        for ann in ann_match.group(1).split(','):
+        m = re.search(r'ANN=([^;\t]+)', line)
+        if not m: continue
+        for ann in m.group(1).split(','):
             parts = ann.split('|')
-            if len(parts) < 8: continue
-            effect    = parts[1]
-            gene_name = parts[3]
-            gene_id   = parts[4]
-            biotype   = parts[7]
-            if not gene_id or not gene_name: continue
-            # Skip fusion/readthrough annotations (two gene names joined by '-')
-            if '-' in gene_name:
-                p = gene_name.split('-')
-                if len(p) == 2 and all(len(x) > 4 for x in p):
-                    continue
-            is_exonic = any(e in effect for e in EXONIC_EFFECTS)
-            if gene_id not in gene_by_id:
-                gene_by_id[gene_id] = {
-                    'gene_id': gene_id, 'name': gene_name, 'chrom': chrom,
-                    'start': pos, 'end': pos, 'biotype': biotype,
-                    'strand': '+', 'exons': [], 'cds': [],
-                    '_exonic_pos': set()
-                }
-            g = gene_by_id[gene_id]
-            g['start'] = min(g['start'], pos)
-            g['end']   = max(g['end'],   pos)
-            if is_exonic:
-                g['_exonic_pos'].add(pos)
+            if len(parts) >= 8 and parts[3] and parts[7]:
+                biotype.setdefault(parts[3], parts[7])
 
-# Build chromosome-keyed map
 gene_map = defaultdict(list)
-for g in gene_by_id.values():
-    chrom_num = g['chrom'].replace('chr', '')
-    gene_map[chrom_num].append({
-        'gene_id': g['gene_id'], 'name': g['name'],
-        'start': g['start'], 'end': g['end'],
-        'strand': g['strand'], 'biotype': g['biotype'],
-        'exons': g['exons'], 'cds': g['cds'],
-        '_exonic_pos': sorted(g['_exonic_pos'])
-    })
-
-print(f"cnv_genes.json: {len(gene_by_id)} genes across {len(gene_map)} chromosomes")
-# Write without internal _exonic_pos (that's only for CNV re-annotation)
-gene_map_out = {c: [{k: v for k, v in g.items() if k != '_exonic_pos'} for g in gs]
-                for c, gs in gene_map.items()}
+for c, items in json.load(open("$REF_JSON/genes_canFam4.json")).items():
+    for g in items:
+        gene_map[c].append({'gene_id': g['name'], 'name': g['name'],
+                            'start': g['start'], 'end': g['end'], 'strand': '+',
+                            'biotype': biotype.get(g['name'], 'unknown'),
+                            'exons': [], 'cds': []})
+print(f"cnv_genes.json: {sum(len(v) for v in gene_map.values())} genes across {len(gene_map)} chromosomes")
 with open(f'{PUB}/cnv_genes.json', 'w') as f:
-    json.dump(gene_map_out, f)
+    json.dump(gene_map, f)
 
-# Re-annotate CNV regions using gene map + exonic position evidence
 with open(CNV_JSON) as f:
     cnv = json.load(f)
 
@@ -2792,13 +2750,10 @@ def find_genes(chrom, start, end):
     for g in gene_map.get(chrom_num, []):
         if g['end'] < start or g['start'] > end: continue
         ov = 'full' if g['start'] >= start and g['end'] <= end else 'partial'
-        # Exon overlap: check if any exonic variant position falls in the CNV window
-        exonic_in_region = [p for p in g.get('_exonic_pos', []) if start <= p <= end]
-        exon_ov = 'exonic' if exonic_in_region else 'intronic'
         disrupted.append(g['name'])
         details.append({'gene': g['name'], 'biotype': g['biotype'],
                         'chrom': chrom, 'start': g['start'], 'end': g['end'],
-                        'overlap': ov, 'exon_overlap': exon_ov})
+                        'overlap': ov})
     return disrupted, details
 
 all_disrupted = {}
@@ -2816,7 +2771,7 @@ with open(CNV_JSON, 'w') as f:
 print(f"cnv_homdel.json re-annotated: {len(all_disrupted)} disrupted genes")
 for r in cnv.get('regions', []):
     print(f"  {r['chrom']}:{r['start']}-{r['end']} → "
-          + ", ".join(f"{d['gene']} ({d['exon_overlap']})" for d in r['disrupted_gene_details']))
+          + ", ".join(f"{d['gene']} ({d['overlap']})" for d in r['disrupted_gene_details']))
 PYEOF
 
 # Parse SnpEff ANN field → functional_variants.json
