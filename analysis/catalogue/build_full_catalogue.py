@@ -187,6 +187,8 @@ scans = [
     ('Immune-gene (DLA class II) diversity', 'DLA-DRB1/DQA1/DQB1 region', 'SNV haplotypes',
      'Imputed SNP heterozygosity across the MHC region (stage 12b).'),
     ('Maternal line', 'Mitochondrial genome', 'mtDNA SNVs', 'chrM-only remap, haplogroup call.'),
+    ('Mitochondrial disease screen', 'Sensory ataxic neuropathy (MT-TY m.5304del = canFam4 chrM:11072 TA>T)', 'mtDNA indel',
+     'Share of chrM reads carrying the deletion (heteroplasmy %), from mito_result.json disease_screen; shown as a card in Genetic Health, separate from the conditions list (where panel v3 holds the same site). CYTB m.14474G>A excluded: a lineage polymorphism in ~7-11% of healthy dogs.'),
     ('Paternal line', 'Y chromosome', 'Y SNVs', 'canFam4_plusY reference, Y haplogroup (new kits).'),
 ]
 
