@@ -18,7 +18,12 @@ Each panel v3 genotype has source 'panel_v3', p_carrier, and basis: 'imputed' (G
 the call rests on the dog's breed mix), 'allele_fraction' (mitochondrial) or 'structural' (breakpoint reads, read
 pairs and depth). Held sites and sites the model does not call keep the previous call.
 
-  python3 panel_v3_apply.py WORK_DIR CATALOGUE SAMPLE OLD_OMIA|- OUT_OMIA
+The CBD103 KB deletion (cat218) is the exception: it sits at the end of a GGG run, where the pileup counts reads that
+stop inside the run as reference (Cosmo at 18x: 16 alt + 2 ref against 18 of 18 spanning reads deleted), so its fitted
+model never calls clear and rarely two copies. Its genotype comes from the coat stage's K locus call instead, which
+counts only reads spanning the deletion (k_locus_genotype; pass the dog's coat_color.json as COAT_JSON).
+
+  python3 panel_v3_apply.py WORK_DIR CATALOGUE SAMPLE OLD_OMIA|- OUT_OMIA [COAT_JSON]
 """
 import csv, json, sys
 import numpy as np
@@ -39,7 +44,35 @@ def genotype(call, p, basis, extra):
     g.update(extra)
     return g
 
-def main(work, catalogue, sample, old_path, out_path):
+KB_SITE = 'cat218'
+
+def k_locus_genotype(coat, model_g):
+    """The KB deletion genotype from the coat stage's K locus read call (stage 13), or None to keep model_g.
+    KB/KB -> two copies, KB/ky -> one copy, high-confidence ky/ky (>=6 spanning reads, none deleted) -> clear;
+    KB/? and lower-confidence ky/ky stay uncertain with the model's p_carrier. Tag-only calls (no spanning read)
+    keep the model call."""
+    k = ((coat or {}).get('loci') or {}).get('K') or {}
+    ev = k.get('read_evidence') or {}
+    nd, nr = int(ev.get('n_del') or 0), int(ev.get('n_ref') or 0)
+    if nd + nr == 0:
+        return None
+    a = sorted(k.get('predicted_alleles') or [])
+    conf = k.get('confidence') or 'low'
+    extra = {'site_reads': nd + nr, 'k_locus_reads': {'deleted': nd, 'not_deleted': nr}}
+    if a == ['KB', 'KB']:
+        call, p = 'two_copies', 1.0
+    elif a == ['KB', 'ky']:
+        call, p = 'carrier', 1.0
+    elif a == ['ky', 'ky'] and conf == 'high':
+        call, p = 'clear', 0.0
+    else:
+        call, p = 'uncertain', float((model_g or {}).get('p_carrier', 0.5))
+        conf = 'low'
+    g = genotype(call, p, 'reads', extra)
+    g['call_confidence'] = conf
+    return g
+
+def main(work, catalogue, sample, old_path, out_path, coat_path=None):
     cat = json.load(open(catalogue))
     # dict(): an NpzFile decompresses an array again on every item access, i.e. per site
     small = dict(np.load(f'{work}/bp_p_carrier.npz'))
@@ -76,6 +109,10 @@ def main(work, catalogue, sample, old_path, out_path):
         calls[str(sid)] = (str(sv['call'][i, svj]), float(sv['p'][i, svj]), 'structural', ev.get(str(sid), {}))
 
     old = json.load(open(old_path)) if old_path != '-' else None
+    try:
+        coat = json.load(open(coat_path)) if coat_path else None
+    except (OSError, ValueError):
+        coat = None
     old_v = old['variants'] if old else []
     key = next((k for v in old_v for k, x in v.items() if is_gt(x) and k not in DOG_KEYS), sample.lower())
     variants, n = [], {'panel_v3': 0, 'kept': 0, 'none': 0}
@@ -89,6 +126,8 @@ def main(work, catalogue, sample, old_path, out_path):
         c = calls.get(sid)
         if c and c[0] != 'held':
             base[key] = genotype(*c)
+            if sid == KB_SITE and coat is not None:
+                base[key] = k_locus_genotype(coat, base[key]) or base[key]
             n['panel_v3'] += 1
         elif is_gt(base.get(key)):
             n['kept'] += 1
@@ -106,4 +145,4 @@ def main(work, catalogue, sample, old_path, out_path):
     print(f'{sample}: {len(variants)} entries, panel_v3 {n["panel_v3"]}, kept {n["kept"]}, no call {n["none"]} -> {out_path}')
 
 if __name__ == '__main__':
-    main(*sys.argv[1:6])
+    main(*sys.argv[1:7])

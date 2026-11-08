@@ -4930,7 +4930,7 @@ if [[ "${PANEL_V3:-0}" == "1" ]]; then
     if [[ -s "$PV3_BAM" && -s "$PV3_MODEL/bp_model.npz" && -s "$REF_JSON/omia_variants_v3.json" && -s "$PUB/omia_result.json" ]]; then
         # a stage-8 file has no panel v3 calls yet: (re)take it as the base
         grep -q '"panel_v3"' "$PUB/omia_result.json" || cp "$PUB/omia_result.json" "$OUT/omia_result.stage8.json"
-        if FASTA="$FASTA" DATA_PYTHON="$DATA_PYTHON" bash "$D/analysis/omia/panel_v3_kit.sh" "$DOG_LOWER" "$PV3_BAM"                "$IMPUTED_BCF" "$PUB" "$PV3_MODEL" "$OUT/panel_v3/kit"            && "$DATA_PYTHON" "$D/analysis/omia/panel_v3_breed_prior.py" score "$PV3_MODEL" "$OUT/panel_v3/kit" "$OUT/panel_v3/score"            && "$DATA_PYTHON" "$D/analysis/omia/panel_v3_apply.py" "$OUT/panel_v3/score" "$REF_JSON/omia_variants_v3.json"                "$DOG_LOWER" "$OUT/omia_result.stage8.json" "$OUT/panel_v3/omia_result.json"; then
+        if FASTA="$FASTA" DATA_PYTHON="$DATA_PYTHON" bash "$D/analysis/omia/panel_v3_kit.sh" "$DOG_LOWER" "$PV3_BAM"                "$IMPUTED_BCF" "$PUB" "$PV3_MODEL" "$OUT/panel_v3/kit"            && "$DATA_PYTHON" "$D/analysis/omia/panel_v3_breed_prior.py" score "$PV3_MODEL" "$OUT/panel_v3/kit" "$OUT/panel_v3/score"            && "$DATA_PYTHON" "$D/analysis/omia/panel_v3_apply.py" "$OUT/panel_v3/score" "$REF_JSON/omia_variants_v3.json"                "$DOG_LOWER" "$OUT/omia_result.stage8.json" "$OUT/panel_v3/omia_result.json" "$PUB/coat_color.json"; then
             cp "$OUT/panel_v3/omia_result.json" "$PUB/omia_result.json"
             log "  omia_result.json rewritten with panel v3 calls"
         else log "  WARNING: panel v3 scoring failed — omia_result.json left as stage 8 wrote it"; fi
