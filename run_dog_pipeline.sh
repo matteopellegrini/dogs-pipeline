@@ -3503,6 +3503,50 @@ for _t, _info in _DAM['traits'].items():
               + (f" blended_pct={_entry['blended_percentile']:.0f}" if 'blended_percentile' in _entry else ""))
     # 'size' kind feeds the weight blend above; skip separate reporting
 
+# ── DAP behaviour (begin) ──────────────────────────────────────────────────
+# Dog Aging Project behaviour models (analysis/behavior_dap/, 2026-11-08): per trait
+# a ridge on breed composition + sex, fit to ~6,800 DAP owners' answers to 42 behaviour
+# items (held-out r 0.14-0.31, within mixed breeds 0.12-0.28; today's AKC-trained scores
+# reach 0.03-0.20 on the same answers). Needs only breed_result.json and the stage-6 sex
+# call, so cluster/backfill_behavior.py reruns this block on published reports.
+dap_behavior = None
+try:
+    with open("$REF_JSON/behavior_dap_model.json") as _f:
+        _BDM = json.load(_f)
+    with open(f'{PUB}/breed_result.json') as _f:
+        _brb = json.load(_f)
+    _bcomp = [(_r['breed'], float(_r['proportion']))
+              for _r in (_brb.get('breed_composition_raw') or _brb.get('breed_composition') or [])]
+    _bidx = {_b: _i for _i, _b in enumerate(_BDM['breeds'])}
+    _bcomp = [(_b, _p) for _b, _p in _bcomp if _b in _bidx and _p > 0]
+    _btot = sum(_p for _, _p in _bcomp)
+    _bsex = None
+    try:
+        with open(f'{PUB}/coverage_1mb.json') as _f:
+            _bsex = json.load(_f).get('_meta', {}).get('predicted_sex')
+    except Exception:
+        pass
+    _bmale = {'male': 1.0, 'female': 0.0}.get(_bsex, 0.5)
+    if _btot >= 0.5:
+        dap_behavior = {'traits': {}, 'sex_used': _bsex, 'model': _BDM['model'],
+                        'method': _BDM['method'], 'source': _BDM['source']}
+        for _bt, _bm in _BDM['traits'].items():
+            _bs = (_bm['intercept'] + _bm['male'] * _bmale
+                   + sum(_p * _bm['breed_dev'][_bidx[_b]] for _b, _p in _bcomp) / _btot)
+            _bq = _bm['ref_quantiles']
+            _bpct = float(np.interp(_bs, _bq, np.arange(len(_bq))))
+            dap_behavior['traits'][_bt] = {
+                'display': _bm['display'], 'blurb': _bm['blurb'], 'score': round(_bs, 4),
+                'percentile': round(_bpct, 1), 'cv_r': _bm['cv_r'], 'cv_r_mixed': _bm['cv_r_mixed'],
+                'n_dogs': _bm['n_dogs'], 'replaces': _bm['replaces']}
+        print("  DAP behaviour: " + ", ".join(f"{_k} {_v['percentile']:.0f}"
+                                              for _k, _v in dap_behavior['traits'].items()))
+    else:
+        print(f"  DAP behaviour: skipped (only {_btot:.0%} of ancestry in model labels)")
+except Exception as _e:
+    print(f"  DAP behaviour unavailable ({_e})")
+# ── DAP behaviour (end) ────────────────────────────────────────────────────
+
 # Coat type — per-category binary, pick highest z-score
 coat_types = ['Double','Smooth','Wavy','Curly','Silky','Wiry','Rough']
 ct_best, ct_best_z, ct_best_pct = None, -np.inf, 50.0
@@ -3551,6 +3595,7 @@ prs_result = {
                    "Behaviour factors blend PRS with the dog's breed-composition expectation."),
     },
     'physical_traits': phys_traits,
+    **({'dap_behavior': dap_behavior} if dap_behavior else {}),
     'method': (f'GEMMA linear-mixed-model betas (GRM + genotype-source covariate), '
                f'trained on the merged Parker+Dog10K panel ({LMM["meta"]["n_dogs"]} dogs); '
                f'dense PRS = sum(beta x GLIMPSE2-imputed dosage) over all '
