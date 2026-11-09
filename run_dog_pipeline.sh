@@ -501,7 +501,9 @@ log "BAM ready: $OUT/markdup.bam"
 "$DATA_PYTHON" - << PYEOF > "$OUT/sites.bed"
 import json
 regs = [('chrM', 0, 17000), ('chr10', 643510, 645512),
-        ('chr5', 64185000, 64189000), ('chr11', 33399000, 33402000)]
+        ('chr5', 64185000, 64189000), ('chr11', 33399000, 33402000),
+        # ASIP ventral promoter, hair-cycle promoter and coding exon 4 (A locus)
+        ('chr24', 23863000, 23865000), ('chr24', 23890500, 23893000), ('chr24', 23906000, 23906400)]
 db = json.load(open("$OMIA_DB"))
 for v in db['variants']:
     c, p = v.get('chrom'), v.get('pos')
@@ -3866,7 +3868,8 @@ log "=== Stage 13: Coat color ==="
 CALL_BAM="$OUT/markdup.bam"
 [[ -f "$CALL_BAM" ]] || CALL_BAM="$OUT/sites.bam"
 [[ -f "$CALL_BAM" ]] || die "Stage 13 needs reads: neither markdup.bam nor sites.bam in $OUT — refusing to write a degraded report"
-export IMPUTED_BCF MARKDUP_BAM="$CALL_BAM" PUB DOG_LOWER
+export IMPUTED_BCF MARKDUP_BAM="$CALL_BAM" PUB DOG_LOWER \
+       ASIP_DIR="$D/analysis/asip" ASIP_HAPS="$D/reference_json/asip_haplotypes.json"
 "$DATA_PYTHON" - << 'PYEOF'
 import subprocess, json, pysam, re, tempfile, os
 
@@ -3923,13 +3926,10 @@ KNOWN_VARIANTS = [
     dict(locus='K', chrom='chr16', pos=55464673, exp_ref='C', exp_alt='A',
          allele='KB_tag', inheritance='dominant', effect='CBD103 region KB-haplotype tag 2'),
 
-    # A locus: ASIP (chr24)
-    # ay (sable) and aw involve regulatory/structural variants — not detectable from SNP imputation.
-    # These positions tag at/a coding alleles only.
-    dict(locus='A', chrom='chr24', pos=23906214, exp_ref=None, exp_alt=None,
-         allele='at_tag', inheritance='recessive', effect='ASIP — tan-points/recessive-black coding tag'),
-    dict(locus='A', chrom='chr24', pos=23908000, exp_ref=None, exp_alt=None,
-         allele='at_tag', inheritance='recessive', effect='ASIP — tan-points/recessive-black coding tag 2'),
+    # A locus: ASIP (chr24) is called from reads by analysis/asip/asip_locus.py
+    # (promoter haplotypes + p.Ala82Ser/p.Arg83His + p.Arg96Cys), not from this
+    # table. The two sites that stood here until 2026-11-09 were placeholders: one
+    # was the p.Arg96Cys (a) site read as tan points, the other 1.4 kb past ASIP.
 
     # B locus: TYRP1 (chr11, PLUS strand in canFam4).
     # bc: c.121T>A p.Cys41Ser at chr11:33,376,317 (TGT -> AGT, first base of codon 41;
@@ -4443,22 +4443,9 @@ def call_locus(locus, calls):
         return '?', '?', 'low', 'No read spans the CBD103 deletion site at this sequencing depth — dominant black (KB) not resolved; the dog\'s coat pattern tells you: solid = KB, patterned/sable/tan-points = ky/ky'
 
     elif locus == 'A':
-        at_calls = [c for c in calls if c['locus'] == 'A' and c['allele'] == 'at_tag'
-                    and c['found'] and c['n_alt'] is not None]
-        if not any_found('A', calls):
-            return '?', '?', 'low', 'ASIP coding positions not found; ay/aw require structural variant analysis'
-        n_at = max((c['n_alt'] for c in at_calls), default=0)
-        n_het_sites = sum(1 for c in at_calls if c['n_alt'] == 1)
-        any_hom = any(c['n_alt'] == 2 for c in at_calls)
-        if any_hom or n_het_sites >= 2:
-            return 'at', 'at', 'medium', 'Tan-points / tricolor (at/at) — recessive black or tricolor pattern'
-        # No 'ay/?' guess (2026-10-29): sable and wild agouti are not readable here, and the guess was wrong for
-        # Cosmo (at/at per Embark). Unknown alleles are '?', which the report shows as not determined.
-        if n_at == 1:
-            return 'at', '?', 'low', ('One tan-points (at) allele detected; the other copy (sable, wild agouti or a '
-                'second at) cannot be read with this sequencing')
-        return '?', '?', 'low', ('No tan-points (at) or recessive-black (a) coding variant detected. Sable (ay) and '
-            'wild agouti (aw) cannot be read with this sequencing, so the A locus is not determined.')
+        if ASIP is None:
+            return '?', '?', 'low', 'The A locus could not be read from this sample.'
+        return ASIP['alleles'][0], ASIP['alleles'][1], ASIP['confidence'], ASIP['interpretation']
 
     elif locus == 'B':
         # Count brown CHROMOSOMES, not variants: bs + max(bd, bc). bc rides in cis on nearly
@@ -4647,6 +4634,21 @@ def call_locus(locus, calls):
 
     return '?', '?', 'low', 'Unknown locus'
 
+# A locus (ASIP): dog patterns come from two promoter modules (Bannasch et al.
+# 2021, Nat Ecol Evol): the hair-cycle promoter haplotype sets sable / agouti /
+# tan points and the ventral promoter sets black saddle vs black back; recessive
+# black is the coding change p.Arg96Cys. Read-based, validated on Cosmo 18x
+# (at/at, as Embark reports) and purebred customer dogs (analysis/asip).
+import sys
+sys.path.insert(0, os.environ['ASIP_DIR'])
+try:
+    from asip_locus import call_asip
+    ASIP = call_asip(BAM, os.environ['ASIP_HAPS'])
+    print(f"ASIP: {ASIP['alleles']} ({ASIP['confidence']}), {ASIP['informative_reads']} informative reads")
+except Exception as _e:
+    print(f'ASIP caller failed: {_e}')
+    ASIP = None
+
 loci_gt = {}
 CONF_RANK = {'low': 0, 'medium': 1, 'high': 2}
 for locus in ['E', 'K', 'A', 'B', 'D', 'M', 'H', 'S', 'W']:
@@ -4790,8 +4792,7 @@ def predict_phenotype(loci_gt):
         base_color = f'Eumelanin base — {eume_color}; phaeomelanin coat (sable/fawn)'
         pattern = (f'{eume_color.capitalize()}-based{brindle} sable/fawn{mask_note} — '
                    f'predominantly phaeomelanin (yellow/red/cream) coat with {eume_color}-tipped hairs. '
-                   f'{nose_color.capitalize()}. '
-                   f'Note: ay requires structural variant confirmation (not in Dog10K panel).')
+                   f'{nose_color.capitalize()}.')
     elif has_aw:
         base_color = f'Eumelanin base — {eume_color}; agouti banding (wolf sable)'
         pattern = (f'{eume_color.capitalize()}-based{brindle} wolf sable / agouti{mask_note} — '
@@ -4809,7 +4810,7 @@ def predict_phenotype(loci_gt):
     else:
         base_color = f'Eumelanin base — {eume_color} (A locus undetermined)'
         pattern = (f'{eume_color.capitalize()}-based{brindle} coat{mask_note}; '
-                   f'A locus pattern unknown (sable/agouti/tan-points require structural variant analysis). '
+                   f'A locus pattern not determined at this sequencing depth (sable, agouti or tan points). '
                    f'{nose_color.capitalize()}.')
 
     return base_color, pattern, dil_str
@@ -4875,6 +4876,9 @@ for locus in ['E', 'K', 'A', 'B', 'D', 'M', 'H', 'S', 'W']:
         locus_entry['eumelanic_alternative'] = g['eumelanic_alternative']
     if locus == 'K' and KB_EVIDENCE:
         locus_entry['read_evidence'] = KB_EVIDENCE
+    if locus == 'A' and ASIP:
+        locus_entry['read_evidence'] = {k: ASIP[k] for k in ('informative_reads', 'class_post', 'hcp_reads',
+                                                            'tag_reads', 'r96c_reads', 'vp_reads')}
     if locus == 'B':
         locus_entry['read_evidence'] = {'bs': BS_EVIDENCE, 'bd': BD_EVIDENCE, 'bc': BC_EVIDENCE,
                                         **({'bs_bd_phase': BS_BD_PHASE} if BS_BD_PHASE else {})}
@@ -4893,7 +4897,7 @@ coat = {
         'overall_confidence': overall_conf,
         **({'validation_warning': validation_warning} if validation_warning else {}),
         'caveat': ('E, B, D loci called from Dog10K GLIMPSE2 imputed BCF (causal SNPs); K (dominant black) is read directly from the reads at the CBD103 deletion. '
-                   'A locus sable (ay/aw) requires structural variant analysis not available here. '
+                   'A (sable, agouti, tan points, recessive black) is read from the reads across the ASIP promoter haplotypes and coding changes, so at low sequencing depth it is often not determined. '
                    'Merle (M) is screened from reads at the PMEL insertion site (the exact merle class needs a length test); extreme white (W) requires PCR or long-read. '
                    'Harlequin (H, PSMB7 V49G) is called from direct reads — the allele is too rare for panel imputation — and is only expressed on a merle background. '
                    'Commercial tests (Embark, Wisdom Panel) cover additional alleles.'),
