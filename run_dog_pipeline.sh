@@ -2499,7 +2499,7 @@ PYEOF
 # same-breed background below ~0.05 — under the 2nd-degree threshold (0.0884).
 # Validated on this cohort: same-dog kit pairs 0.499, cross-platform same-dog
 # 0.489, known sib groups 0.20-0.26, Cosmo vs Luna -0.03 (unrelated).
-log "=== Stage 9b: Relatives (KING kinship vs $((2031)) reference dogs) ==="
+log "=== Stage 9b: Relatives (KING kinship vs the relatives_ref reference dogs) ==="
 REL_DS="$OUT/relatives_ds.tsv"
 awk 'NR>1{print $1"\t"$2}' "$BREED_SITES" > "$OUT/relatives_sites.pos"
 $MM bcftools query -R "$OUT/relatives_sites.pos" -f '%CHROM\t%POS\t%REF\t%ALT[\t%DS]\n' \
@@ -2574,6 +2574,10 @@ def category(v):
     if v >= t['second_degree']: return 'second_degree'
     return None
 
+# Reference sources as owners see them. Dog Aging Project dogs joined the
+# reference on 2026-11-09 (relatives/add_dap.py); like the other sources they
+# are shown by breed, weight and relationship only, never by identifier.
+SOURCE_NAMES = {'dog10k': 'Dog10K research panel', 'dap': 'Dog Aging Project'}
 sample_name = os.environ.get('SAMPLE', '').lower()
 matches = []
 for j in np.argsort(phi)[::-1]:
@@ -2593,7 +2597,7 @@ for j in np.argsort(phi)[::-1]:
         'kinship': round(float(phi[j]), 3),
         'category': cat,
         'breed': s['label'],
-        'source': 'Dog10K research panel' if s['source'] == 'dog10k' else 'ProsperK9 reference cohort',
+        'source': SOURCE_NAMES.get(s['source'], 'ProsperK9 reference cohort'),
     }
     # Reference dogs processed through the full pipeline carry their own
     # report-derived descriptors — still anonymous, but far more vivid than a

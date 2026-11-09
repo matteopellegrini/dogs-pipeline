@@ -64,6 +64,10 @@ def category(v):
     if v >= t['second_degree']: return 'second_degree'
     return None
 
+# Reference sources as owners see them. Dog Aging Project dogs joined the
+# reference on 2026-11-09 (relatives/add_dap.py); like the other sources they
+# are shown by breed, weight and relationship only, never by identifier.
+SOURCE_NAMES = {'dog10k': 'Dog10K research panel', 'dap': 'Dog Aging Project'}
 sample_name = os.environ.get('SAMPLE', '').lower()
 matches = []
 for j in np.argsort(phi)[::-1]:
@@ -83,7 +87,7 @@ for j in np.argsort(phi)[::-1]:
         'kinship': round(float(phi[j]), 3),
         'category': cat,
         'breed': s['label'],
-        'source': 'Dog10K research panel' if s['source'] == 'dog10k' else 'ProsperK9 reference cohort',
+        'source': SOURCE_NAMES.get(s['source'], 'ProsperK9 reference cohort'),
     }
     # Reference dogs processed through the full pipeline carry their own
     # report-derived descriptors — still anonymous, but far more vivid than a
