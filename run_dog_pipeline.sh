@@ -3504,22 +3504,26 @@ for _t, _info in _DAM['traits'].items():
     # 'size' kind feeds the weight blend above; skip separate reporting
 
 # ── DAP behaviour (begin) ──────────────────────────────────────────────────
-# Dog Aging Project behaviour models (analysis/behavior_dap/, 2026-11-08): per trait
-# a ridge on breed composition + sex, fit to ~6,800 DAP owners' answers to 42 behaviour
-# items (held-out r 0.14-0.31, within mixed breeds 0.12-0.28; today's AKC-trained scores
-# reach 0.03-0.20 on the same answers). Needs only breed_result.json and the stage-6 sex
-# call, so cluster/backfill_behavior.py reruns this block on published reports.
+# Dog Aging Project behaviour models (analysis/behavior_dap/export_model.py): per trait a
+# ridge on breed composition (poodle sizes pooled) + sex, fit to ~6,800 DAP owners' answers
+# (held-out r 0.18-0.31), then a logistic calibration on held-out predictions. Reported as
+# the chance a dog with this ancestry and sex is above the average dog, next to the rate for
+# all dogs; ancestry moves most dogs only a few points (2026-11-08 v2: the v1 percentile of
+# the prediction distribution overstated tiny shifts). Needs only breed_result.json and the
+# stage-6 sex call, so cluster/backfill_behavior.py reruns this block on published reports.
 dap_behavior = None
 try:
     with open("$REF_JSON/behavior_dap_model.json") as _f:
         _BDM = json.load(_f)
     with open(f'{PUB}/breed_result.json') as _f:
         _brb = json.load(_f)
-    _bcomp = [(_r['breed'], float(_r['proportion']))
-              for _r in (_brb.get('breed_composition_raw') or _brb.get('breed_composition') or [])]
-    _bidx = {_b: _i for _i, _b in enumerate(_BDM['breeds'])}
-    _bcomp = [(_b, _p) for _b, _p in _bcomp if _b in _bidx and _p > 0]
-    _btot = sum(_p for _, _p in _bcomp)
+    _bgi = {_g: _i for _i, _g in enumerate(_BDM['groups'])}
+    _bcomp = {}
+    for _r in (_brb.get('breed_composition_raw') or _brb.get('breed_composition') or []):
+        _g = _BDM['pool'].get(_r['breed'], _r['breed'])
+        if _g in _bgi and float(_r['proportion']) > 0:
+            _bcomp[_g] = _bcomp.get(_g, 0.0) + float(_r['proportion'])
+    _btot = sum(_bcomp.values())
     _bsex = None
     try:
         with open(f'{PUB}/coverage_1mb.json') as _f:
@@ -3528,18 +3532,19 @@ try:
         pass
     _bmale = {'male': 1.0, 'female': 0.0}.get(_bsex, 0.5)
     if _btot >= 0.5:
-        dap_behavior = {'traits': {}, 'sex_used': _bsex, 'model': _BDM['model'],
+        dap_behavior = {'version': 2, 'traits': {}, 'sex_used': _bsex, 'model': _BDM['model'],
                         'method': _BDM['method'], 'source': _BDM['source']}
         for _bt, _bm in _BDM['traits'].items():
             _bs = (_bm['intercept'] + _bm['male'] * _bmale
-                   + sum(_p * _bm['breed_dev'][_bidx[_b]] for _b, _p in _bcomp) / _btot)
-            _bq = _bm['ref_quantiles']
-            _bpct = float(np.interp(_bs, _bq, np.arange(len(_bq))))
+                   + sum(_p * _bm['group_dev'][_bgi[_g]] for _g, _p in _bcomp.items()) / _btot)
+            _bp = 100.0 / (1.0 + np.exp(-(_bm['cal_a'] + _bm['cal_b'] * _bs)))
             dap_behavior['traits'][_bt] = {
-                'display': _bm['display'], 'blurb': _bm['blurb'], 'score': round(_bs, 4),
-                'percentile': round(_bpct, 1), 'cv_r': _bm['cv_r'], 'cv_r_mixed': _bm['cv_r_mixed'],
+                'display': _bm['display'], 'blurb': _bm['blurb'], 'phrase': _bm['phrase'],
+                'score': round(float(_bs), 4), 'chance_above': round(float(_bp), 1),
+                'base_rate': round(100.0 * _bm['base_rate_above'], 1),
+                'cv_r': _bm['cv_r'], 'cv_r_mixed': _bm['cv_r_mixed'],
                 'n_dogs': _bm['n_dogs'], 'replaces': _bm['replaces']}
-        print("  DAP behaviour: " + ", ".join(f"{_k} {_v['percentile']:.0f}"
+        print("  DAP behaviour: " + ", ".join(f"{_k} {_v['chance_above']:.0f}/{_v['base_rate']:.0f}"
                                               for _k, _v in dap_behavior['traits'].items()))
     else:
         print(f"  DAP behaviour: skipped (only {_btot:.0%} of ancestry in model labels)")

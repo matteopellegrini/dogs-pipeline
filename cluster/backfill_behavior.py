@@ -38,7 +38,7 @@ for line in open(lst):
     if traits is None:
         traits = list(b['traits'])
         print('pk\tsex\t' + '\t'.join(traits))
-    print(f'{pk}\t{b["sex_used"]}\t' + '\t'.join(f'{b["traits"][t]["percentile"]:.0f}' for t in traits))
+    print(f'{pk}\t{b["sex_used"]}\t' + '\t'.join(f'{b["traits"][t]["chance_above"]:.0f}' for t in traits))
     n['updated'] += 1
     if dry: continue
     bak = f'{pub}/prs_result.pre-{tag}.json'
