@@ -158,7 +158,7 @@ def call_asip(bam_path, hap_json):
     n96 = a_alt + a_ref
     if n96 >= 3 and a_alt >= 2 and a_ref == 0:
         alleles, conf = ['a', 'a'], 'medium'
-    elif a_alt >= 1 and a_ref >= 1:
+    elif a_alt >= 2 and a_ref >= 1:      # one read is not enough to name a recessive-black copy
         alleles = [alleles[0], 'a'] if alleles[0] != '?' else ['?', 'a']
     res = dict(
         alleles=alleles, confidence=conf, informative_reads=n_inf, ay_support=ay_support,
