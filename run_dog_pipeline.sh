@@ -4799,10 +4799,26 @@ def predict_phenotype(loci_gt):
                    f'individual hairs banded with alternating {eume_color} and phaeomelanin. '
                    f'{nose_color.capitalize()}.')
     elif has_at:
-        base_color = f'Eumelanin — {eume_color} with tan points'
-        pattern = (f'{eume_color.capitalize()}-based{brindle} tan points{mask_note} — '
-                   f'{eume_color} body with phaeomelanin markings on muzzle, eyebrows, chest, '
-                   f'inner ears, and lower legs. {nose_color.capitalize()}.')
+        # Black saddle vs black back comes from the ASIP ventral promoter
+        # (asip_locus.tan_form); None when the reads do not settle it.
+        form = ASIP.get('tan_form') if ASIP else None
+        if form == 'saddle':
+            base_color = f'Eumelanin — {eume_color} saddle with tan'
+            pattern = (f'{eume_color.capitalize()}-based{brindle} saddle-pattern tan points{mask_note} — '
+                       f'born mostly {eume_color} with tan points; the tan spreads over the head, legs and '
+                       f'shoulders as the dog matures, leaving a {eume_color} saddle on the back '
+                       f'(the German Shepherd, Airedale and Beagle pattern). {nose_color.capitalize()}.')
+        elif form == 'back':
+            base_color = f'Eumelanin — {eume_color} with tan points'
+            pattern = (f'{eume_color.capitalize()}-based{brindle} tan points{mask_note} — '
+                       f'{eume_color} body that stays {eume_color} into adulthood (the tan does not spread into a '
+                       f'saddle), with phaeomelanin markings on muzzle, eyebrows, chest, inner ears, and lower legs '
+                       f'(the Doberman and Rottweiler pattern). {nose_color.capitalize()}.')
+        else:
+            base_color = f'Eumelanin — {eume_color} with tan points'
+            pattern = (f'{eume_color.capitalize()}-based{brindle} tan points{mask_note} — '
+                       f'{eume_color} body with phaeomelanin markings on muzzle, eyebrows, chest, '
+                       f'inner ears, and lower legs. {nose_color.capitalize()}.')
     elif is_a:
         base_color = f'Eumelanin — solid {eume_color} (recessive black)'
         pattern = (f'Solid {eume_color}{mask_note} via recessive black (a/a) — '

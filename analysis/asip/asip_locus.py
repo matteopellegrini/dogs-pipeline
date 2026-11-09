@@ -108,6 +108,16 @@ def diplotype_post(sets, place, tag_alt, tag_ref, classes):
 
 RANK = {'ay': 0, 'aw': 1, 'at': 2, 'a': 3}
 
+def tan_form(vp_reads):
+    """Black saddle vs black back for a tan-pointed dog, from the ventral promoter.
+    One VP1 copy is enough for a saddle (Bannasch Supplementary Table 7: VP1-HCP4/
+    VP2-HCP3 dogs are saddles), so a saddle needs 2 VP1 reads; black back needs
+    VP2 on both copies, so >= 4 VP2 reads and no VP1 read (a VP1 copy would be
+    missed by chance in 1 of 16 such dogs). None when the reads do not settle it."""
+    if vp_reads.get('VP1', 0) >= 2: return 'saddle'
+    if vp_reads.get('VP2', 0) >= 4 and vp_reads.get('VP1', 0) == 0: return 'back'
+    return None
+
 def call_asip(bam_path, hap_json):
     H = json.load(open(hap_json)) if isinstance(hap_json, str) else hap_json
     chrom = H['chrom']
@@ -169,6 +179,7 @@ def call_asip(bam_path, hap_json):
         r96c_reads={'alt': a_alt, 'ref': a_ref},
         vp_reads=vhits,
     )
+    res['tan_form'] = tan_form(vhits) if 'at' in alleles and 'ay' not in alleles and 'aw' not in alleles else None
     res['interpretation'] = describe(res)
     return res
 
@@ -181,9 +192,10 @@ def describe(r):
                 'solid black (or liver) wherever the A locus shows.')
     shape = ''
     if 'at' in a and 'ay' not in a and 'aw' not in a:
-        if vp['VP2'] >= 2 and vp['VP1'] == 0:
+        form = tan_form(vp)
+        if form == 'back':
             shape = ' The ventral promoter reads point to the black-back form (tan points kept into adulthood).'
-        elif vp['VP1'] >= 2 and vp['VP2'] == 0:
+        elif form == 'saddle':
             shape = ' The ventral promoter reads point to the black-saddle form (tan spreads as the dog matures).'
     names = {'ay': 'sable/fawn (ay)', 'aw': 'agouti / wolf sable (aw)', 'at': 'tan points (at)', 'a': 'recessive black (a)'}
     if a == ['?', '?']:
