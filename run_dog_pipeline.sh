@@ -2579,6 +2579,16 @@ def category(v):
 # are shown by breed, weight and relationship only, never by identifier.
 SOURCE_NAMES = {'dog10k': 'Dog10K research panel', 'dap': 'Dog Aging Project'}
 sample_name = os.environ.get('SAMPLE', '').lower()
+# A match must also stand out from this dog's own background: its 20th-highest
+# kinship over the whole reference (self-level values excluded). First-cross
+# "designer" dogs of inbred breeds (Cavalier, Bernese, Bichon x Poodle) sit at
+# 0.10-0.13 against dozens of unrelated dogs of the same cross, only 0.01-0.05
+# above their background, while every validated relative (Saluki sibs, Greyhound
+# littermates, French Bulldog parent/offspring) stands 0.16-0.3 above it
+# (relatives/background_rule.py, 2026-11-09).
+BG_RANK, BG_MARGIN = 20, 0.06
+_bgv = np.sort(phi[phi < t['self']])[::-1]
+background = float(_bgv[BG_RANK - 1]) if len(_bgv) >= BG_RANK else -1.0
 matches = []
 for j in np.argsort(phi)[::-1]:
     cat = category(float(phi[j]))
@@ -2590,6 +2600,8 @@ for j in np.argsort(phi)[::-1]:
     # kinship: a duplicate kit of the same dog listed as a "relative" is
     # confusing, and phi >= 0.45 is genetically the same dog regardless of id.
     if s['id'].lower() == sample_name or cat == 'same_dog':
+        continue
+    if float(phi[j]) - background < BG_MARGIN:
         continue
     # Privacy: reference-dog identifiers never reach the report — only breed,
     # source and relationship tier. Panel dogs are public research data.
@@ -2614,8 +2626,11 @@ out = {
     'summary': ('No relatives detected among the reference dogs.' if not matches else
                 '{} match(es) at third-degree kinship or closer.'.format(len(matches))),
     'thresholds': t,
+    'background_kinship': round(background, 3),
+    'background_margin': BG_MARGIN,
     'method': meta['method'] + ' Same-breed background stays below the second-degree '
-              'threshold, so listed matches reflect genuine kinship, not shared breed.',
+              'threshold, and each match must also stand 0.06 above this dog\'s own background kinship '
+              '(its 20th-highest value), so shared breed mix alone is not reported as a relative.',
 }
 with open(os.environ['PUB_DIR'] + '/relatives_result.json', 'w', encoding='utf-8') as f:
     json.dump(out, f, indent=2)
