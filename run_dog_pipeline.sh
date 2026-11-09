@@ -3260,6 +3260,16 @@ if not np.isnan(z_w):
 # covariates added no skill; the breed model alone (no PRS) is MAE 5.9 kg.
 # Falls back to the old blend if the model JSON or breed_result.json is
 # unavailable.
+#
+# 2026-11-08: weight_breed_model.json is now DAP_breed_sex
+# (analysis/weight_model/dap/): the same breed recipe fit on 6,821 genotyped
+# Dog Aging Project adults (box 2.0, all 318 v2.3 labels; the customer-trained
+# model had no weight for 94 of them), stack on log breed pred + sex only.
+# Darwin's Ark PRS dropped (DAP CV MAE 4.11 -> 4.10 kg with it; its stack
+# coefficient is absent, so _da_prs no longer moves pred_kg). External test on
+# 573 customer adults never used in fitting: r 0.765, MAE 5.30 kg, bias -1.1
+# (customer-only refit, honest CV: 0.741 / 5.56). Cornell/Hayward weights
+# trained a worse model (MAE 6.08; no age field, compressed breed weights).
 if 'weight_kg' in phys_traits:
     with open("$REF_JSON/darwins_ark_blend.json") as _f:
         _DAB = json.load(_f)
@@ -3337,28 +3347,39 @@ if 'weight_kg' in phys_traits:
         _cv = _wbm['cv']['summary'][_wbm['model']]
         _sex_txt = ({'male': 'a male', 'female': 'a female'}.get(_sex_call, 'unknown sex')
                     if 'male' in _st['covariates'] else None)
+        _sex_part = (f" and the dog's sex from X-chromosome coverage (this dog: {_sex_txt}; "
+                     f"males run x{_st.get('male_multiplier', 1.0):.2f} heavier)" if _sex_txt else '')
+        if _wbm.get('training'):
+            # DAP-trained model (2026-11-08): external validation on customers
+            _w_note = (f"Breed-composition adult-weight model: per-breed weights fit to "
+                       f"{_wbm['n_train']:,} adult dogs in the Dog Aging Project with owner-reported weights "
+                       f"(box-constrained to {_wbm['box']:g}x the AKC breed-standard prior)" + _sex_part
+                       + f". Tested on {_cv['n']} ProsperK9 customers' adult dogs that were not used to "
+                       f"build it: r={_cv['r']:.2f}, MAE {_cv['mae']:.1f} kg, bias {_cv['bias']:+.1f} kg. "
+                       f"The prediction is a typical adult weight for this ancestry and does not see "
+                       f"body condition, so individual dogs differ from it by {_cv['mae']:.0f} kg on average.")
+        else:
+            _w_note = (f"Breed-composition adult-weight model (per-breed weights fit to "
+                       f"{_wbm['n_train']} ProsperK9 customer-reported adult weights, "
+                       f"box-constrained to 1.5x the AKC breed-standard prior) combined "
+                       f"multiplicatively with the Darwin's Ark size PRS (Morrill 2022)" + _sex_part
+                       + f". Cross-validated on those {_wbm['n_train']} dogs (never in-sample): "
+                       f"r={_cv['r']:.2f}, MAE {_cv['mae']:.1f} kg, bias {_cv['bias']:+.1f} kg; "
+                       f"the prediction is a typical adult weight for this ancestry and "
+                       f"does not see body condition, so individual dogs differ from it by "
+                       f"{_cv['mae']:.0f} kg on average. Self-reported weights; dogs under "
+                       f"1 year were excluded from fitting.")
         phys_traits['weight_kg'].update({
             'pred_kg': round(_final_kg, 1),
             'pred_lbs': round(_final_kg * 2.205, 1),
             'pred_kg_breed': round(_breed_kg, 1),
             'sex_used': _sex_call if 'male' in _st['covariates'] else None,
-            'method_note': (f"Breed-composition adult-weight model (per-breed weights fit to "
-                            f"{_wbm['n_train']} ProsperK9 customer-reported adult weights, "
-                            f"box-constrained to 1.5x the AKC breed-standard prior) combined "
-                            f"multiplicatively with the Darwin's Ark size PRS (Morrill 2022)"
-                            + (f" and the dog's sex from X-chromosome coverage (this dog: {_sex_txt}; "
-                               f"males run x{_st.get('male_multiplier', 1.0):.2f} heavier)" if _sex_txt else '')
-                            + f". Cross-validated on those {_wbm['n_train']} dogs (never in-sample): "
-                            f"r={_cv['r']:.2f}, MAE {_cv['mae']:.1f} kg, bias {_cv['bias']:+.1f} kg; "
-                            f"the prediction is a typical adult weight for this ancestry and "
-                            f"does not see body condition, so individual dogs differ from it by "
-                            f"{_cv['mae']:.0f} kg on average. Self-reported weights; dogs under "
-                            f"1 year were excluded from fitting."),
-            'validation': {'n_dogs': _wbm['n_train'], 'design': _wbm['cv']['design'],
+            'method_note': _w_note,
+            'validation': {'n_dogs': _cv.get('n', _wbm['n_train']), 'n_train': _wbm['n_train'],
+                           'design': _wbm['cv']['design'],
                            'cv_r': round(_cv['r'], 3), 'cv_mae_kg': round(_cv['mae'], 2),
                            'cv_bias_kg': round(_cv['bias'], 2),
-                           'previous_blend': {'cv_r': 0.73, 'mae_kg': 6.5, 'bias_kg': 0.4,
-                                              'note': 'same 577 adults; 878 incl. puppies: r 0.63, MAE 8.2, bias +4.1'}},
+                           'model': _wbm['model']},
         })
         print(f"  Weight: {_final_kg:.1f}kg (breed model {_breed_kg:.1f}kg, DA prs {_da_prs:.1f}, "
               f"sex {_sex_call}, {_da_matched}/{len(_da_rows)} sites; old blend {_blend_kg:.1f}kg, "
