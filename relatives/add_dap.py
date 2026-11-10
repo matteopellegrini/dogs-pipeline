@@ -88,6 +88,8 @@ het = (B == 1).sum(0) / np.maximum((B >= 0).sum(0), 1)
 keep = het < MAX_HET
 B = B[:, keep]; samples = [s for s, k in zip(samples, keep) if k]
 print(f'dropped {int((~keep).sum())} DAP dogs with heterozygosity >= {MAX_HET}')
+from dap_weights import implausible  # survey weights that cannot be right
+for i in implausible(samples): samples[i].pop('weight_kg')
 np.save(f'{REF}/geno_dap.npy', B)
 json.dump({'samples': samples}, open(f'{REF}/meta_dap.json', 'w'))
 print('DAP dogs', len(samples), 'with weight', sum('weight_kg' in s for s in samples))
