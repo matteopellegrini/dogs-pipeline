@@ -53,11 +53,11 @@ name = 'DAP_breed_sex'
 model = {
     'model': name, 'built': datetime.date.today().isoformat(),
     'n_train': len(y), 'min_age_years': MIN_AGE,
-    'truth': 'Dog Aging Project owner-reported weights (HLES dd_weight_lbs), genotyped dogs >= 1 y',
-    'training': {'source': 'Dog Aging Project', 'n_dogs': len(y),
+    'truth': 'owner-reported weights of US pet dogs, genotyped dogs >= 1 y',
+    'training': {'source': 'US pet-dog research cohort', 'n_dogs': len(y),
                  'composition': 'stage-9 estimator (v2.3 panel, lasso 0.3) on GLIMPSE-imputed DAP genotypes',
                  'dap_internal_cv': {k: dap_cv[k] for k in ('r', 'mae', 'bias', 'slope')}},
-    'cv': {'design': f'external: trained on {len(y)} Dog Aging Project adults, scored on {len(yc)} ProsperK9 '
+    'cv': {'design': f'external: trained on {len(y)} US pet-dog adults, scored on {len(yc)} ProsperK9 '
                      f'customer adults with owner-reported weights, none used in fitting',
            'summary': {name: cust}},
     'space': 'log', 'lambda': lam, 'box': BOX,

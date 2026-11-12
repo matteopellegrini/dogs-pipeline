@@ -83,9 +83,9 @@ def logistic(x, z, iters=50):
 
 model = {'model': 'DAP_behavior_breed_sex_v2', 'built': datetime.date.today().isoformat(),
          'groups': groups, 'pool': POOL,
-         'source': 'Dog Aging Project HLES owner survey (behaviour items scored 0-4), genotyped dogs >= 1 y',
+         'source': 'US pet-dog owner survey (behaviour items scored 0-4), genotyped dogs >= 1 y',
          'method': ('Per trait, owner answers are z-scored, signed and averaged; a ridge regression on breed '
-                    'composition (poodle sizes pooled) plus sex is fit on all Dog Aging Project adults, and a '
+                    'composition (poodle sizes pooled) plus sex is fit on all US pet-dog adults, and a '
                     'logistic calibration on held-out predictions turns it into the chance a dog with this '
                     'ancestry and sex is above the average dog.'),
          'not_shipped': NOT_SHIPPED, 'traits': {}}

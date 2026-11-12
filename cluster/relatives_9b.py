@@ -67,7 +67,7 @@ def category(v):
 # Reference sources as owners see them. Dog Aging Project dogs joined the
 # reference on 2026-11-09 (relatives/add_dap.py); like the other sources they
 # are shown by breed, weight and relationship only, never by identifier.
-SOURCE_NAMES = {'dog10k': 'Dog10K research panel', 'dap': 'Dog Aging Project'}
+SOURCE_NAMES = {'dog10k': 'Dog10K research panel', 'dap': 'US pet-dog research cohort'}
 sample_name = os.environ.get('SAMPLE', '').lower()
 # A match must also stand out from this dog's own background: its 20th-highest
 # kinship over the whole reference (self-level values excluded). First-cross

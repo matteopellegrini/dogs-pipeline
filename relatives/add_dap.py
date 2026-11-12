@@ -25,7 +25,7 @@ if '--commit' in sys.argv:
     np.save(f'{REF}/geno.npy', np.hstack([G, B]))
     meta['samples'] += dm['samples']
     meta['built_v4'] = '2026-11-09'
-    meta['note_v4'] = f"+{len(dm['samples'])} Dog Aging Project dogs (rounded imputed dosages; owner-reported adult weights; 47 likely-mixed samples with heterozygosity >= 0.38 excluded)"
+    meta['note_v4'] = f"+{len(dm['samples'])} US pet dogs (rounded imputed dosages; owner-reported adult weights; 47 likely-mixed samples with heterozygosity >= 0.38 excluded)"
     json.dump(meta, gzip.open(f'{REF}/meta.json.gz', 'wt'))
     print('v4:', G.shape[1], '+', B.shape[1], '=', G.shape[1] + B.shape[1], 'reference dogs')
     raise SystemExit

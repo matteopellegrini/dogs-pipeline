@@ -3,9 +3,9 @@
  "built": "2026-11-08",
  "n_train": 6821,
  "min_age_years": 1.0,
- "truth": "Dog Aging Project owner-reported weights (HLES dd_weight_lbs), genotyped dogs >= 1 y",
+ "truth": "owner-reported weights of US pet dogs, genotyped dogs >= 1 y",
  "training": {
-  "source": "Dog Aging Project",
+  "source": "US pet-dog research cohort",
   "n_dogs": 6821,
   "n_mixed": null,
   "composition": "stage-9 estimator (v2.3 panel, lasso 0.3) on GLIMPSE-imputed DAP genotypes",
@@ -17,7 +17,7 @@
   }
  },
  "cv": {
-  "design": "external: trained on 6821 Dog Aging Project adults, scored on 573 ProsperK9 customer adults with owner-reported weights, none used in fitting",
+  "design": "external: trained on 6821 US pet-dog adults, scored on 573 ProsperK9 customer adults with owner-reported weights, none used in fitting",
   "summary": {
    "DAP_breed_sex": {
     "n": 573,
