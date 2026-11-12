@@ -607,7 +607,7 @@ def load_tsv(path):
 
 COMMON_PCT = 5.0    # cohort share at or above which a region is "common"
 
-def annotate_freq(events, idx, bin_bp, sex):
+def annotate_freq(events, idx, bin_bp, sex, band=None):
     """Tag each event with how often the reference cohort is flagged there.
 
     Recurrence analysis over 93 dogs found chr19:21.3-21.5Mb flagged as a gain
@@ -623,6 +623,13 @@ def annotate_freq(events, idx, bin_bp, sex):
     dogs commonly vary at, it is most likely that polymorphism, and the cost of
     wrongly calling something rare (alarming an owner) exceeds the cost of
     wrongly calling it common (a quieter listing).
+
+    band=(lo, hi): the events were defined by the dog's own ratio falling
+    outside lo/hi, so the cohort must be counted on that same rule, from the
+    panel's stored values. The panel's ng/nl counts are |z| >= 5 flags, and
+    where the cohort is widely spread z never gets there: chr8 74-76 Mb (the
+    IGH locus) has 26% of 1,283 panel dogs below 0.65 but nl = 0, so every
+    carrier was told "cohort_freq 0.0, rare" and the karyotype headlined it.
     """
     for ev in events:
         key = 'all' if ev['chrom'] != 'chrX' else ('F' if sex == 'female' else 'M')
@@ -632,6 +639,14 @@ def annotate_freq(events, idx, bin_bp, sex):
             if st and st.get('n'):
                 c = st.get('ng', 0) if ev['direction'] == 'gain' else st.get('nl', 0)
                 fr.append(c / st['n'])
+                vals = [v for v in (st.get('vals') or []) if v > 0] if band else []
+                if vals:
+                    # male non-PAR chrX: panel values sit at ~0.5, the event
+                    # ratio was rescaled so hemizygous reads 1.0
+                    sc = 2.0 if key == 'M' and st['median'] < 0.75 else 1.0
+                    hit = (sum(1 for v in vals if v * sc > band[1]) if ev['direction'] == 'gain'
+                           else sum(1 for v in vals if v * sc < band[0]))
+                    fr.append(hit / len(vals))
         ev['cohort_freq'] = round(max(fr) * 100, 1) if fr else None
         ev['novelty'] = ('unknown' if ev['cohort_freq'] is None
                          else 'common' if ev['cohort_freq'] >= COMMON_PCT else 'rare')
@@ -883,7 +898,7 @@ for a in aneuploidy:
           f"(expected {a['expected_copies']}), median ratio {a['median_ratio']}, "
           f"{a['windows_flagged']}/{a['windows_scoreable']} windows flagged")
 
-annotate_freq(events, panel_idx, 1000000, predicted_sex)
+annotate_freq(events, panel_idx, 1000000, predicted_sex, band=(DEL_T, DUP_T))
 
 # Per-dog confidence. A dog with 242 events should not produce 242 findings —
 # it should say the coverage is not clean enough to call structural variation.
