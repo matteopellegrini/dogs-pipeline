@@ -62,3 +62,4 @@ SPATA7	Cone-rod dystrophy (SPATA7)	AR		Early loss of day vision (cone-rod dystro
 LAMA3	Junctional epidermolysis bullosa (LAMA3)	AR		A severe skin-fragility disease: the skin and mouth lining blister and erode at the slightest friction. Recessive.
 SLC45A2	Oculocutaneous albinism	AR		Very pale coat, skin and eyes with light sensitivity ('white Doberman' and similar), caused by a pigment transporter defect. Recessive.
 RAB24	Ataxia, cerebellar, RAB24-related			
+COMMD1	Copper toxicosis (COMMD1, Bedlington Terrier)	AR	disease	Copper builds up in the liver because the COMMD1 gene, needed to clear copper into bile, is missing a 39.7 kb stretch (exon 2). Affected Bedlington Terriers develop chronic hepatitis and cirrhosis, often fatal without a low-copper diet and treatment. Recessive: dogs with one copy are healthy carriers. Called from read depth across the deleted stretch, which needs about 1x coverage or more.

@@ -11,6 +11,7 @@
 #          cluster/panel_v3_genotype.sh work_panel_v3/manifest.tsv 20
 # Manifest rows: pk, barcode, pub dir, work dir (same columns as the rerun lists). Task i does rows
 # (i-1)*N+1 .. i*N. Kits whose two outputs already exist are skipped, so a resubmit only redoes failures.
+# PV3_WORK points the site inputs and outputs at another work dir (e.g. sites added after the freeze).
 #SBATCH -o logs/%x.%A.%a.log
 set -uo pipefail
 D="${SLURM_SUBMIT_DIR:?run via sbatch from the repo root}"
@@ -18,7 +19,7 @@ cd "$D"
 export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
 PATH="$D/envs/genomics/bin:$PATH"
 MANIFEST="${1:?manifest}"; PER="${2:-20}"
-OUT="$D/work_panel_v3"; KITS="${KITS:-$OUT/kits}"; mkdir -p "$KITS"
+OUT="${PV3_WORK:-$D/work_panel_v3}"; KITS="${KITS:-$OUT/kits}"; mkdir -p "$KITS"
 FASTA="$D/canFam4_plusY.fa"
 SITES="$OUT/v3_small.regions.tsv"        # CHROM POS (for mpileup -R)
 ALLELES="$OUT/v3_small.alleles.tsv.gz"   # CHROM POS REF,ALT (for call -C alleles -T)

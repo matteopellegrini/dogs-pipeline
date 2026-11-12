@@ -118,6 +118,16 @@ for r in cand:
         add(site_id=f"todo_{g}_{len(rows)}", origin=r['tier'], report_class='report', gene=r['gene'], condition=r['condition'],
             chrom='', pos='', kind='', genotyping='needs_coordinates', status='later', refs=r['pmid'], note=r['variant'][:150])
 
+# 6. literature search of 2026-11-11 (~/Projects/dog literature, results/canfam4_variants.csv): abstract-mined
+#     variants not in OMIA, placed on canFam4 with REF checked; report_class per row (Mendelian -> report,
+#     associations -> panel_only). Rows with no alleles, an ambiguous ALT or 'not usable' confidence were left out.
+#     Last, so the todo_* ids above (numbered by row) do not shift.
+for r in csv.DictReader(open(P / 'literature_2026-11-11.tsv'), delimiter='\t'):
+    add(site_id=f"new_{r['gene']}_{r['pos']}", origin='Literature 2026-11-11', report_class=r['report_class'],
+        gene=r['gene'], condition=r['condition'], chrom=r['chrom'], pos=r['pos'], ref=r['ref'], alt=r['alt'],
+        kind=kind_of(r['ref'], r['alt']), genotyping='imputable_or_direct', status=r['status'],
+        refs=f"PMID {r['pmid']}", note=r['note'])
+
 # dedupe exact small-variant duplicates (keep the catalogue copy)
 seen = set(); out = []
 for x in rows:
@@ -125,8 +135,18 @@ for x in rows:
     if k and k in seen: continue
     if k: seen.add(k)
     out.append(x)
+# fixes made on the frozen file 2026-11-03 (sv_evidence.py reads SVLEN from status)
+FIXES = {
+    'cat227': dict(note='END fixed 2026-11-03: CanFam3 g.30852988_30902901del runs to the chr37 end (30,785,915 in '
+                        'canFam4); the lifted END 60261342 was past the chromosome'),
+    'new_SPAG1_1922': dict(status='coords_native; SVLEN=29',
+                           note='2026-11-03: OMIA gives the allele, a 29-bp GC-rich duplication (c.1190_1218dup, '
+                                'insGGCGGCGGCAAGCGGCCGGAGAGGGGCGC); typed by size, not as an unknown gross insertion'),
+}
+for x in out:
+    x.update(FIXES.get(x['site_id'], {}))
 with open(P / 'panel_v3_sites.tsv', 'w') as f:
-    w = csv.DictWriter(f, COLS, delimiter='\t'); w.writeheader(); w.writerows(out)
+    w = csv.DictWriter(f, COLS, delimiter='\t', lineterminator='\n'); w.writeheader(); w.writerows(out)
 
 # small-variant VCF
 fai = [l.split('\t')[:2] for l in open(str(FA) + '.fai')]

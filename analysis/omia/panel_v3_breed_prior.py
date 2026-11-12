@@ -80,7 +80,7 @@ def site_breeds():
     cand = list(csv.DictReader(open(os.path.join(kv, 'catalogue_expansion_candidates.tsv')), delimiter='\t'))
     by_omia = {r['omia_id']: r['breeds'] for r in cand if r['omia_id']}
     curated = {}
-    for f in ('t4_priority_curated.tsv', 't5_curated.tsv'):
+    for f in ('t4_priority_curated.tsv', 't5_curated.tsv', 'literature_2026-11-11.tsv'):
         for r in csv.DictReader(open(os.path.join(kv, 'panel_v3', f)), delimiter='\t'):
             curated[(r['gene'], r['pos'])] = r['breeds']
     # OMIA's dog variant table (download of 2026-11-01): breed lists for entries where ours are empty

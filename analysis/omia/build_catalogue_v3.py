@@ -57,6 +57,8 @@ def main():
     by_gene = {}
     for c in cand:
         by_gene.setdefault(c['gene'], c)
+    # literature-search sites carry their own breeds/PMID/notation (the by_gene fallback would borrow another variant's)
+    lit = {(r['gene'], r['pos']): r for r in tsv(P / 'literature_2026-11-11.tsv')}
 
     cats = json.load(open(ROOT / 'dogs-app/lib/variantCategories.json'))
     live_sites, gene_cats = set(), {}
@@ -78,8 +80,9 @@ def main():
         gc = gene_cats.get(s['gene'].strip().upper(), set())
         category = next(iter(gc)) if len(gc) == 1 and gc != {'disease'} else 'disease' if s['report_class'] == 'report' else 'trait'
         suffix = sid.rsplit('_', 1)[-1]
-        c = (by_omia.get(suffix) or by_pos.get((s['gene'], f"{s['chrom']}:{s['pos']}"))
-             or by_gene.get(s['gene']) or {})
+        lr = lit.get((s['gene'], s['pos'])) if s['origin'].startswith('Literature') else None
+        c = ({'breeds': lr['breeds'], 'pmid': lr['pmid'], 'variant': lr['variant']} if lr else
+             by_omia.get(suffix) or by_pos.get((s['gene'], f"{s['chrom']}:{s['pos']}")) or by_gene.get(s['gene']) or {})
         sv = s['kind'] == 'sv'
         e = {'site_id': sid, 'gene': s['gene'], 'chrom': s['chrom'], 'pos': int(s['pos']),
              'ref': s['ref'] if not sv else None, 'alt': s['alt'] if not sv else None,
@@ -88,7 +91,7 @@ def main():
              'variant_breed': re.sub(r'\s*\(Dog\)', '', c.get('breeds', '')),
              'category': category,
              'source': f"panel_v3 {s['origin']}"}
-        t = text.get(s['gene'], {})
+        t = text.get(s['gene'], {}) if not lr else {'mode': lr['mode']}
         if t.get('name'):
             e['trait'] = e['phene_name'] = t['name']
         for f in ('mode', 'category', 'description'):
