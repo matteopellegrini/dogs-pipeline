@@ -1,0 +1,114 @@
+{
+ "version": 1,
+ "built": "2026-11-12",
+ "description": "New-process (MGI/Complete Genomics) reference swabs, bacterial reads capped at 2M to match old-lab cohort depth. Shift = mean over reference dogs (excluding the dog scored) of the dog-mean transformed value, minus the cohort median.",
+ "transforms": {
+  "pathobiont": "log(pct + 0.5), pct of all reads as the pipeline and cohort panel compute it",
+  "oral_cpm": "log(cpm + 1)"
+ },
+ "bands": {
+  "low_max_percentile": 25,
+  "high_min_percentile": 75
+ },
+ "samples": [
+  {
+   "sample": "admera-0001",
+   "dog": "cosmo",
+   "process": "Admera Complete Genomics PE150",
+   "aliases": [
+    "admera-0001",
+    "cosmo-admera"
+   ],
+   "microbial_reads": 2000091,
+   "total_classified_pct": 79.682,
+   "pathobiont_pct": 20.3332,
+   "richness": 115,
+   "shannon": 3.8115,
+   "oral_cpm": {
+    "sulfur": 89.23,
+    "ging": 8.15,
+    "nit": 2.74,
+    "amm": 28.99
+   }
+  },
+  {
+   "sample": "ucla-6164-y",
+   "dog": "cosmo",
+   "process": "UCLA MGI PE100 Genotek",
+   "aliases": [
+    "ucla-6164-y",
+    "ucla-6164",
+    "cosmo-genotek"
+   ],
+   "microbial_reads": 2000812,
+   "total_classified_pct": 83.213,
+   "pathobiont_pct": 12.2137,
+   "richness": 127,
+   "shannon": 3.8589,
+   "oral_cpm": {
+    "sulfur": 54.16,
+    "ging": 13.73,
+    "nit": 5.65,
+    "amm": 24.42
+   }
+  },
+  {
+   "sample": "admera-0002",
+   "dog": "luna_m",
+   "process": "Admera Complete Genomics PE150",
+   "aliases": [
+    "admera-0002",
+    "luna-admera"
+   ],
+   "microbial_reads": 1998373,
+   "total_classified_pct": 81.087,
+   "pathobiont_pct": 25.6204,
+   "richness": 124,
+   "shannon": 3.9132,
+   "oral_cpm": {
+    "sulfur": 98.21,
+    "nit": 8.59,
+    "amm": 65.24
+   }
+  },
+  {
+   "sample": "ucla-6198-y",
+   "dog": "luna_m",
+   "process": "UCLA MGI PE100 Genotek",
+   "aliases": [
+    "ucla-6198-y",
+    "ucla-6198",
+    "luna-genotek"
+   ],
+   "microbial_reads": 1999670,
+   "total_classified_pct": 86.189,
+   "pathobiont_pct": 38.9136,
+   "richness": 122,
+   "shannon": 3.4229,
+   "oral_cpm": {
+    "sulfur": 178.59,
+    "nit": 5.4,
+    "amm": 23.61
+   }
+  },
+  {
+   "sample": "dog-2",
+   "dog": "dog-2",
+   "process": "new lab MGI PE100",
+   "aliases": [
+    "dog-2",
+    "pk0922260005"
+   ],
+   "microbial_reads": 1480344,
+   "total_classified_pct": 80.773,
+   "pathobiont_pct": 33.5923,
+   "richness": 104,
+   "shannon": 3.4811,
+   "oral_cpm": {
+    "sulfur": 133.31,
+    "nit": 16.22,
+    "amm": 29.49
+   }
+  }
+ ]
+}
