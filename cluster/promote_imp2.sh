@@ -6,8 +6,8 @@
 # breed_result.json is always backed up and touched for a promoted kit, so
 #   FILES="$PROMOTE_FILES" bash cluster/republish_files.sh <tag> <list>
 # republishes every promoted kit (republish_files.sh keys on the first named file).
-# Kits with a .qc-hold.json in staging, or without .done, are skipped.
-#   DRY=1 bash cluster/promote_imp2.sh <tag> <list>     rows: name, barcode, pub dir, work dir
+# Kits with a .qc-hold.json in staging (unless named in HOLD_OK), or without .done, are skipped.
+#   DRY=1 HOLD_OK="DOG-2" bash cluster/promote_imp2.sh <tag> <list>     rows: name, barcode, pub dir, work dir
 D=/u/project/pellegrini/gkislik/dogs; cd $D
 TAG=${1:?tag}; LIST=${2:?list}
 PROMOTE_FILES="breed_result.json local_ancestry.json omia_result.json coat_color.json traits_result.json prs_result.json relatives_result.json inbreeding_result.json inbreeding_froh_dog10k_result.json mhc_result.json functional_variants.json ortho_result.json cnv_genes.json cnv_homdel.json"
@@ -16,7 +16,8 @@ while IFS=$'\t' read -r name barcode pub work; do
   [[ -n "$name" && -d "$pub" ]] || continue
   st=$D/results_imp2/$(basename "$pub")
   [[ -s "$st/.done" ]] || { skip=$((skip+1)); echo "SKIP $name (not re-imputed)"; continue; }
-  [[ -e "$st/.qc-hold.json" ]] && { hold=$((hold+1)); echo "HOLD $name (.qc-hold.json in staging)"; continue; }
+  # HOLD_OK: names already published on purpose despite the QC gate (DOG-2, Matteo 2026-11-12)
+  [[ -e "$st/.qc-hold.json" && " ${HOLD_OK:-} " != *" $name "* ]] && { hold=$((hold+1)); echo "HOLD $name (.qc-hold.json in staging)"; continue; }
   n=0
   for f in $PROMOTE_FILES; do
     [[ -f "$st/$f" ]] || continue
