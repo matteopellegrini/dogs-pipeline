@@ -24,6 +24,9 @@ for line in open(lst):
     if len(f) < 3 or '-DS' in f[0].upper():
         continue
     st = os.path.join(D, 'results_imp2', os.path.basename(f[2].rstrip('/')))
+    if not os.path.exists(f'{st}/.done'):
+        skipped += 1
+        continue
     try:
         mhc = json.load(open(f'{st}/mhc_result.json'))
         ib = json.load(open(f'{st}/inbreeding_result.json'))
