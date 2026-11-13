@@ -87,7 +87,14 @@ if [[ "$FASTA" == "$D/canFam4.fa" ]]; then REF=$D/canFam4_idx; else REF="$FASTA"
 VEP_CACHE=$D/vep_cache
 
 # Shared reference data (same for every dog)
-DOG10K_PANEL=$D/dog10k_panel/AutoAndXPAR.Dog10K.phased_plus_disease_rh.bcf
+# Imputation reference v2 (2026-11-11): Dog10K (1,929) + Dog Aging Project (7,828) haplotypes at the sites both
+# carry, duplicates and monomorphic sites removed (analysis/imputation_panel/build_panel.sbatch). The old panel
+# (dog10k_panel/AutoAndXPAR.Dog10K.phased_plus_disease_rh.bcf) held 116 all-ALT sites that made GLIMPSE2 abort
+# 169 of 813 chunks, so 21% of the genome was never imputed. The 20 hand-added disease sites DAP lacks are
+# imputed from a Dog10K-only window panel after the main run (ADDED_SITES below).
+DOG10K_PANEL=${DOG10K_PANEL:-$D/ref_panel_v2/AutoAndXPAR.Dog10K_DAP.bcf}
+ADDED_WINDOWS=${ADDED_WINDOWS:-$D/ref_panel_v2/added_windows.bcf}
+ADDED_SITES=${ADDED_SITES:-$D/ref_panel_v2/added_sites.tsv}
 CHUNKS_DIR=$D/COSMO/glimpse2_dog10k/chunks   # reuse existing chunk definitions
 REF_JSON=$D/reference_json                     # shared reference JSONs (genome annotations,
                                                # OMIA catalogue, PRS baseline); deliberately
@@ -1595,7 +1602,7 @@ if (( FROM_STAGE <= 7 && TO_STAGE >= 7 )); then
 # GLIMPSE2_ligate joins overlapping chunk BCFs into a single per-chromosome
 # BCF by selecting the highest-confidence genotype call in the overlap regions.
 # bcftools concat then merges all chromosomes into one genome-wide BCF.
-log "=== Stage 7: Genotype estimation (GLIMPSE2 × Dog10K reference panel) ==="
+log "=== Stage 7: Genotype estimation (GLIMPSE2 × Dog10K + Dog Aging Project reference panel) ==="
 GENO_DIR="$OUT/glimpse2/genotyped"
 LIGATED_DIR="$OUT/glimpse2/ligated"
 IMPUTED_BCF="$OUT/glimpse2/${DOG_LOWER}_imputed_dog10k.bcf"
@@ -1626,7 +1633,6 @@ estimate_chunk() {
 export -f estimate_chunk
 export OUT DOG10K_PANEL FASTA GENO_DIR
 
-FAILED_CHUNKS="$(dirname "$CHUNKS_DIR")/failed_chunks.txt"
 log "Estimating genotypes across chunks (${GLIMPSE_PARALLEL} parallel jobs)..."
 GLIMPSE_PIDS_STR=""
 glimpse_wait_slot() {
@@ -1650,9 +1656,6 @@ for chunkfile in "$CHUNKS_DIR"/*.txt; do
     if [ -f "$outfile" ] && [ -f "${outfile}.csi" ]; then
       echo "SKIP ${chr}_chunk${id}"; continue
     fi
-    if grep -qxF "${chr}_chunk${id}" "$FAILED_CHUNKS" 2>/dev/null; then
-      echo "SKIP(known-fail) ${chr}_chunk${id}"; continue
-    fi
     glimpse_wait_slot
     estimate_chunk "$chr" "$id" "$ireg" "$oreg" &
     GLIMPSE_PIDS_STR="${GLIMPSE_PIDS_STR:+$GLIMPSE_PIDS_STR }$!"
@@ -1661,7 +1664,12 @@ done
 kill "$MEM_POLL_PID" 2>/dev/null || true
 wait "$MEM_POLL_PID" 2>/dev/null || true
 wait
-log "Genotype estimation complete"
+_nchunks=$(cat "$CHUNKS_DIR"/*.txt | wc -l)
+_nok=$(ls "$GENO_DIR"/*_chunk*.bcf.csi 2>/dev/null | wc -l)
+if (( _nok < _nchunks )); then
+  log "WARNING: only $_nok of $_nchunks GLIMPSE2 chunks produced genotypes — the missing regions are ABSENT from the imputed BCF"
+fi
+log "Genotype estimation complete ($_nok/$_nchunks chunks)"
 ( while kill -0 $$ 2>/dev/null; do
     rss_kb=$(ps -u "$(id -u)" -o rss= 2>/dev/null | awk 'BEGIN{t=0} {t+=$1} END{print t}')
     cur=$(cat "$PEAK_MEM_FILE")
@@ -1698,6 +1706,33 @@ $MM_GLIMPSE bcftools concat \
   $(ls "$LIGATED_DIR"/chr*.bcf | sort -V) \
   -O b -o "$IMPUTED_BCF"
 $MM_GLIMPSE bcftools index -f "$IMPUTED_BCF"
+
+# Hand-added disease sites the Dog Aging Project lacks (ADDED_SITES: chrom pos ref alt win_start win_end): GLIMPSE2
+# on the window around each site against the Dog10K-only window panel, the exact record kept, then merged in.
+if [[ -s "$ADDED_SITES" && -s "$ADDED_WINDOWS" ]]; then
+  ADD_DIR="$OUT/glimpse2/added"; mkdir -p "$ADD_DIR"
+  _added=0
+  while IFS=$'\t' read -r a_chr a_pos a_ref a_alt a_lo a_hi; do
+    [[ "$a_chr" == chrom ]] && continue
+    a_out="$ADD_DIR/${a_chr}_${a_pos}.bcf"
+    olo=$(( a_pos - 250000 > a_lo ? a_pos - 250000 : a_lo )); ohi=$(( a_pos + 250000 < a_hi ? a_pos + 250000 : a_hi ))
+    if ! $MM_GLIMPSE GLIMPSE2_phase --bam-file "$OUT/markdup.bam" --reference "$ADDED_WINDOWS" --fasta "$FASTA" \
+         --input-region "$a_chr:$a_lo-$a_hi" --output-region "$a_chr:$olo-$ohi" --threads 1 \
+         --output "$ADD_DIR/win.bcf" > "$ADD_DIR/win.log" 2>&1; then
+      log "  WARN added site $a_chr:$a_pos: GLIMPSE2_phase failed ($(tail -1 "$ADD_DIR/win.log"))"; continue
+    fi
+    $MM_GLIMPSE bcftools view -i "POS=$a_pos && REF=\"$a_ref\" && ALT=\"$a_alt\"" -Ob -o "$a_out" "$ADD_DIR/win.bcf"
+    $MM_GLIMPSE bcftools index -f "$a_out"
+    _added=$((_added + 1))
+  done < "$ADDED_SITES"
+  if (( _added > 0 )); then
+    $MM_GLIMPSE bcftools concat -a -Ob -o "$ADD_DIR/merged.bcf" "$IMPUTED_BCF" $(ls "$ADD_DIR"/chr*_*.bcf | sort -V) \
+      && mv "$ADD_DIR/merged.bcf" "$IMPUTED_BCF" && $MM_GLIMPSE bcftools index -f "$IMPUTED_BCF" \
+      || die "could not merge the added disease sites into $IMPUTED_BCF"
+  fi
+  log "Added disease sites imputed from the Dog10K window panel: $_added"
+  rm -rf "$ADD_DIR"
+fi
 TOTAL=$($MM_GLIMPSE bcftools stats "$IMPUTED_BCF" 2>/dev/null | grep "^SN.*number of records" | awk '{print $NF}')
 log "Imputed BCF: $TOTAL variants → $IMPUTED_BCF"
 fi # end stage 7
@@ -2515,8 +2550,8 @@ breed_result = {
     'snps_used': int(valid.sum()),
     'k': P.shape[1],
     'pct_parker_covered': round(pct_covered, 1),
-    'reference_panel': (f'Breed panel v2.3 (2026-11): Parker 2017 (Cell Reports) + Dog10K + Hayward 2016 + Shannon 2015 + Dog Aging Project '
-                        f'reference dogs + public whole genomes (NCBI SRA), '
+    'reference_panel': (f'Breed panel v2.3 (2026-11): Parker 2017 (Cell Reports) + Dog10K + Hayward 2016 + Shannon 2015 + US pet-dog '
+                        f'research cohort + public whole genomes (NCBI SRA), '
                         f'{P.shape[0]:,} SNPs, {P.shape[1]} populations (breeds, village-dog populations by region, gray wolf)'),
 
     'method': ('Supervised SCOPE NNLS projection onto Parker 2017 allele frequency matrix. '
@@ -2612,7 +2647,7 @@ def category(v):
 # Reference sources as owners see them. Dog Aging Project dogs joined the
 # reference on 2026-11-09 (relatives/add_dap.py); like the other sources they
 # are shown by breed, weight and relationship only, never by identifier.
-SOURCE_NAMES = {'dog10k': 'Dog10K research panel', 'dap': 'Dog Aging Project'}
+SOURCE_NAMES = {'dog10k': 'Dog10K research panel', 'dap': 'US pet-dog research cohort'}
 sample_name = os.environ.get('SAMPLE', '').lower()
 # A match must also stand out from this dog's own background: its 20th-highest
 # kinship over the whole reference (self-level values excluded). First-cross
@@ -3408,7 +3443,7 @@ if 'weight_kg' in phys_traits:
         if _wbm.get('training'):
             # DAP-trained model (2026-11-08): external validation on customers
             _w_note = (f"Breed-composition adult-weight model: per-breed weights fit to "
-                       f"{_wbm['n_train']:,} adult dogs in the Dog Aging Project with owner-reported weights "
+                       f"{_wbm['n_train']:,} adult US pet dogs with owner-reported weights "
                        f"(box-constrained to {_wbm['box']:g}x the AKC breed-standard prior)" + _sex_part
                        + f". Tested on {_cv['n']} ProsperK9 customers' adult dogs that were not used to "
                        f"build it: r={_cv['r']:.2f}, MAE {_cv['mae']:.1f} kg, bias {_cv['bias']:+.1f} kg. "
