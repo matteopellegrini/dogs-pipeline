@@ -7,8 +7,11 @@ widely spread z never reaches 5, so a region a quarter of dogs share came out
 "cohort_freq 0.0, rare": chr8 74-77 Mb (the IGH locus, a breed-structured
 copy-number polymorphism; canFam4's German Shepherd carries the long form) was
 headlined as "a large single-copy deletion" on 176 of 1,878 published kits.
-This applies stage 6's corrected annotate_freq (band=(DEL_T, DUP_T)) to the
-events already in each file; ratios, pct_dogs and everything else are untouched.
+This applies stage 6's corrected annotate_freq (band=(DEL_T, DUP_T)) and its
+headline gate to the events already in each file: an event is 'common' (not
+painted, tabled or headlined) when >= 1% of the panel share it on the same band
+or when it touches either end of the chromosome; novelty_reason says which.
+Ratios, pct_dogs and everything else are untouched.
 
 The original is kept once as coverage_1mb.pre-<tag>.json beside it, which is
 what cluster/republish_files.sh keys on. Idempotent: always reads the backup.
@@ -20,7 +23,7 @@ import os
 import shutil
 import sys
 
-DEL_T, DUP_T, COMMON_PCT = 0.65, 1.35, 5.0
+DEL_T, DUP_T, KARY_COMMON_PCT = 0.65, 1.35, 1.0
 tag, panel_path, dirs = sys.argv[1], sys.argv[2], sys.argv[3:]
 pd = json.load(open(panel_path))
 idx = {(c, e['start'], k): e[k] for c, es in pd['panel'].items() for e in es
@@ -45,6 +48,10 @@ def cohort_freq(ev, sex):
     return round(max(fr) * 100, 1) if fr else None
 
 
+def state(es):
+    return [(e.get('cohort_freq'), e.get('novelty'), e.get('novelty_reason')) for e in es]
+
+
 changed = same = missing = 0
 for d in dirs:
     cur = os.path.join(d, 'coverage_1mb.json')
@@ -58,16 +65,23 @@ for d in dirs:
     meta = cov.get('_meta') or {}
     evs = meta.get('events') or []
     live = (json.load(open(cur)).get('_meta') or {}).get('events') or []
-    before = [(e.get('cohort_freq'), e.get('novelty')) for e in live]
+    before = state(live)
     for e in evs:
         f = cohort_freq(e, meta.get('predicted_sex'))
         e['cohort_freq'] = f
-        e['novelty'] = 'unknown' if f is None else 'common' if f >= COMMON_PCT else 'rare'
-    if [(e['cohort_freq'], e['novelty']) for e in evs] == before:
+        e['novelty'] = 'unknown' if f is None else 'common' if f >= KARY_COMMON_PCT else 'rare'
+        e.pop('novelty_reason', None)
+        n_win = len((cov.get(e['chrom']) or {}).get('ratio') or [])
+        if e['start'] == 0 or e['end'] >= n_win * 1000000:
+            e['novelty'], e['novelty_reason'] = 'common', 'chromosome-end'
+        elif e['novelty'] == 'common':
+            e['novelty_reason'] = 'cohort'
+    if state(evs) == before:
         same += 1
         continue          # leave the file (and its mtime) alone: nothing to republish
     meta['n_rare'] = sum(1 for e in evs if e.get('novelty') == 'rare')
     meta['freq_rule'] = 'ratio-band'
+    meta['common_pct'] = KARY_COMMON_PCT
     with open(cur, 'w') as fh:
         json.dump(cov, fh)
     changed += 1

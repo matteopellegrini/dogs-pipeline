@@ -606,8 +606,9 @@ def load_tsv(path):
     return rows
 
 COMMON_PCT = 5.0    # cohort share at or above which a region is "common"
+KARY_COMMON_PCT = 1.0   # the same for 1 Mb karyotype events (headline gate below)
 
-def annotate_freq(events, idx, bin_bp, sex, band=None):
+def annotate_freq(events, idx, bin_bp, sex, band=None, common_pct=COMMON_PCT):
     """Tag each event with how often the reference cohort is flagged there.
 
     Recurrence analysis over 93 dogs found chr19:21.3-21.5Mb flagged as a gain
@@ -649,7 +650,7 @@ def annotate_freq(events, idx, bin_bp, sex, band=None):
                     fr.append(hit / len(vals))
         ev['cohort_freq'] = round(max(fr) * 100, 1) if fr else None
         ev['novelty'] = ('unknown' if ev['cohort_freq'] is None
-                         else 'common' if ev['cohort_freq'] >= COMMON_PCT else 'rare')
+                         else 'common' if ev['cohort_freq'] >= common_pct else 'rare')
     return events
 
 # --- coverage_1mb.json (karyotype) ---
@@ -898,7 +899,25 @@ for a in aneuploidy:
           f"(expected {a['expected_copies']}), median ratio {a['median_ratio']}, "
           f"{a['windows_flagged']}/{a['windows_scoreable']} windows flagged")
 
-annotate_freq(events, panel_idx, 1000000, predicted_sex, band=(DEL_T, DUP_T))
+annotate_freq(events, panel_idx, 1000000, predicted_sex, band=(DEL_T, DUP_T),
+              common_pct=KARY_COMMON_PCT)
+
+# Headline gate. The report paints, tables and headlines every event whose
+# novelty is not 'common', so 'common' here means "not a finding", with the
+# reason recorded beside it. Two kinds of region are not findings:
+#  - shared by >= 1% of the panel on the same ratio band. At 5% the cohort
+#    still headlined 336 of 1,878 published kits with a "large deletion";
+#    a finding should be something about 1 in 100 dogs or fewer carry.
+#  - touching either end of the chromosome. Terminal 1 Mb windows track the
+#    library and platform more than the dog: chr16:60 Mb was a loss headline
+#    in 73 of 664 batch-2 kits against 3 of 1,110 batch-1 kits.
+# Together these leave 24 deletion headlines across the published cohort.
+for ev in events:
+    n_win = len(result[ev['chrom']].get('ratio') or [])
+    if ev['start'] == 0 or ev['end'] >= n_win * 1000000:
+        ev['novelty'], ev['novelty_reason'] = 'common', 'chromosome-end'
+    elif ev['novelty'] == 'common':
+        ev['novelty_reason'] = 'cohort'
 
 # Per-dog confidence. A dog with 242 events should not produce 242 findings —
 # it should say the coverage is not clean enough to call structural variation.
@@ -946,7 +965,8 @@ result['_meta'] = {'predicted_sex': predicted_sex,
                    'confidence_reasons': _reasons,
                    'n_gain': _gains, 'n_loss': _losses,
                    'n_rare': sum(1 for e in events if e.get('novelty') == 'rare'),
-                   'common_pct': COMMON_PCT,
+                   'common_pct': KARY_COMMON_PCT,
+                   'freq_rule': 'ratio-band',
                    'events': events,
                    'aneuploidy': aneuploidy}
 with open(f'{pub}/coverage_1mb.json', 'w') as f:
