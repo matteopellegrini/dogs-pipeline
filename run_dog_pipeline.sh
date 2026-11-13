@@ -3784,155 +3784,15 @@ PYEOF
 fi # end stage 11
 
 if (( FROM_STAGE <= 12 && TO_STAGE >= 12 )); then
-# ── Stage 12: Inbreeding (Dog10K ROH + F distribution) ──────
-log "=== Stage 12: Inbreeding (Dog10K) ==="
-"$DATA_PYTHON" - << PYEOF
-import subprocess, json, numpy as np, gzip, re
-
-BCF     = "$IMPUTED_BCF"
-AF_FILE = "$D/COSMO/glimpse2_dog10k/het_out/panel_af.tsv.gz"
-HET_FILE= "$D/COSMO/glimpse2_dog10k/het_out/dog10k_het.het"
-PUB     = "$PUB"
-DOG     = "$DOG_LOWER"
-AUTOSOMES = [str(i) for i in range(1,39)]
-
-# ── ROH-based FROH (sliding window on imputed BCF) ───────────
-print("Computing FROH from imputed BCF...")
-WINDOW = 50; MAX_HET = 1; MIN_ROH_KB = 500; MAX_GAP_KB = 1000
-AUTO_MB = 2200.0
-
-roh_total_mb = 0.0
-roh_segments = []
-
-for chrom_num in AUTOSOMES:
-    chrom = f'chr{chrom_num}'
-    result = subprocess.run(
-        ['bcftools', 'query', '-r', chrom, '-f', '[%GT]\t%POS\n', BCF],
-        capture_output=True, text=True)
-    sites = []
-    for line in result.stdout.strip().split('\n'):
-        if not line: continue
-        parts = line.split('\t')
-        if len(parts) < 2: continue
-        gt, pos_s = parts[0], parts[1]
-        alleles = re.split(r'[|/]', gt)
-        if '.' in alleles: continue
-        is_het = len(set(alleles)) > 1
-        sites.append((int(pos_s), is_het))
-    if len(sites) < WINDOW: continue
-
-    i = 0
-    while i <= len(sites) - WINDOW:
-        window = sites[i:i+WINDOW]
-        het_count = sum(1 for _,h in window if h)
-        if het_count <= MAX_HET:
-            j = i + WINDOW
-            while j < len(sites):
-                if not sites[j][1]:
-                    j += 1
-                elif sum(1 for _,h in sites[i:j+1] if h) <= MAX_HET:
-                    j += 1
-                else:
-                    break
-            roh_start = sites[i][0]; roh_end = sites[j-1][0]
-            roh_kb = (roh_end - roh_start) / 1000
-            if roh_kb >= MIN_ROH_KB:
-                roh_total_mb += roh_kb / 1000
-                roh_segments.append({'chrom': chrom, 'start': roh_start,
-                    'end': roh_end, 'length_mb': round(roh_kb/1000,3)})
-            i = j
-        else:
-            i += 1
-
-froh = roh_total_mb / AUTO_MB
-level = ('Very Low' if froh < 0.03125 else 'Low' if froh < 0.0625 else
-         'Moderate' if froh < 0.125 else 'High' if froh < 0.25 else 'Very High')
-print(f"FROH={froh:.4f} ({level}), {roh_total_mb:.1f} Mb in {len(roh_segments)} ROH segments")
-
-inbreeding = {
-    'f_roh': round(froh, 4), 'f_roh_pct': round(froh*100, 2),
-    'roh_total_mb': round(roh_total_mb, 2), 'roh_n_segments': len(roh_segments),
-    'level': level.replace(' ','_'),
-    'autosomal_genome_mb': AUTO_MB,
-    'roh_segments': roh_segments,
-    'method': 'ROH from Dog10K GLIMPSE2-imputed panel; window=50 SNPs, max_het=1, min_roh=500kb'
-}
-with open(f'{PUB}/inbreeding_result.json', 'w') as f:
-    json.dump(inbreeding, f, indent=2)
-print("inbreeding_result.json written")
-
-# ── Genotype F vs Dog10K distribution ────────────────────────
-print("Computing genotype F vs Dog10K distribution...")
-f_vals = []
-with open(HET_FILE) as fh:
-    next(fh)
-    for line in fh:
-        parts = line.split()
-        if len(parts) > 4:
-            f_vals.append(float(parts[4]))
-f_arr = np.array(f_vals)
-
-regions_arg = ','.join(f'chr{c}' for c in AUTOSOMES)
-cosmo_proc = subprocess.Popen(
-    ['bcftools', 'query', '-r', regions_arg, '-f', '%CHROM\t%POS\t[%GT]\n', BCF],
-    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
-
-panel_fh = gzip.open(AF_FILE, 'rt')
-
-def parse_af(s):
-    v = s.split(',')[0]
-    return None if v == '.' else float(v)
-
-def next_panel():
-    line = panel_fh.readline()
-    if not line: return None, None, None
-    parts = line.rstrip().split('\t')
-    return parts[0], int(parts[1]), parse_af(parts[2])
-
-o_hom = 0; e_hom = 0.0; n_obs = 0
-p_chrom, p_pos, p_af = next_panel()
-
-for line in cosmo_proc.stdout:
-    parts = line.rstrip().split('\t')
-    c_chrom, c_pos, gt = parts[0], int(parts[1]), parts[2]
-    c_num = int(c_chrom.replace('chr',''))
-    while p_chrom is not None:
-        if p_chrom == c_chrom and p_pos == c_pos: break
-        p_num = int(p_chrom.replace('chr',''))
-        if p_num < c_num or (p_chrom == c_chrom and p_pos < c_pos):
-            p_chrom, p_pos, p_af = next_panel()
-        else: break
-    if p_chrom != c_chrom or p_pos != c_pos or p_af is None: continue
-    af = p_af; q = 1.0 - af
-    is_hom = gt in ('0|0','1|1','0/0','1/1')
-    o_hom += int(is_hom); e_hom += af*af + q*q; n_obs += 1
-    p_chrom, p_pos, p_af = next_panel()
-
-cosmo_proc.wait(); panel_fh.close()
-if n_obs == 0 or (n_obs - e_hom) == 0:
-    print("WARNING: no sites matched for genotype F")
-else:
-    dog_F = (o_hom - e_hom) / (n_obs - e_hom)
-    pct = float(np.mean(f_arr < dog_F) * 100)
-    f_min, f_max = float(f_arr.min()), float(f_arr.max())
-    hist_counts, hist_edges = np.histogram(f_arr, bins=40, range=(f_min, f_max+0.001))
-    dog10k_dist = {
-        'sample_froh': round(dog_F, 4),
-        'sample_percentile': round(pct, 1),
-        'n_samples': len(f_arr),
-        'ref_froh_mean': round(float(f_arr.mean()), 4),
-        'ref_froh_p25': round(float(np.percentile(f_arr, 25)), 4),
-        'ref_froh_p50': round(float(np.percentile(f_arr, 50)), 4),
-        'ref_froh_p75': round(float(np.percentile(f_arr, 75)), 4),
-        'hist_counts': hist_counts.tolist(),
-        'hist_edges': hist_edges.tolist(),
-        'metric': 'genotype_F',
-        'note': f'Genotype F from {n_obs/1e6:.1f}M autosomal SNPs vs Dog10K panel ({len(f_arr)} dogs).'
-    }
-    with open(f'{PUB}/inbreeding_froh_dog10k_result.json', 'w') as f:
-        json.dump(dog10k_dist, f, indent=2)
-    print(f"inbreeding_froh_dog10k_result.json: F={dog_F:.4f} ({pct:.1f}th pct)")
-PYEOF
+# ── Stage 12: Inbreeding (F_ROH + genotype F vs Dog10K, depth-corrected) ──────
+# bcftools roh runs >= 500 kb and genotype F, both corrected for sequencing depth with the downsampling
+# calibration in reference_json/inbreeding_depth_calibration.json (analysis/inbreeding/).
+log "=== Stage 12: Inbreeding ==="
+"$DATA_PYTHON" "$D/analysis/inbreeding/inbreeding_stage.py" "$IMPUTED_BCF" "$PUB" \
+    --af-file "$D/COSMO/glimpse2_dog10k/het_out/panel_af.tsv.gz" \
+    --het-file "$D/COSMO/glimpse2_dog10k/het_out/dog10k_het.het" \
+    --calibration "$REF_JSON/inbreeding_depth_calibration.json" \
+  || die "Stage 12 inbreeding failed"
 fi # end stage 12
 
 if (( FROM_STAGE <= 12 && TO_STAGE >= 12 )); then
@@ -5493,6 +5353,12 @@ else
         fi
     fi
 fi
+
+# New-process swabs (MGI / Complete Genomics; read length absent from the cohort panel) are placed on the
+# old-lab cohort's scale: the average new-process shift from reference swabs, leaving out this dog, is
+# removed and the result reported as a low / typical / high band. Old-process samples are untouched.
+"${DATA_PYTHON:-python3}" "$D/analysis/microbiome/platform_adjust.py" "$PUB" --sample "$DOG_LOWER" 2>&1 \
+    | while IFS= read -r l; do log "  [platform] $l"; done
 
 fi # end stage 15b
 if (( FROM_STAGE <= 16 && TO_STAGE >= 16 )); then
