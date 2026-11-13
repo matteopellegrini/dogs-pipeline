@@ -1,9 +1,11 @@
 #!/bin/bash
 # Rerun stage 12b (mhc_result.json) in results_imp2 staging after the MHC reference refit
 # (analysis/mhc/refit_from_staging.py), from each kit's archived panel v2 BCF, its staged breed_result.json and
-# its depth-corrected inbreeding_result.json. ~1 s per dog; run on the login node with nohup.
-#   bash cluster/mhc_restage_imp2.sh <list>      rows: name, barcode, pub dir, work dir
-D=/u/project/pellegrini/gkislik/dogs; cd $D; export LD_LIBRARY_PATH=$D/envs/genomics/lib
+# its depth-corrected inbreeding_result.json. ~1 s per dog. Login nodes cannot give numpy's OpenBLAS its
+# thread buffers, so run it through Slurm:
+#   sbatch -A pi_matteop -p campus -c 1 --mem=8G -t 4:00:00 -o logs/mhc_restage_imp2.log cluster/mhc_restage_imp2.sh <list>
+# rows: name, barcode, pub dir, work dir
+D=/u/project/pellegrini/gkislik/dogs; cd $D; export LD_LIBRARY_PATH=$D/envs/genomics/lib OPENBLAS_NUM_THREADS=1
 ok=0; fail=0; skip=0
 while IFS=$'\t' read -r name barcode pub work; do
   [[ -n "$name" ]] || continue
