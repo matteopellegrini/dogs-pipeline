@@ -73,3 +73,7 @@ reinvite_*.tsv
 reinvite_*.log
 hayward2016/
 breed_panel_v2/
+breed_panel_v21/
+breed_panel_v22/
+shannon2015/
+.vercel
