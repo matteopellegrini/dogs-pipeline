@@ -4912,13 +4912,13 @@ else log "  markdup.bam missing — AMY2B skipped"; fi
 fi # end stage 13b2
 
 if (( FROM_STAGE <= 13 && TO_STAGE >= 13 )); then
-# ── Stage 13c: panel v3 genetic-health calls (PANEL_V3=1; off until the panel v3 rollout) ───
+# ── Stage 13c: panel v3 genetic-health calls (on by default since 2026-11-14; PANEL_V3=0 turns it off) ───
 # Scores this kit against the frozen cohort fit in reference_panel/panel_v3 (per-breed allele frequencies, read
 # errors, SV depth components: analysis/omia/panel_v3_breed_prior.py score) and rewrites omia_result.json against
-# reference_json/omia_variants_v3.json. Turn on only once the app's condition catalogue is the panel v3 one,
-# otherwise the new conditions show on reports under derived names. Stage 8's file is kept as
+# reference_json/omia_variants_v3.json. The app's condition catalogue has been the panel v3 one since 2026-11-06
+# and every published report carries these calls, so new kits get them too. Stage 8's file is kept as
 # $OUT/omia_result.stage8.json, so a stage-13 rerun starts again from it.
-if [[ "${PANEL_V3:-0}" == "1" ]]; then
+if [[ "${PANEL_V3:-1}" == "1" ]]; then
     log "=== Stage 13c: Panel v3 genetic-health calls ==="
     PV3_MODEL="${PANEL_V3_MODEL:-$D/reference_panel/panel_v3}"
     PV3_BAM="$OUT/markdup.bam"
