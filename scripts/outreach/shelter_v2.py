@@ -4,14 +4,14 @@
   shelter_v2.py --batch 1|2 [--send] [--key K]     first/second half of status=todo rows
   shelter_v2.py --followup [--send] [--key K]      day-6 bump to sent rows with empty reply and no followup_on
                                                     (only rows whose sent_on is >= 6 days ago)
-List  ~/Downloads/shelter_outreach_v2_la.csv  (the request's "v2_2026-10-19" list)
+List  ~/Downloads/shelter_outreach_v2_2026-10-19.csv (25 rows: 11 LA + 14 breed rescues)
 Log   ~/Downloads/shelter_outreach_v2_sendlog_2026-10-19.json
 """
 import csv, json, os, re, sys, time, urllib.request, urllib.error
 from datetime import datetime, timezone, date, timedelta
 
 HOME = os.path.expanduser('~')
-CSV = f'{HOME}/Downloads/shelter_outreach_v2_la.csv'
+CSV = f'{HOME}/Downloads/shelter_outreach_v2_2026-10-19.csv'
 OLD = f'{HOME}/Downloads/shelter_outreach_list_2026-10-06.csv'
 LOG = f'{HOME}/Downloads/shelter_outreach_v2_sendlog_2026-10-19.json'
 API = 'https://my.prosperk9.com/api/admin/send-email'
@@ -71,8 +71,9 @@ if FOLLOWUP:
 else:
     todo = [r for r in rows if r['status'] == 'todo' and r['email'].strip().lower() not in old and r['org'].strip().lower() not in old
             and not (r.get('sent_on') or '').strip() and r['email'].strip().lower() not in first_id]
+    # Batch 1 = first half of what is still to do; batch 2 = everything left (both capped at MAX_PER_DAY).
     half = (len(todo) + 1) // 2
-    plan = todo[:half] if BATCH == 1 else todo[half:] if BATCH == 2 else []
+    plan = todo[:half] if BATCH == 1 else todo if BATCH == 2 else []
     if BATCH not in (1, 2): print('need --batch 1 or --batch 2'); sys.exit(1)
     plan = plan[:max(0, MAX_PER_DAY - sent_today)]
 
