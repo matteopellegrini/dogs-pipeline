@@ -1,5 +1,5 @@
 #!/bin/bash
-# Imputation-panel v3 pilot, one chromosome per task: phase the added dogs against panel v2 and build test panels
+# Imputation-panel v3 pilot, one chromosome per task: phase the added dogs against panel v2 (Beagle 5.5) and build test panels
 # on panel v2's exact sites.
 #   pv2  = panel v2 (Dog10K + Dog Aging Project), as used in production
 #   pex  = pv2 + the existing high-depth SRA genomes (pilot_existing_dogs.tsv, from their sra_full gVCFs)
@@ -29,13 +29,17 @@ $B/python3 analysis/imputation_panel/pilot_genotypes.py $c ref_panel_v2/sites/$c
 $B/bcftools index -f $P/add_$c.vcf.gz
 awk '{s+=$3; n++} END{printf "mean missing per dog %.3f over %d dogs\n", s/n, n}' $P/missing_$c.txt
 
-# SHAPEIT5 wants AC/AN in the reference; panel v2's BCFs do not carry them
-[ -s $P/refac_$c.bcf.csi ] || { $B/bcftools +fill-tags $REF -Ob -o $P/refac_$c.bcf -- -t AC,AN && $B/bcftools index -f $P/refac_$c.bcf; }
-$S/SHAPEIT5_phase_common --input $P/add_$c.vcf.gz --reference $P/refac_$c.bcf --region $c --thread $THREADS \
-  --output $P/add_phased_$c.bcf --log $P/phase_$c.log > /dev/null
+# Phase the added dogs against panel v2 with Beagle 5.5. SHAPEIT5 phase_common OOM-killed even at 128G here:
+# ~45% of panel sites are rare and the added genotypes are ~14% missing, which it is not built for. Beagle phases
+# every site and fills the missing genotypes. Its ref must be VCF/bref3, so panel v2 is written once as VCF (+AC/AN).
+[ -s $P/refac_$c.vcf.gz.csi ] || { $B/bcftools +fill-tags $REF -Oz -o $P/refac_$c.vcf.gz -- -t AC,AN && $B/bcftools index -f $P/refac_$c.vcf.gz; }
+java -Xmx110g -jar $D/envs/lai/beagle.jar gt=$P/add_$c.vcf.gz ref=$P/refac_$c.vcf.gz chrom=$c nthreads=$THREADS \
+  impute=false out=$P/add_phased_$c > $P/phase_$c.log 2>&1
+$B/bcftools view -Ob -o $P/add_phased_$c.bcf $P/add_phased_$c.vcf.gz && rm -f $P/add_phased_$c.vcf.gz
 $B/bcftools index -f $P/add_phased_$c.bcf
 
 cut -f1 analysis/imputation_panel/pilot_existing_dogs.tsv > $P/existing_samples.txt
+[ -s $P/refac_$c.bcf.csi ] || { $B/bcftools view -Ob -o $P/refac_$c.bcf $P/refac_$c.vcf.gz && $B/bcftools index -f $P/refac_$c.bcf; }
 ln -sf $P/refac_$c.bcf $T/ref/pv2_$c.bcf; ln -sf $P/refac_$c.bcf.csi $T/ref/pv2_$c.bcf.csi
 $B/bcftools view -S $P/existing_samples.txt -Ob -o $P/add_ex_$c.bcf $P/add_phased_$c.bcf && $B/bcftools index -f $P/add_ex_$c.bcf
 for pair in pex:$P/add_ex_$c.bcf pall:$P/add_phased_$c.bcf; do
