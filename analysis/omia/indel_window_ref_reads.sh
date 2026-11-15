@@ -7,6 +7,9 @@
 #   analysis/omia/indel_window_ref_reads.sh NAME CHROM POS REF ALT SITE_ID COUNTS OUT_DIR [FLANK_BP]
 # Public-genome genotype from COUNTS: >=2 alt reads and >=15% alt -> carrier (two copies at >=85% alt, >=6 reads);
 # no alt read and >=6 reads -> clear; anything else missing.
+# PUBLIC_ONLY=1: the reference is only the dogs whose indel genotype was observed (the public genomes). Filling the
+# indel into 1,929 Dog10K dogs from 16 observed carriers (default mode) put cord1 in 25% of wolves and 83% of Polish
+# Lowland Sheepdogs (2026-11-15): Beagle assigns a marker missing in ~90% of samples almost at random.
 set -euo pipefail
 NAME=$1; C=$2; P=$3; REF=$4; ALT=$5; SID=$6; COUNTS=$7; O=$8; F=${9:-1000000}
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -79,8 +82,15 @@ with open(f'{T}/truth.tsv', 'w') as o:
 print(f'public genomes: {len(pub)} ({sum(g != "0/0" for g in truth.values())} carriers); Dog10K carriers: {len(d10k)}', file=sys.stderr)
 PY
 bcftools view -Oz -o "$T/pub.vcf.gz" "$T/pub.vcf"; bcftools index -t "$T/pub.vcf.gz"
-bcftools merge -m none -Oz -o "$T/snv_all.vcf.gz" "$T/snv.vcf.gz" "$T/pub.vcf.gz"; bcftools index -t "$T/snv_all.vcf.gz"
-bcftools view -Oz -o "$T/indel.vcf.gz" "$T/indel.vcf"; bcftools index -t "$T/indel.vcf.gz"
+if [ "${PUBLIC_ONLY:-0}" = 1 ]; then
+  # drop sites monomorphic among the public dogs (Beagle and GLIMPSE need variable sites)
+  bcftools +fill-tags "$T/pub.vcf.gz" -Ou -- -t AC,AN | bcftools view -i 'AC>0 && AC<AN' -Oz -o "$T/snv_all.vcf.gz"
+  bcftools view -S <(cut -f1 "$T/truth.tsv") -Oz -o "$T/indel.vcf.gz" "$T/indel.vcf"
+else
+  bcftools merge -m none -Oz -o "$T/snv_all.vcf.gz" "$T/snv.vcf.gz" "$T/pub.vcf.gz"
+  bcftools view -Oz -o "$T/indel.vcf.gz" "$T/indel.vcf"
+fi
+bcftools index -t "$T/snv_all.vcf.gz"; bcftools index -t "$T/indel.vcf.gz"
 bcftools concat -a -Oz -o "$T/merged.vcf.gz" "$T/snv_all.vcf.gz" "$T/indel.vcf.gz"
 bcftools index -t "$T/merged.vcf.gz"
 "$ROOT/envs/beagle/bin/beagle" -Xmx16g gt="$T/merged.vcf.gz" out="$T/phased" nthreads=${BEAGLE_THREADS:-4} > "$T/beagle.log" 2>&1
