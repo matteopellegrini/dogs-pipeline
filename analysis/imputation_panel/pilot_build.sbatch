@@ -5,7 +5,7 @@
 #   pex  = pv2 + the existing high-depth SRA genomes (pilot_existing_dogs.tsv, from their sra_full gVCFs)
 #   pall = pex + the newly streamed pilot dogs (pilot_v3_dogs.tsv role=panel, sra_panel/<BS>.panel_sites.bcf)
 # Test dogs (role=test, SRR40570403) are in none of them. A BioSample listed under two breed groups enters once.
-#   sbatch -A pi_matteop -p campus -a 18,27,38 -c 8 --mem=48G -t 12:00:00 analysis/imputation_panel/pilot_build.sbatch
+#   sbatch -A pi_matteop -p campus -a 18,27,38 -c 8 --mem=128G -t 12:00:00 analysis/imputation_panel/pilot_build.sbatch   (48G OOMs in SHAPEIT5 burn-in)
 #SBATCH -J pilot_build
 #SBATCH -o logs/pilot_build.%A.%a.log
 set -euo pipefail
