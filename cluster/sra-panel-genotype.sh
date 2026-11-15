@@ -10,7 +10,8 @@
 #   role=test:  full depth, no cap; keeps sra_full/<BS>.g.vcf.gz (truth for scoring) and a ~1x random subsample
 #               scratch/panel_test/sra/<BS>/lowpass.bam for imputation tests. Test dogs never enter a panel.
 # Rows (analysis/imputation_panel/pilot_v3_dogs.tsv): biosample group breed role depth_x bases runs(comma)
-#   sbatch -J sra_panel -a 1-N%40 -A pi_matteop -p campus -c 8 --mem=48G -t 1-00:00:00 cluster/sra-panel-genotype.sh <list>
+#   sbatch -J sra_panel -a 1-N%40 -A pi_matteop -p campus -c 8 --mem=64G -t 1-00:00:00 cluster/sra-panel-genotype.sh <list>
+#   (48G: ~23% of tasks died at the limit in the pipe bwa-mem2 | sort -n | fixmate | sort | markdup, 2026-11-15)
 # A second array (e.g. pi_shared) can walk the same list: a lock directory claims each BioSample.
 # FAST=1 (panel role): when the first run's reads are in random genomic order (first 2,000 spots land on >= 20
 #   chromosomes), read only the first ~CAP_X worth of spots of each run straight from SRA (fastq-dump -X, no prefetch)
@@ -36,7 +37,9 @@ fi
 touch "$LOCK/${SLURM_ARRAY_JOB_ID:-$SLURM_JOB_ID}.$SLURM_ARRAY_TASK_ID"
 ( while sleep 600; do touch "$LOCK"; done ) & HB=$!
 trap 'kill $HB 2>/dev/null; rm -rf "$LOCK"' EXIT
-fail() { echo "SRAPANEL-FAIL $bs $group: $1"; exit 1; }
+# A failed task drops its downloads and partial BAMs (a failed task kept ~30 GB each; 163 of them filled 4.7 TB),
+# keeping only a finished markdup.bam, which a rerun resumes from.
+fail() { echo "SRAPANEL-FAIL $bs $group: $1"; rm -rf "$OUT/sra" "$OUT/tmp" "$OUT"/tmp_sort* "$OUT"/markdup.bam.tmp*; exit 1; }
 t0=$(date +%s); echo "[$(date +%T)] $bs $group ($breed) role=$role ${depth}x runs=$runs on $(hostname)"
 
 # Fraction of read pairs to keep: CAP_X over the raw depth (bases / 2.48 Gb); test dogs keep everything.
