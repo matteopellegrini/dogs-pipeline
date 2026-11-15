@@ -25,7 +25,7 @@ cut -f1,2,3 $P/dogs_$c.tsv > $P/dogs_$c.in.tsv
 echo "$c: $(grep -c gvcf $P/dogs_$c.tsv) existing + $(grep -c -w new $P/dogs_$c.tsv) new dogs"
 
 $B/python3 analysis/imputation_panel/pilot_genotypes.py $c ref_panel_v2/sites/$c.tsv.gz $P/dogs_$c.in.tsv 2>$P/missing_$c.txt \
-  | $B/bgzip -c > $P/add_$c.vcf.gz
+  | $B/bcftools +fill-tags - -Oz -o $P/add_$c.vcf.gz -- -t AC,AN   # SHAPEIT5 needs AC/AN in the input too
 $B/bcftools index -f $P/add_$c.vcf.gz
 awk '{s+=$3; n++} END{printf "mean missing per dog %.3f over %d dogs\n", s/n, n}' $P/missing_$c.txt
 
