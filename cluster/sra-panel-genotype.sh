@@ -12,6 +12,9 @@
 # Rows (analysis/imputation_panel/pilot_v3_dogs.tsv): biosample group breed role depth_x bases runs(comma)
 #   sbatch -J sra_panel -a 1-N%40 -A pi_matteop -p campus -c 8 --mem=48G -t 1-00:00:00 cluster/sra-panel-genotype.sh <list>
 # A second array (e.g. pi_shared) can walk the same list: a lock directory claims each BioSample.
+# FAST=1 (panel role): when the first run's reads are in random genomic order (first 2,000 spots land on >= 20
+#   chromosomes), read only the first ~CAP_X worth of spots of each run straight from SRA (fastq-dump -X, no prefetch)
+#   instead of downloading and reading everything; position-sorted submissions fall back to the full read.
 #SBATCH -o logs/%x.%A.%a.log
 #SBATCH --requeue
 set -uo pipefail
@@ -51,9 +54,32 @@ done
 sel=(); for x in "${use[@]}"; do [ "$pe" = 0 ] || [ "${x#*:}" = 1 ] && sel+=("${x%%:*}"); done
 echo "[$(date +%T)] keep=$keep $([ "$pe" = 1 ] && echo paired || echo single-end) runs used: ${sel[*]}"
 
+# FAST: spots needed for CAP_X (bases per spot from the first 2,000 spots), if those spots are spread over the genome
+nspots=0
+if [ "${FAST:-0}" = 1 ] && [ "$role" = panel ] && [ "$keep" != 1.00000 ]; then
+  fastq-dump -X 2000 --split-spot -Z "${sel[0]}" 2>/dev/null > "$OUT/head.fq"
+  bps=$(awk -v pe="$pe" 'NR%4==2{b+=length($0)} END{print (NR ? b/(NR/4/(pe?2:1)) : 0)}' "$OUT/head.fq")
+  nchr=$(bwa-mem2 mem $([ "$pe" = 1 ] && echo -p) -t "$NP" "$REF" "$OUT/head.fq" 2>/dev/null \
+         | samtools view -F 0x904 -q 20 - | cut -f3 | grep -E '^chr[0-9]+$' | sort -u | wc -l)
+  rm -f "$OUT/head.fq"
+  if [ "${nchr:-0}" -ge 20 ] && awk -v b="$bps" 'BEGIN{exit !(b>50)}'; then
+    nspots=$(awk -v c="$CAP_X" -v b="$bps" 'BEGIN{printf "%d", c*2.48e9/b}')
+    keep=1
+  fi
+  echo "[$(date +%T)] FAST: first spots on $nchr autosomes, $bps bases/spot -> $([ "$nspots" -gt 0 ] && echo "read first $nspots spots" || echo "sorted or unknown: full read")"
+fi
+
 if [ ! -s "$OUT/markdup.bam" ]; then
   rm -rf "$OUT"/tmp_sort* "$OUT"/markdup.bam.tmp* "$OUT"/sra
+  left=$nspots
   for r in "${sel[@]}"; do
+    if [ "$nspots" -gt 0 ]; then
+      [ "$left" -gt 0 ] || break
+      fastq-dump --split-spot -Z -X "$left" --defline-seq '@$ac.$si/$ri' --defline-qual '+' "$r" 2>>"$OUT/fqd.log" \
+        | awk -v f="$OUT/n.$r" '{print} END{print NR/4 > f}' || { echo "fastq-dump $r failed" >&2; exit 4; }
+      left=$(( left - $(awk -v pe="$pe" '{printf "%d", $1/(pe?2:1)}' "$OUT/n.$r") ))
+      continue
+    fi
     prefetch --max-size 400G -O "$OUT/sra" "$r" >/dev/null 2>>"$OUT/prefetch.log" || { echo "prefetch $r failed" >&2; exit 3; }
     fasterq-dump --split-spot --stdout -e 2 -t "$OUT/tmp" --seq-defline '@$ac.$si/$ri' --qual-defline '+' \
         "$OUT/sra/$r/$r.sra" 2>>"$OUT/fqd.log" || { echo "fasterq-dump $r failed" >&2; exit 4; }
