@@ -33,9 +33,10 @@ awk '{s+=$3; n++} END{printf "mean missing per dog %.3f over %d dogs\n", s/n, n}
 # ~45% of panel sites are rare and the added genotypes are ~14% missing, which it is not built for. Beagle phases
 # every site and fills the missing genotypes. Its ref must be VCF/bref3, so panel v2 is written once as VCF (+AC/AN).
 [ -s $P/refac_$c.vcf.gz.csi ] || { $B/bcftools +fill-tags $REF -Oz -o $P/refac_$c.vcf.gz -- -t AC,AN && $B/bcftools index -f $P/refac_$c.vcf.gz; }
-java -Xmx110g -jar $D/envs/lai/beagle.jar gt=$P/add_$c.vcf.gz ref=$P/refac_$c.vcf.gz chrom=$c nthreads=$THREADS \
-  impute=false out=$P/add_phased_$c > $P/phase_$c.log 2>&1
-$B/bcftools view -Ob -o $P/add_phased_$c.bcf $P/add_phased_$c.vcf.gz && rm -f $P/add_phased_$c.vcf.gz
+[ -s $P/add_phased_$c.vcf.gz ] || java -Xmx110g -jar $D/envs/lai/beagle.jar gt=$P/add_$c.vcf.gz ref=$P/refac_$c.vcf.gz \
+  chrom=$c nthreads=$THREADS impute=false out=$P/add_phased_$c > $P/phase_$c.log 2>&1
+# Beagle writes no ##contig lines, which BCF needs
+$B/bcftools reheader --fai $D/canFam4.fa.fai $P/add_phased_$c.vcf.gz | $B/bcftools view -Ob -o $P/add_phased_$c.bcf
 $B/bcftools index -f $P/add_phased_$c.bcf
 
 cut -f1 analysis/imputation_panel/pilot_existing_dogs.tsv > $P/existing_samples.txt
