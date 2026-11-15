@@ -1374,6 +1374,15 @@ with open(f'{pub}/cnv_homdel.json', 'w') as f:
 print(f"cnv_homdel.json: {len(regions)} regions, {len(disrupted_all)} disrupted genes")
 PYEOF
 
+# ── 6c2: Sex chromosomes ────────────────────────────────────
+# predicted_sex above is X dosage alone, which calls an XXY male female
+# (DOGS-Gen-15, 2026-11-14). The shared X/Y region (PAR, chrX 0-6.6 Mb) counts
+# X + Y copies, so it can add a Y the X dosage cannot see; stage 9d settles it
+# with Y reads when the reference has chrY. Normalisation keeps the X-dosage call
+# (_meta.x_dosage_sex): an XXY dog's two X are compared with females.
+"$DATA_PYTHON" "$D/analysis/sex_karyotype/sex_karyotype.py" "$PUB" \
+  || log "  WARNING: sex karyotype failed — predicted_sex left as the X-dosage call"
+
 # ── 6d: Mitochondrial lineage ───────────────────────────────
 # Variants are called from a chrM-ONLY remap of the raw FASTQs, never from the
 # whole-genome BAM's chrM slice: canFam4 carries 321 NUMTs covering the entire
@@ -2742,6 +2751,19 @@ if grep -q $'^chrY\t' "$FASTA.fai" 2>/dev/null; then
     "$DATA_PYTHON" "$D/analysis/y_haplogroup/y_haplogroup.py" "$OUT/markdup.bam" "$REF_JSON/y_tree_oetjens2018.tsv" \
         "$PUB/y_result.json" --auto-depth "$Y_AUTO" --sex "$Y_SEX" \
       || log "  WARNING: Y haplogroup stage failed"
+    # Y reads settle the sex chromosomes (XXY, X0); if they change the dog's sex,
+    # the paternal line is called again with the corrected sex.
+    if [[ -s "$PUB/y_result.json" ]]; then
+        "$DATA_PYTHON" "$D/analysis/sex_karyotype/sex_karyotype.py" "$PUB" --y "$PUB/y_result.json" \
+          || log "  WARNING: sex karyotype (with Y) failed"
+        Y_SEX2=$("$DATA_PYTHON" -c "import json;print(json.load(open('$PUB/coverage_1mb.json')).get('_meta',{}).get('predicted_sex','unknown'))" 2>/dev/null || echo unknown)
+        if [[ "$Y_SEX2" != "$Y_SEX" ]]; then
+            log "  sex revised by Y reads: $Y_SEX -> $Y_SEX2; re-calling the paternal line"
+            "$DATA_PYTHON" "$D/analysis/y_haplogroup/y_haplogroup.py" "$OUT/markdup.bam" "$REF_JSON/y_tree_oetjens2018.tsv" \
+                "$PUB/y_result.json" --auto-depth "$Y_AUTO" --sex "$Y_SEX2" \
+              || log "  WARNING: Y haplogroup re-call failed"
+        fi
+    fi
 else
     log "  (stage 9d skipped: reference has no chrY)"
 fi
