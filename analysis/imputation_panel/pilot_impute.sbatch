@@ -1,6 +1,6 @@
 #!/bin/bash
 # Imputation-panel v3 pilot: impute one test dog on one chromosome at one depth with one pilot panel
-# (pilot_build.sbatch). Rows of $T/pilot/jobs.tsv: chrom sample depth panel
+# (pilot_build.sbatch). Rows of $T/pilot/jobs.tsv (or $JOBS): chrom sample depth panel
 #   sample COSMO: COSMO3 (2.2x) subsampled, or COSMO3 itself at 2.2x (truth = COSMO-SUPER, as impute.sbatch)
 #   sample SRR*/SAMN*/SAMEA*: $T/sra/<id>/lowpass.bam subsampled to the depth (truth = its full-depth gVCF)
 #   sbatch -A pi_matteop -p campus -a 1-N%60 -c 8 --mem=24G -t 12:00:00 --constraint="$(cat cluster/avx2_constraint.txt)" analysis/imputation_panel/pilot_impute.sbatch
@@ -11,7 +11,7 @@ export OPENBLAS_NUM_THREADS=1
 D=/u/project/pellegrini/gkislik/dogs
 B=$D/envs/genomics/bin; G=$D/envs/glimpse/bin
 T=$D/scratch/panel_test
-read -r c sample depth panel < <(sed -n "${SLURM_ARRAY_TASK_ID:?}p" $T/pilot/jobs.tsv)
+read -r c sample depth panel < <(sed -n "${SLURM_ARRAY_TASK_ID:?}p" ${JOBS:-$T/pilot/jobs.tsv})
 grep -q avx2 /proc/cpuinfo || { echo "no avx2 on $(hostname)"; exit 1; }
 out=$T/pilot/imp/${c}_${sample}_${depth}_${panel}.bcf
 [[ -s $out.csi ]] && { echo "exists"; exit 0; }
@@ -26,7 +26,9 @@ else
 fi
 frac=$(awk -v d=${depth%x} -v f=$full 'BEGIN{x=d/f; if(x>=1) x=0.9999; printf "%.4f", x}'); frac=${frac#0}
 if [[ $frac == .9999 && $sample == COSMO ]]; then $B/samtools view -b -o $W/in.bam $S $c
-else $B/samtools view -b -s 7$frac -o $W/in.bam $S $c; fi
+# seed 11: the SRA lowpass BAMs were themselves drawn with seed 7, and the same seed keeps every read again
+elif [[ $sample == COSMO ]]; then $B/samtools view -b -s 7$frac -o $W/in.bam $S $c
+else $B/samtools view -b -s 11$frac -o $W/in.bam $S $c; fi
 $B/samtools index $W/in.bam
 ref=$T/ref/${panel}_$c.bcf
 while IFS=$'\t' read -r id chrom ireg oreg rest; do
