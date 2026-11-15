@@ -18,12 +18,17 @@ Each panel v3 genotype has source 'panel_v3', p_carrier, and basis: 'imputed' (G
 the call rests on the dog's breed mix), 'allele_fraction' (mitochondrial) or 'structural' (breakpoint reads, read
 pairs and depth). Held sites and sites the model does not call keep the previous call.
 
+Sites in NOT_DETERMINED are shown as not determined (zygosity 'not_callable') whatever the model or an older stage
+says: their short-read calls are known to miss carriers, so a 'clear' there would be false reassurance. --hold
+rewrites only those entries in existing reports (no cohort model needed).
+
 The CBD103 KB deletion (cat218) is the exception: it sits at the end of a GGG run, where the pileup counts reads that
 stop inside the run as reference (Cosmo at 18x: 16 alt + 2 ref against 18 of 18 spanning reads deleted), so its fitted
 model never calls clear and rarely two copies. Its genotype comes from the coat stage's K locus call instead, which
 counts only reads spanning the deletion (k_locus_genotype; pass the dog's coat_color.json as COAT_JSON).
 
   python3 panel_v3_apply.py WORK_DIR CATALOGUE SAMPLE OLD_OMIA|- OUT_OMIA [COAT_JSON]
+  python3 panel_v3_apply.py --hold OMIA_JSON...
 """
 import csv, json, sys
 import numpy as np
@@ -31,6 +36,15 @@ import numpy as np
 CALL_LO = 0.002  # must match panel_v3_breed_prior.py
 ZYG = {'clear': 'ref/ref', 'carrier': 'het', 'two_copies': 'alt/alt', 'hemizygous': 'alt/alt', 'uncertain': 'uncertain'}
 DOG_KEYS = ('cosmo', 'nelk')
+# Calls that miss carriers: the cohort and 400+ public genomes show none, while Donner et al. 2023 (1,054,293 dogs)
+# found carriers at frequencies that predict 11-127 among our customers (2026-11-15). Held until a caller that reads
+# the variant's own sequence is validated on carrier-breed genomes.
+NOT_DETERMINED = {
+    'cat073': 'RPGRIP1 cord1: 44-bp insertion carrying an A29 run; aligners soft-clip or drop the insertion reads',
+    'cat147': 'PNPLA1: complex deletion-insertion in a TAC repeat; the pileup does not see the inserted sequence',
+    'cat010': 'ABCA4: 1-bp duplication in a C run; short-read pileups miss it',
+    'cat446': 'KLKB1: no carriers called where ~0.6% of mixed-breed dogs carry it; catalogue allele under review',
+}
 
 def is_gt(x):
     return isinstance(x, dict) and 'zygosity' in x
@@ -45,6 +59,28 @@ def genotype(call, p, basis, extra):
     return g
 
 KB_SITE = 'cat218'
+
+def held_genotype(sid):
+    return {'zygosity': 'not_callable', 'affected': None, 'call_confidence': 'low', 'source': 'panel_v3',
+            'basis': 'held', 'held_reason': NOT_DETERMINED[sid]}
+
+def gt_key(v):
+    keys = [k for k, x in v.items() if is_gt(x) and k not in DOG_KEYS]
+    return keys[-1] if keys else None
+
+def hold(paths):
+    """Rewrite the NOT_DETERMINED entries of existing reports in place; prints the calls it replaced."""
+    for path in paths:
+        res = json.load(open(path))
+        changed = []
+        for v in res['variants']:
+            sid, k = v.get('site_id'), gt_key(v)
+            if sid in NOT_DETERMINED and k and v[k].get('basis') != 'held':
+                changed.append(f"{sid}:{v[k].get('zygosity')}")
+                v[k] = held_genotype(sid)
+        if changed:
+            json.dump(res, open(path, 'w'), indent=1)
+        print(path, ' '.join(changed) or 'unchanged')
 
 def k_locus_genotype(coat, model_g):
     """The KB deletion genotype from the coat stage's K locus read call (stage 13), or None to keep model_g.
@@ -124,7 +160,10 @@ def main(work, catalogue, sample, old_path, out_path, coat_path=None):
         if 0 <= k < len(old_v) and old_v[k].get('gene') == e['gene'] and str(old_v[k].get('pos')) == str(e['pos']):
             base = dict(old_v[k]); base['site_id'] = sid
         c = calls.get(sid)
-        if c and c[0] != 'held':
+        if sid in NOT_DETERMINED:
+            base[key] = held_genotype(sid)
+            n['none'] += 1
+        elif c and c[0] != 'held':
             base[key] = genotype(*c)
             if sid == KB_SITE and coat is not None:
                 base[key] = k_locus_genotype(coat, base[key]) or base[key]
@@ -145,4 +184,7 @@ def main(work, catalogue, sample, old_path, out_path, coat_path=None):
     print(f'{sample}: {len(variants)} entries, panel_v3 {n["panel_v3"]}, kept {n["kept"]}, no call {n["none"]} -> {out_path}')
 
 if __name__ == '__main__':
-    main(*sys.argv[1:7])
+    if sys.argv[1] == '--hold':
+        hold(sys.argv[2:])
+    else:
+        main(*sys.argv[1:7])
