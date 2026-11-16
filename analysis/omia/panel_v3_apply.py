@@ -34,7 +34,7 @@ counts only reads spanning the deletion (k_locus_genotype; pass the dog's coat_c
   python3 panel_v3_apply.py --hold OMIA_JSON...
   python3 panel_v3_apply.py --p2 WORK_DIR LIST   # LIST: sample<TAB>omia_result.json; adds p_two to existing calls
 """
-import csv, json, sys
+import csv, json, os, sys
 import numpy as np
 
 CALL_LO = 0.002  # must match panel_v3_breed_prior.py
@@ -87,16 +87,24 @@ def hold(paths):
         print(path, ' '.join(changed) or 'unchanged')
 
 def add_p2(work, lst):
-    """Add p_two to the panel v3 calls of existing reports, in place, from a cohort run that saved it (bp_*.npz 'p2').
-    Only where the report's p_carrier is the run's, so a call the run did not make (K locus, sequence caller, held)
-    is left alone; no call changes."""
-    p2 = {}
-    for f in ('bp_p_carrier.npz', 'bp_sv.npz'):
-        z = dict(np.load(f'{work}/{f}'))
-        col = {str(x): j for j, x in enumerate(z['samples'])}
-        p2[f] = (z, col, {str(x): i for i, x in enumerate(z['sid'])})
+    """Add p_two to the panel v3 calls of existing reports, in place, from a run that saved it (bp_*.npz 'p2'; WORK
+    is a cohort run, or a directory of per-kit score dirs named after the report's pub dir: WORK/<pub>/score).
+    Only where the run makes the report's call (same zygosity); p_two is scaled to the report's p_carrier, since a
+    rescore moves p_carrier in the 4th decimal (the kit's F_ROH was refitted after its calls were written). A call the
+    run did not make (K locus, sequence caller, held) is left alone; no call or p_carrier changes."""
+    def runs(d):
+        out = {}
+        for f in ('bp_p_carrier.npz', 'bp_sv.npz'):
+            z = dict(np.load(f'{d}/{f}'))
+            out[f] = (z, {str(x): j for j, x in enumerate(z['samples'])}, {str(x): i for i, x in enumerate(z['sid'])})
+        return out
+    cohort = runs(work) if os.path.exists(f'{work}/bp_p_carrier.npz') else None
     for line in open(lst):
         sample, path = line.rstrip('\n').split('\t')[:2]
+        kit_dir = f'{work}/{os.path.basename(os.path.dirname(os.path.abspath(path)))}/score'
+        if cohort is None and not os.path.exists(f'{kit_dir}/bp_p_carrier.npz'):
+            print(sample, path, 0, 0, 'no score'); continue
+        p2 = cohort or runs(kit_dir)
         res = json.load(open(path))
         n = {'added': 0, 'skipped': 0}
         for v in res['variants']:
@@ -107,8 +115,10 @@ def add_p2(work, lst):
             for z, col, row in p2.values():
                 if sample in col and sid in row:
                     i, j = row[sid], col[sample]
-                    if abs(round(float(z['p'][i, j]), 4) - g['p_carrier']) < 1e-4:
-                        g['p_two'] = round(float(z['p2'][i, j]), 4); n['added'] += 1
+                    c, p = str(z['call'][i, j]), float(z['p'][i, j])
+                    if ZYG.get(c) == g['zygosity']:
+                        g['p_two'] = round(min(float(z['p2'][i, j]) * g['p_carrier'] / p, g['p_carrier']), 4) if p > 0 else 0.0
+                        n['added'] += 1
                     else:
                         n['skipped'] += 1
                     break
