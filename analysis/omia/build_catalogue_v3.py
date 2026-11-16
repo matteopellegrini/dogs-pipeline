@@ -58,7 +58,7 @@ def main():
     for c in cand:
         by_gene.setdefault(c['gene'], c)
     # literature-search sites carry their own breeds/PMID/notation (the by_gene fallback would borrow another variant's)
-    lit = {(r['gene'], r['pos']): r for r in tsv(P / 'literature_2026-11-11.tsv')}
+    lit = {(r['gene'], r['pos']): r for f in sorted(P.glob('literature_*.tsv')) for r in tsv(f)}
 
     cats = json.load(open(ROOT / 'dogs-app/lib/variantCategories.json'))
     live_sites, gene_cats = set(), {}
@@ -91,7 +91,7 @@ def main():
              'variant_breed': re.sub(r'\s*\(Dog\)', '', c.get('breeds', '')),
              'category': category,
              'source': f"panel_v3 {s['origin']}"}
-        t = text.get(s['gene'], {}) if not lr else {'mode': lr['mode']}
+        t = text.get(s['gene'], {}) if not lr else {'mode': lr['mode'], 'description': lr.get('description') or ''}
         if t.get('name'):
             e['trait'] = e['phene_name'] = t['name']
         for f in ('mode', 'category', 'description'):

@@ -118,15 +118,17 @@ for r in cand:
         add(site_id=f"todo_{g}_{len(rows)}", origin=r['tier'], report_class='report', gene=r['gene'], condition=r['condition'],
             chrom='', pos='', kind='', genotyping='needs_coordinates', status='later', refs=r['pmid'], note=r['variant'][:150])
 
-# 6. literature search of 2026-11-11 (~/Projects/dog literature, results/canfam4_variants.csv): abstract-mined
-#     variants not in OMIA, placed on canFam4 with REF checked; report_class per row (Mendelian -> report,
-#     associations -> panel_only). Rows with no alleles, an ambiguous ALT or 'not usable' confidence were left out.
-#     Last, so the todo_* ids above (numbered by row) do not shift.
-for r in csv.DictReader(open(P / 'literature_2026-11-11.tsv'), delimiter='\t'):
-    add(site_id=f"new_{r['gene']}_{r['pos']}", origin='Literature 2026-11-11', report_class=r['report_class'],
-        gene=r['gene'], condition=r['condition'], chrom=r['chrom'], pos=r['pos'], ref=r['ref'], alt=r['alt'],
-        kind=kind_of(r['ref'], r['alt']), genotyping='imputable_or_direct', status=r['status'],
-        refs=f"PMID {r['pmid']}", note=r['note'])
+# 6. literature additions, oldest file first: literature_2026-11-11.tsv (~/Projects/dog literature,
+#     results/canfam4_variants.csv: abstract-mined variants not in OMIA, placed on canFam4 with REF checked; rows with
+#     no alleles, an ambiguous ALT or 'not usable' confidence left out) and later hand-added sites
+#     (literature_2026-11-16.tsv: SLC7A9 p.A217T). report_class per row (Mendelian -> report, associations ->
+#     panel_only). Last, so the todo_* ids above (numbered by row) do not shift.
+for lit in sorted(P.glob('literature_*.tsv')):
+    for r in csv.DictReader(open(lit), delimiter='\t'):
+        add(site_id=f"new_{r['gene']}_{r['pos']}", origin=f"Literature {lit.stem.split('_', 1)[1]}",
+            report_class=r['report_class'], gene=r['gene'], condition=r['condition'], chrom=r['chrom'], pos=r['pos'],
+            ref=r['ref'], alt=r['alt'], kind=kind_of(r['ref'], r['alt']), genotyping='imputable_or_direct',
+            status=r['status'], refs=f"PMID {r['pmid']}", note=r['note'])
 
 # dedupe exact small-variant duplicates (keep the catalogue copy)
 seen = set(); out = []
@@ -142,6 +144,9 @@ FIXES = {
     'new_SPAG1_1922': dict(status='coords_native; SVLEN=29',
                            note='2026-11-03: OMIA gives the allele, a 29-bp GC-rich duplication (c.1190_1218dup, '
                                 'insGGCGGCGGCAAGCGGCCGGAGAGGGGCGC); typed by size, not as an unknown gross insertion'),
+    # 2026-11-15: the gene span was used (81 kb off); the PRA4 allele is a LINE-1 insertion upstream of IMPG2
+    'new_IMPG2_1253': dict(pos='8197950', end='8197966', status='breakpoints',
+                           note='LINE-1 insertion ~200 bp upstream of IMPG2 with a 17-bp target-site duplication, CanFam3 chr33:7,785,475-7,785,491 (Hitti-Malin et al. 2020, PMID 32894063) = canFam4 chr33:8,197,950-8,197,966 (Donner 2023 S1 lifted). Was the gene span (81 kb off). Short reads can only exclude it (spanning reads), not confirm a copy; 1.2e-5 AF in 1M dogs, Lhasa Apso 0.6% (2026-11-15)'),
 }
 for x in out:
     x.update(FIXES.get(x['site_id'], {}))

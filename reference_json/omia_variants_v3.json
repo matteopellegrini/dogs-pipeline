@@ -11208,6 +11208,25 @@
    "mode": "AD",
    "hgvs_p": "p.Arg2435His",
    "reference": "https://pubmed.ncbi.nlm.nih.gov/41962260/"
+  },
+  {
+   "site_id": "new_SLC7A9_120053689",
+   "gene": "SLC7A9",
+   "chrom": "chr1",
+   "pos": 120053689,
+   "ref": "G",
+   "alt": "A",
+   "variant_type": "G>A",
+   "trait": "Cystinuria Type I-B (SLC7A9 risk marker)",
+   "phene_name": "Cystinuria Type I-B (SLC7A9 risk marker)",
+   "variant_breed": "English Bulldog, French Bulldog, Golden Retriever, Bull Terrier",
+   "category": "disease",
+   "source": "panel_v3 Literature 2026-11-16",
+   "mode": "ML",
+   "description": "Cystinuria: the amino acid cystine leaks into the urine and can form bladder stones, almost only in intact male dogs. This SLC7A9 variant (p.A217T) was found in Bulldogs with cystinuria and is common in Bulldogs and Golden Retrievers. It is a weak risk marker: it changes a part of the protein not thought to matter, a later study of English Bulldogs found no link between it and stones, most dogs with two copies never form stones, and neutering lowers the risk. Females are rarely affected.",
+   "hgvs_c": "c.649G>A",
+   "hgvs_p": "p.A217T",
+   "reference": "https://pubmed.ncbi.nlm.nih.gov/36971195/"
   }
  ]
 }

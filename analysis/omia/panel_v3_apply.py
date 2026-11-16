@@ -34,6 +34,7 @@ counts only reads spanning the deletion (k_locus_genotype; pass the dog's coat_c
   python3 panel_v3_apply.py --hold OMIA_JSON...
   python3 panel_v3_apply.py --p2 WORK_DIR LIST   # LIST: sample<TAB>omia_result.json; adds p_two to existing calls
   python3 panel_v3_apply.py --recall ROOT SUB LIST  # replaces existing panel v3 calls from ROOT/<pub>/SUB rescores
+  python3 panel_v3_apply.py --add WORK CATALOGUE LIST SITE...  # appends catalogue sites a report does not have yet
 """
 import csv, json, os, sys
 import numpy as np
@@ -152,6 +153,39 @@ def recall(root, sub, lst):
             v[k] = new; n += 1
         json.dump(res, open(path, 'w'), indent=1)
         print(sample, path, n, len(changed), ' '.join(changed))
+
+def add_sites(work, catalogue, lst, sites):
+    """Append catalogue entries for SITES (sites added after the report was written, e.g. SLC7A9 p.A217T on
+    2026-11-16) to existing reports, in place, with the calls of a run that fitted them: WORK (a cohort run), or a
+    kit's own score dir given as LIST's third column (kits outside the cohort). Entries the report already has and
+    every other call are left alone; a report written from the catalogue would carry the same entries at the end."""
+    want = [e for e in json.load(open(catalogue))['variants'] if e['site_id'] in set(sites)]
+    if len(want) != len(set(sites)):
+        sys.exit(f'not in {catalogue}: {sorted(set(sites) - {e["site_id"] for e in want})}')
+    for line in open(lst):
+        sample, path, *own = line.rstrip('\n').split('\t')
+        run = own[0] if own and own[0] else work
+        z = np.load(f'{run}/bp_p_carrier.npz')
+        if sample not in set(str(x) for x in z['samples']):
+            print(sample, path, 'not in', run); continue
+        calls = load_calls(run, sample)
+        res = json.load(open(path))
+        have = {v.get('site_id') for v in res['variants']}
+        key = next((gt_key(v) for v in res['variants'] if gt_key(v)), sample.lower())
+        added = []
+        for e in want:
+            if e['site_id'] in have:
+                continue
+            base, c = dict(e), calls.get(e['site_id'])
+            if c and c[0] != 'held':
+                base[key] = genotype(*c)
+            res['variants'].append(base)
+            added.append(f"{e['site_id']}:{base[key]['zygosity'] if key in base else 'no call'}")
+        if added:
+            if isinstance(res.get('panel_v3'), dict):
+                res['panel_v3']['catalogue_entries'] = len(res['variants'])
+            json.dump(res, open(path, 'w'), indent=1)
+        print(sample, path, ' '.join(added) or 'unchanged')
 
 def k_locus_genotype(coat, model_g):
     """The KB deletion genotype from the coat stage's K locus read call (stage 13), or None to keep model_g.
@@ -272,5 +306,7 @@ if __name__ == '__main__':
         add_p2(*sys.argv[2:4])
     elif sys.argv[1] == '--recall':
         recall(*sys.argv[2:5])
+    elif sys.argv[1] == '--add':
+        add_sites(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5:])
     else:
         main(*sys.argv[1:7])
