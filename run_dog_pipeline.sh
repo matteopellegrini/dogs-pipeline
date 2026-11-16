@@ -4950,6 +4950,16 @@ if [[ "${PANEL_V3:-1}" == "1" ]]; then
         if FASTA="$FASTA" DATA_PYTHON="$DATA_PYTHON" bash "$D/analysis/omia/panel_v3_kit.sh" "$DOG_LOWER" "$PV3_BAM"                "$IMPUTED_BCF" "$PUB" "$PV3_MODEL" "$OUT/panel_v3/kit"            && "$DATA_PYTHON" "$D/analysis/omia/panel_v3_breed_prior.py" score "$PV3_MODEL" "$OUT/panel_v3/kit" "$OUT/panel_v3/score"            && "$DATA_PYTHON" "$D/analysis/omia/panel_v3_apply.py" "$OUT/panel_v3/score" "$REF_JSON/omia_variants_v3.json"                "$DOG_LOWER" "$OUT/omia_result.stage8.json" "$OUT/panel_v3/omia_result.json" "$PUB/coat_color.json"; then
             cp "$OUT/panel_v3/omia_result.json" "$PUB/omia_result.json"
             log "  omia_result.json rewritten with panel v3 calls"
+            # RPGRIP1 cord1, PNPLA1, ABCA4, KLKB1: the pileup misses their carriers, so panel v3 holds them; they are
+            # called from the variant's own sequence in the reads instead (analysis/omia/seq_allele_caller.py, 2026-11-15)
+            if [[ -s "$PV3_MODEL/seq_prior.json" ]]; then
+                printf '%s\t%s\n' "$DOG_LOWER" "$PV3_BAM" > "$OUT/panel_v3/seqcall.bams"
+                printf '%s\t%s\n' "$DOG_LOWER" "$PUB" > "$OUT/panel_v3/seqcall.pub"
+                if "$DATA_PYTHON" "$D/analysis/omia/seq_allele_caller.py" count "$OUT/panel_v3/seqcall.bams" "$OUT/panel_v3/seqcall_counts.tsv" \
+                   && "$DATA_PYTHON" "$D/analysis/omia/seq_allele_caller.py" apply "$PV3_MODEL/seq_prior.json" "$OUT/panel_v3/seqcall_counts.tsv" "$OUT/panel_v3/seqcall.pub"; then
+                    log "  sequence caller: cord1/PNPLA1/ABCA4/KLKB1 called"
+                else log "  WARNING: sequence caller failed — those four stay not determined"; fi
+            fi
         else log "  WARNING: panel v3 scoring failed — omia_result.json left as stage 8 wrote it"; fi
     else log "  panel v3 model, catalogue, markdup.bam or omia_result.json missing — panel v3 skipped"; fi
 fi

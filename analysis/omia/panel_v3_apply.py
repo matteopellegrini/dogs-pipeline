@@ -12,6 +12,9 @@ For every site the cohort model calls (work_panel_v3/bp_p_carrier.npz, bp_sv.npz
   hemizygous   alt/alt     a male's single X copy carries it
   uncertain    uncertain   in between: too few reads to decide; p_carrier says how likely a copy is
 
+Each genotype also carries p_two, the chance of two copies (for a male's X, of the one copy carrying it): what a
+recessive condition turns on, so the app flags an undecided recessive site only when p_two is meaningful.
+
 Each panel v3 genotype has source 'panel_v3', p_carrier, and basis: 'imputed' (GLIMPSE posterior at a Dog10K site),
 'haplotype' (a disease indel imputed from its Dog10K haplotype, combined with the dog's reads at it),
 'reads' (the dog's own reads at the site, combined with the breed prior), 'breed_prior' (no reads at the site, so
@@ -29,6 +32,7 @@ counts only reads spanning the deletion (k_locus_genotype; pass the dog's coat_c
 
   python3 panel_v3_apply.py WORK_DIR CATALOGUE SAMPLE OLD_OMIA|- OUT_OMIA [COAT_JSON]
   python3 panel_v3_apply.py --hold OMIA_JSON...
+  python3 panel_v3_apply.py --p2 WORK_DIR LIST   # LIST: sample<TAB>omia_result.json; adds p_two to existing calls
 """
 import csv, json, sys
 import numpy as np
@@ -82,6 +86,35 @@ def hold(paths):
             json.dump(res, open(path, 'w'), indent=1)
         print(path, ' '.join(changed) or 'unchanged')
 
+def add_p2(work, lst):
+    """Add p_two to the panel v3 calls of existing reports, in place, from a cohort run that saved it (bp_*.npz 'p2').
+    Only where the report's p_carrier is the run's, so a call the run did not make (K locus, sequence caller, held)
+    is left alone; no call changes."""
+    p2 = {}
+    for f in ('bp_p_carrier.npz', 'bp_sv.npz'):
+        z = dict(np.load(f'{work}/{f}'))
+        col = {str(x): j for j, x in enumerate(z['samples'])}
+        p2[f] = (z, col, {str(x): i for i, x in enumerate(z['sid'])})
+    for line in open(lst):
+        sample, path = line.rstrip('\n').split('\t')[:2]
+        res = json.load(open(path))
+        n = {'added': 0, 'skipped': 0}
+        for v in res['variants']:
+            sid, k = v.get('site_id'), gt_key(v)
+            g = v.get(k) if k else None
+            if not g or g.get('source') != 'panel_v3' or g.get('p_carrier') is None or 'p_two' in g:
+                continue
+            for z, col, row in p2.values():
+                if sample in col and sid in row:
+                    i, j = row[sid], col[sample]
+                    if abs(round(float(z['p'][i, j]), 4) - g['p_carrier']) < 1e-4:
+                        g['p_two'] = round(float(z['p2'][i, j]), 4); n['added'] += 1
+                    else:
+                        n['skipped'] += 1
+                    break
+        json.dump(res, open(path, 'w'), indent=1)
+        print(sample, path, n['added'], n['skipped'])
+
 def k_locus_genotype(coat, model_g):
     """The KB deletion genotype from the coat stage's K locus read call (stage 13), or None to keep model_g.
     KB/KB -> two copies, KB/ky -> one copy, high-confidence ky/ky (>=6 spanning reads, none deleted) -> clear;
@@ -127,12 +160,15 @@ def main(work, catalogue, sample, old_path, out_path, coat_path=None):
         if int(r[5]) > 0:
             af[tuple(r[:4])] = int(r[4]) / int(r[5])
     site_af = {r['site_id']: af.get((r['chrom'], r['pos'], r['ref'], r['alt'])) for r in sites}
+    p2s = small.get('p2')
     for i, sid in enumerate(small['sid']):
         c, p, n = str(small['call'][i, j]), float(small['p'][i, j]), int(small['reads'][i, j])
         src = source.get(str(sid), '')
         basis = ('imputed' if src.startswith('GLIMPSE') else 'haplotype' if src.startswith('Haplotype')
                  else 'allele_fraction' if src.startswith('chrM') else 'reads' if n > 0 else 'breed_prior')
         extra = {'site_reads': n}
+        if p2s is not None:
+            extra['p_two'] = round(float(p2s[i, j]), 4)
         if basis in ('imputed', 'haplotype') and site_af.get(str(sid)) is not None:
             extra['af_dog10k'] = round(site_af[str(sid)], 4)
         calls[str(sid)] = (c, p, basis, extra)
@@ -142,7 +178,10 @@ def main(work, catalogue, sample, old_path, out_path, coat_path=None):
         if r[0] == sample:
             ev[r[1]] = {'breakpoint_alt_reads': int(r[2]), 'breakpoint_ref_reads': int(r[3]), 'pair_reads': int(r[4])}
     for i, sid in enumerate(sv['sid']):
-        calls[str(sid)] = (str(sv['call'][i, svj]), float(sv['p'][i, svj]), 'structural', ev.get(str(sid), {}))
+        e = dict(ev.get(str(sid), {}))
+        if 'p2' in sv:
+            e['p_two'] = round(float(sv['p2'][i, svj]), 4)
+        calls[str(sid)] = (str(sv['call'][i, svj]), float(sv['p'][i, svj]), 'structural', e)
 
     old = json.load(open(old_path)) if old_path != '-' else None
     try:
@@ -186,5 +225,7 @@ def main(work, catalogue, sample, old_path, out_path, coat_path=None):
 if __name__ == '__main__':
     if sys.argv[1] == '--hold':
         hold(sys.argv[2:])
+    elif sys.argv[1] == '--p2':
+        add_p2(*sys.argv[2:4])
     else:
         main(*sys.argv[1:7])

@@ -496,6 +496,7 @@ def cmd_sv(work):
     cidx = {c: i for i, c in enumerate(D['codes'])}
     depth, frozen = depth_model(svs, ev, n)
     p_all = np.zeros((len(svs), n), np.float32); calls_all = np.empty((len(svs), n), dtype='U11')
+    p2_all = np.zeros_like(p_all)  # P(2 copies): what a recessive condition turns on
     f_all = np.zeros((len(svs), len(D['codes']))); eps_all = np.zeros(len(svs))
     with open(os.path.join(work, 'bp_sv_sites.tsv'), 'w') as fo:
         fo.write('site_id\tgene\tcondition\treport_class\ttype\tlength\tdocumented_breeds\tbackground_af\tbreakpoint_error\t'
@@ -523,6 +524,7 @@ def cmd_sv(work):
             post = lik_fn(eps, np.arange(n)) * prior
             post /= post.sum(1, keepdims=True)
             cl, p_all[i] = sv_call(post, hap, sv)
+            p2_all[i] = np.minimum(post[:, 2], p_all[i])
             if sid in HOLD:
                 cl[:] = 'held'
             calls_all[i] = cl
@@ -532,7 +534,7 @@ def cmd_sv(work):
                      '; '.join(f"{D['names'].get(D['codes'][j], D['codes'][j])} {f[j]:.3f}" for j in top),
                      int(informative.sum()), cnt['carrier'], cnt['two_copies'], cnt['hemizygous'], cnt['uncertain'],
                      cnt['clear'], cnt['held']])) + '\n')
-    np.savez_compressed(os.path.join(work, 'bp_sv.npz'), p=p_all, call=calls_all, samples=np.array(D['samples']),
+    np.savez_compressed(os.path.join(work, 'bp_sv.npz'), p=p_all, p2=p2_all, call=calls_all, samples=np.array(D['samples']),
                         sid=np.array([s['site_id'] for s in svs]))
     np.savez_compressed(os.path.join(work, 'bp_sv_model.npz'), sid=np.array([s['site_id'] for s in svs]), f=f_all,
                         eps=eps_all, codes=np.array(D['codes']), **frozen)
@@ -547,7 +549,7 @@ def cmd_fit(work):
     n = len(D['samples'])
     gps = imputed_gp(work, D['samples'])
     igps = imputed_gp(work, D['samples'], 'indel_imputed.tsv.gz')  # disease indels imputed from their haplotype
-    pc_all = np.zeros((len(D['sites']), n), np.float32)
+    pc_all = np.zeros((len(D['sites']), n), np.float32); p2_all = np.zeros_like(pc_all)
     calls_all = np.empty((len(D['sites']), n), dtype='U11')
     f_all = np.zeros((len(D['sites']), len(D['codes']))); eps_all = np.zeros(len(D['sites']))
     with open(os.path.join(work, 'bp_sites.tsv'), 'w') as fo:
@@ -572,7 +574,7 @@ def cmd_fit(work):
                 if h is not None and h[1].any():
                     m = h[1]
                     post[m] = haplotype_posterior(h[0][m], r[m], a[m], eps); source = 'Haplotype imputation (Dog10K indels) + reads'
-            pc_all[i] = post[:, 1] + post[:, 2]
+            pc_all[i], p2_all[i] = post[:, 1] + post[:, 2], post[:, 2]
             cl = call_of(post, hap)
             if sid in HOLD:
                 cl[:] = 'held'
@@ -585,7 +587,7 @@ def cmd_fit(work):
                      '; '.join(f"{D['names'].get(D['codes'][t], D['codes'][t])} {f[t]:.3f}" for t in top),
                      int(((r + a) > 0).sum()), calls['carrier'], calls['two_copies'], calls['hemizygous'],
                      calls['uncertain'], calls['clear'], calls['held']])) + '\n')
-    np.savez_compressed(os.path.join(work, 'bp_p_carrier.npz'), p=pc_all, call=calls_all,
+    np.savez_compressed(os.path.join(work, 'bp_p_carrier.npz'), p=pc_all, p2=p2_all, call=calls_all,
                         samples=np.array(D['samples']), sid=np.array([x or '' for x in D['sid']]),
                         reads=(D['R'] + D['A']).astype(np.int32))
     np.savez_compressed(os.path.join(work, 'bp_model.npz'), sites=np.array(D['sites']),
@@ -630,7 +632,7 @@ def cmd_score(work, kit_dir, out):
     gps = imputed_gp(kit_dir, [sample], 'imputed.tsv.gz')
     igps = imputed_gp(kit_dir, [sample], 'indel_imputed.tsv.gz')
     sites, sids = [tuple(str(y) for y in x) for x in M['sites']], [str(x) for x in M['sid']]
-    p_s = np.zeros((len(sites), 1), np.float32); c_s = np.empty((len(sites), 1), dtype='U11')
+    p_s = np.zeros((len(sites), 1), np.float32); c_s = np.empty((len(sites), 1), dtype='U11'); p2_s = np.zeros_like(p_s)
     n_s = np.zeros((len(sites), 1), np.int32)
     for i, ((c, p, ref, alt), sid) in enumerate(zip(sites, sids)):
         k = key(c, p, ref, alt)
@@ -646,13 +648,13 @@ def cmd_score(work, kit_dir, out):
             h = igps.get(k)
             if h is not None and h[1].any():
                 post = haplotype_posterior(h[0], r, a, M['eps'][i])
-        p_s[i] = post[:, 1] + post[:, 2]
+        p_s[i], p2_s[i] = post[:, 1] + post[:, 2], post[:, 2]
         cl = call_of(post, hap)
         if sid in HOLD:
             cl[:] = 'held'
         c_s[i], n_s[i] = cl, r + a
     os.makedirs(out, exist_ok=True)
-    np.savez_compressed(os.path.join(out, 'bp_p_carrier.npz'), p=p_s, call=c_s, samples=np.array([sample]),
+    np.savez_compressed(os.path.join(out, 'bp_p_carrier.npz'), p=p_s, p2=p2_s, call=c_s, samples=np.array([sample]),
                         sid=np.array(sids), reads=n_s)
 
     svs = list(csv.DictReader(open(os.path.join(work, 'sv_sites.tsv')), delimiter='\t'))
@@ -667,7 +669,7 @@ def cmd_score(work, kit_dir, out):
             ev1[q[1]] = np.array([float(x) if x != '' else np.nan for x in q[2:7]])
             fo.write('\t'.join([sample] + q[1:]) + '\n')
     depth = depth_one_kit(svs, ev1, S)
-    p_v = np.zeros((len(svs), 1), np.float32); c_v = np.empty((len(svs), 1), dtype='U11')
+    p_v = np.zeros((len(svs), 1), np.float32); c_v = np.empty((len(svs), 1), dtype='U11'); p2_v = np.zeros_like(p_v)
     for i, sv in enumerate(svs):
         sid = sv['site_id']
         e = ev1.get(sid, np.full(5, np.nan))
@@ -677,10 +679,11 @@ def cmd_score(work, kit_dir, out):
         post = lik_fn(S['eps'][i], np.arange(1)) * geno_prior(W @ S['f'][i], F, hap)
         post /= post.sum(1, keepdims=True)
         cl, p_v[i] = sv_call(post, hap, sv)
+        p2_v[i] = np.minimum(post[:, 2], p_v[i])
         if sid in HOLD:
             cl[:] = 'held'
         c_v[i] = cl
-    np.savez_compressed(os.path.join(out, 'bp_sv.npz'), p=p_v, call=c_v, samples=np.array([sample]),
+    np.savez_compressed(os.path.join(out, 'bp_sv.npz'), p=p_v, p2=p2_v, call=c_v, samples=np.array([sample]),
                         sid=np.array([sv['site_id'] for sv in svs]))
     for f in ('bp_sites.tsv', 'bp_sv_sites.tsv', 'glimpse_sites_af.tsv'):
         shutil.copy(os.path.join(work, f), os.path.join(out, f))

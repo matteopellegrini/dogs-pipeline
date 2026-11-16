@@ -169,7 +169,7 @@ def call(q, n_ref, n_alt, err, ab):
     p1, p2 = posterior(q, n_ref, n_alt, err, ab)
     p = p1 + p2
     c = ('two_copies' if p2 >= HOM_HI else 'carrier' if p >= CALL_HI else 'clear' if p <= CALL_LO else 'uncertain')
-    return c, p
+    return c, p, p2
 
 def apply(prior_path, counts_path, lst):
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -197,9 +197,9 @@ def apply(prior_path, counts_path, lst):
                 continue
             n_ref, n_alt = counts[(sample, sid)]
             q = dog_af(prior[sid], breeds)
-            c, p = call(q, n_ref, n_alt, CALLED[sid]['err'], CALLED[sid]['ab'])
+            c, p, p2 = call(q, n_ref, n_alt, CALLED[sid]['err'], CALLED[sid]['ab'])
             g = genotype(c, p, 'sequence' if n_ref + n_alt else 'breed_prior',
-                         {'site_reads': n_ref + n_alt, 'alt_reads': n_alt, 'prior_af': round(q, 5)})
+                         {'site_reads': n_ref + n_alt, 'alt_reads': n_alt, 'prior_af': round(q, 5), 'p_two': round(p2, 4)})
             v[k] = g
             done.append(f'{sid}:{c}:{p:.3f}:{n_alt}/{n_ref + n_alt}')
         json.dump(res, open(path, 'w'), indent=1)
