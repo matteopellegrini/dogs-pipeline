@@ -43,6 +43,11 @@ EPS = {'snv': 0.002, 'indel': 0.005, 'homopolymer': 0.03}
 HOMOPOLYMER_RUN = 6        # indel next to >= this many identical reference bases
 M_DOC, K_DOC = 0.05, float(os.environ.get('PV3_K_DOC', 5.0))  # documented breeds: prior mean, pseudo-alleles (20 held CDDY at 0.15 in Dachshunds whose reads say ~1; 5 validates as well or better)
 K_BG = 100.0               # other breeds: pseudo-alleles around the background frequency
+# Published per-breed frequencies (Donner et al. 2023, 1,054,293 dogs; published_priors.py -> pub_prior.json): at the
+# sites they cover, each breed's frequency starts from the paper's (K_PUB pseudo-alleles) and every breed the paper
+# lacks from its mixed-breed frequency (K_BG), instead of the documented-breed mean and the fitted background.
+PUB_PRIOR = os.environ.get('PV3_PUB_PRIOR', '')
+K_PUB = float(os.environ.get('PV3_K_PUB', 200.0))
 # Beta(0.5, B) on the background frequency. B=4000 under-predicted carriers 2-3x on the Dog10K validation sites
 # (P 0.11 -> observed 0.29); B=400 is calibrated (0.11 -> 0.09, 0.32 -> 0.33). Swept 2026-11-03.
 B_HYPER = {'none': 400.0, 'documented': 400.0, 'mixed': 400.0}
@@ -217,8 +222,10 @@ def geno_prior(q, F, hap=None):
         pr[hap] = np.stack([1 - q[hap], np.zeros(hap.sum()), q[hap]], 1)
     return pr
 
-def fit_site(r, a, W, F, eps, doc_mask, hyper_b, fit_rows=None, hap=None, fit_eps=False, lik_fn=None, informative=None):
-    """EM for per-breed allele frequencies (and, for indels, the site's read error).
+def fit_site(r, a, W, F, eps, doc_mask, hyper_b, fit_rows=None, hap=None, fit_eps=False, lik_fn=None, informative=None,
+             pub=None):
+    """EM for per-breed allele frequencies (and, for indels, the site's read error). pub = (prior mean, strength) per
+    breed from the published frequencies (pub_prior), replacing the documented-breed / fitted-background prior.
     lik_fn(eps, rows) -> (n_rows x 3) replaces the read likelihood (structural variants: breakpoints x depth);
     informative marks dogs with any evidence (default: >= 1 read). Returns f (n_breeds,), background beta, eps."""
     eps0 = eps
@@ -231,7 +238,7 @@ def fit_site(r, a, W, F, eps, doc_mask, hyper_b, fit_rows=None, hap=None, fit_ep
     lik = lik_of(eps)
     n_al = np.where(hap, 1.0, 2.0)
     beta = 1e-4
-    f = np.where(doc_mask, M_DOC, beta)
+    f = np.where(doc_mask, M_DOC, beta) if pub is None else pub[0].copy()
     for _ in range(EM_ITERS):
         q = W @ f
         if fit_eps:
@@ -244,8 +251,8 @@ def fit_site(r, a, W, F, eps, doc_mask, hyper_b, fit_rows=None, hap=None, fit_ep
         ref_b = ((n_al - e_alt) / (1 - qc)) @ W * (1 - f)
         bg = ~doc_mask
         beta = (alt_b[bg].sum() + 0.5) / (alt_b[bg].sum() + ref_b[bg].sum() + 0.5 + hyper_b)
-        prior_mean = np.where(doc_mask, M_DOC, beta)
-        k = np.where(doc_mask, K_DOC, K_BG)
+        prior_mean = np.where(doc_mask, M_DOC, beta) if pub is None else pub[0]
+        k = np.where(doc_mask, K_DOC, K_BG) if pub is None else pub[1]
         f_new = (alt_b + k * prior_mean) / (alt_b + ref_b + k)
         if fit_eps:  # reads disagreeing with a homozygous genotype are errors
             err = (post[:, 0] * a).sum() + (post[:, 2] * r).sum()
@@ -326,6 +333,21 @@ def site_setup(D, bm, sb):
         hyper = 'mixed' if mixed else ('documented' if doc else 'none')
         out.append(dict(eps=eps, mask=mask, hyper=hyper, doc=sorted(doc), kind=kind))
     return out
+
+def pub_prior(codes, sid, doc_mask):
+    """(prior mean, strength) per breed code from PV3_PUB_PRIOR at this site, or None. Breeds the paper reports start at
+    its frequency (K_PUB); documented breeds it lacks keep M_DOC (K_DOC); every other breed its mixed-breed one (K_BG)."""
+    if not PUB_PRIOR:
+        return None
+    if not hasattr(pub_prior, 'sites'):
+        pub_prior.sites = json.load(open(PUB_PRIOR))['sites']
+    p = pub_prior.sites.get(sid or '')
+    if p is None:
+        return None
+    af = p['breed_af']
+    mean = np.array([af.get(c, M_DOC if d else p['mixed_af']) for c, d in zip(codes, doc_mask)], float)
+    k = np.array([K_PUB if c in af else K_DOC if d else K_BG for c, d in zip(codes, doc_mask)], float)
+    return np.clip(mean, 1e-6, 1 - 1e-6), k
 
 def hyper_b(s):
     # homopolymer indels: sporadic alt reads outside the documented breeds are slippage, not a background allele
@@ -561,7 +583,7 @@ def cmd_fit(work):
             r, a = D['R'][i], D['A'][i]
             hap = hemizygous(D, c, p)
             f, beta, eps = fit_site(r, a, D['W'], D['F'], s['eps'], s['mask'], hyper_b(s), hap=hap,
-                                    fit_eps=s['kind'] != 'snv')
+                                    fit_eps=s['kind'] != 'snv', pub=pub_prior(D['codes'], sid, s['mask']))
             f_all[i], eps_all[i] = f, eps
             if c == 'chrM':
                 post, source = mt_posterior(r, a), 'chrM allele fraction'
@@ -727,7 +749,8 @@ def cmd_validate(work):
         s = setup[i]
         r, a = D['R'][i], D['A'][i]
         # A. Dog10K sites vs GLIMPSE: fit on everybody's reads (as in production), score dogs with a confident GLIMPSE call
-        f, _, eps = fit_site(r, a, D['W'], D['F'], s['eps'], s['mask'], hyper_b(s), fit_eps=s['kind'] != 'snv')
+        pub = pub_prior(D['codes'], D['sid'][i], s['mask'])
+        f, _, eps = fit_site(r, a, D['W'], D['F'], s['eps'], s['mask'], hyper_b(s), fit_eps=s['kind'] != 'snv', pub=pub)
         post = posterior(r, a, D['W'], D['F'], eps, f)
         calls = call_of(post); ok = t >= 0
         rare = (t[ok] > 0).mean() < 0.02  # carrier frequency like a founder mutation
@@ -738,7 +761,7 @@ def cmd_validate(work):
         cal += list(zip(post[ok, 1] + post[ok, 2], t[ok] > 0))
         # B. deep kits thinned to ~1x; frequencies refitted without them so they cannot inform their own prior
         f2, _, eps2 = fit_site(r, a, D['W'], D['F'], s['eps'], s['mask'], hyper_b(s), fit_rows=~deep,
-                               fit_eps=s['kind'] != 'snv')
+                               fit_eps=s['kind'] != 'snv', pub=pub)
         keep = 1.0 / np.maximum(np.nan_to_num(D['depth'], nan=1.0), 1.0)
         rt = rng.binomial(r, keep); at = rng.binomial(a, keep)
         pt = posterior(rt, at, D['W'], D['F'], eps2, f2)

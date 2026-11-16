@@ -107,43 +107,53 @@ def count(bam_path):
             out[sid] = (n['ref'], n['alt'], n['other'], ','.join(f'{k}:{v}' for k, v in sorted(other.items())))
     return out
 
-def build_prior(s3_path, breeds_path, out_path):
+def s3_breed_af(rows, i, bm):
+    """Donner S3 column i -> (mixed-breed AF, {panel breed code: AF}), each breed's AF shrunk towards the mixed-breed
+    AF with K_SHRINK dogs."""
+    from breed_names import MIXED
+    per, n_row = {}, {}
+    for r in rows[4:]:
+        if len(r) <= i:
+            continue
+        if r[0] == 'N dogs genotyped':
+            n_row = r
+        elif r[0] == 'Alternative allele frequency' and r[i] not in ('', 'NA', 'N/A') and n_row[i] not in ('', 'NA', 'N/A'):
+            per[r[1]] = (int(float(n_row[i])), float(r[i]))
+    mixed = per.get('Mixed Breed', (0, 0.0))[1]
+    # several paper names can map to one panel breed (Dachshund varieties): pool them by dogs genotyped; a name
+    # covering several panel breeds ("Poodle") counts only where no specific name does
+    pool = {True: {}, False: {}}
+    for name, (n, f) in per.items():
+        # "Poodle (Toy)" -> "Toy Poodle"
+        hit = PAPER_NAMES.get(name) or bm.match(re.sub(r'^(.*?) \((.*)\)$', r'\2 \1', name)) or bm.match(name)
+        if not hit or hit == {MIXED} or n == 0:
+            continue
+        for code in hit:
+            a = pool[len(hit) == 1].setdefault(code, [0, 0.0])
+            a[0] += n; a[1] += n * f
+    af = {}
+    for code in set(pool[True]) | set(pool[False]):
+        n, nf = pool[True].get(code) or pool[False][code]
+        af[code] = round((nf + K_SHRINK * mixed) / (n + K_SHRINK), 6)
+    for code, proxy in PROXY.items():
+        if code not in af and proxy in af:
+            af[code] = af[proxy]
+    return mixed, af
+
+def s3_rows(s3_path, breeds_path):
+    """(S3 rows, {column header: index}, breed matcher over the panel breed codes)."""
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from breed_names import BreedMatcher, MIXED
+    from breed_names import BreedMatcher
     codes = [l.strip() for l in open(breeds_path) if l.strip()]
     bm = BreedMatcher({c: c.replace('_', ' ').title() for c in codes})
     rows = [l.rstrip('\n').split('\t') for l in open(s3_path)]
-    col = {rows[2][i].strip(): i for i in range(2, len(rows[2]))}
+    return rows, {rows[2][i].strip(): i for i in range(2, len(rows[2]))}, bm
+
+def build_prior(s3_path, breeds_path, out_path):
+    rows, col, bm = s3_rows(s3_path, breeds_path)
     out = {}
     for sid, c in CALLED.items():
-        i = col[c['omia']]
-        per, n_row = {}, {}
-        for r in rows[4:]:
-            if len(r) <= i:
-                continue
-            if r[0] == 'N dogs genotyped':
-                n_row = r
-            elif r[0] == 'Alternative allele frequency' and r[i] not in ('', 'NA', 'N/A') and n_row[i] not in ('', 'NA', 'N/A'):
-                per[r[1]] = (int(float(n_row[i])), float(r[i]))
-        mixed = per.get('Mixed Breed', (0, 0.0))[1]
-        # several paper names can map to one panel breed (Dachshund varieties): pool them by dogs genotyped; a name
-        # covering several panel breeds ("Poodle") counts only where no specific name does
-        pool = {True: {}, False: {}}
-        for name, (n, f) in per.items():
-            # "Poodle (Toy)" -> "Toy Poodle"
-            hit = PAPER_NAMES.get(name) or bm.match(re.sub(r'^(.*?) \((.*)\)$', r'\2 \1', name)) or bm.match(name)
-            if not hit or hit == {MIXED} or n == 0:
-                continue
-            for code in hit:
-                a = pool[len(hit) == 1].setdefault(code, [0, 0.0])
-                a[0] += n; a[1] += n * f
-        af = {}
-        for code in set(pool[True]) | set(pool[False]):
-            n, nf = pool[True].get(code) or pool[False][code]
-            af[code] = round((nf + K_SHRINK * mixed) / (n + K_SHRINK), 6)
-        for code, proxy in PROXY.items():
-            if code not in af and proxy in af:
-                af[code] = af[proxy]
+        mixed, af = s3_breed_af(rows, col[c['omia']], bm)
         out[sid] = {'omia_variant': c['omia'], 'mixed_af': mixed, 'breed_af': af}
         print(f'{sid}: mixed {mixed:.4f}, {len(af)} breeds, top', sorted(af.items(), key=lambda x: -x[1])[:4])
     json.dump({'source': 'Donner et al. 2023 PLoS Genet 19:e1010651, S3', 'k_shrink': K_SHRINK, 'sites': out},

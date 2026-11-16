@@ -33,6 +33,7 @@ counts only reads spanning the deletion (k_locus_genotype; pass the dog's coat_c
   python3 panel_v3_apply.py WORK_DIR CATALOGUE SAMPLE OLD_OMIA|- OUT_OMIA [COAT_JSON]
   python3 panel_v3_apply.py --hold OMIA_JSON...
   python3 panel_v3_apply.py --p2 WORK_DIR LIST   # LIST: sample<TAB>omia_result.json; adds p_two to existing calls
+  python3 panel_v3_apply.py --recall ROOT SUB LIST  # replaces existing panel v3 calls from ROOT/<pub>/SUB rescores
 """
 import csv, json, os, sys
 import numpy as np
@@ -125,6 +126,33 @@ def add_p2(work, lst):
         json.dump(res, open(path, 'w'), indent=1)
         print(sample, path, n['added'], n['skipped'])
 
+def recall(root, sub, lst):
+    """Replace the panel v3 calls of existing reports, in place, with a rescore's (ROOT/<pub dir name>/SUB, written by
+    cluster/p2_rescore.sh): same genotype fields as main(), so a model change reaches published reports without
+    rebuilding them. Left alone: held sites, the K locus (coat stage), the sequence caller's sites, entries whose
+    current call is not a panel v3 one, and sites the rescore holds. Prints each report's changed calls."""
+    for line in open(lst):
+        sample, path = line.rstrip('\n').split('\t')[:2]
+        kit = f'{root}/{os.path.basename(os.path.dirname(os.path.abspath(path)))}/{sub}'
+        if not os.path.exists(f'{kit}/bp_p_carrier.npz'):
+            print(sample, path, 'no score'); continue
+        calls = load_calls(kit, sample)
+        res = json.load(open(path))
+        n, changed = 0, []
+        for v in res['variants']:
+            sid, k = v.get('site_id'), gt_key(v)
+            g = v.get(k) if k else None
+            c = calls.get(sid)
+            if (not g or not c or c[0] == 'held' or sid in NOT_DETERMINED or sid == KB_SITE
+                    or g.get('source') != 'panel_v3' or g.get('basis') == 'held'):
+                continue
+            new = genotype(*c)
+            if new['zygosity'] != g.get('zygosity'):
+                changed.append(f"{sid}:{g.get('zygosity')}>{new['zygosity']}")
+            v[k] = new; n += 1
+        json.dump(res, open(path, 'w'), indent=1)
+        print(sample, path, n, len(changed), ' '.join(changed))
+
 def k_locus_genotype(coat, model_g):
     """The KB deletion genotype from the coat stage's K locus read call (stage 13), or None to keep model_g.
     KB/KB -> two copies, KB/ky -> one copy, high-confidence ky/ky (>=6 spanning reads, none deleted) -> clear;
@@ -151,14 +179,14 @@ def k_locus_genotype(coat, model_g):
     g['call_confidence'] = conf
     return g
 
-def main(work, catalogue, sample, old_path, out_path, coat_path=None):
-    cat = json.load(open(catalogue))
+def load_calls(work, sample):
+    """{site_id: (call, p_carrier, basis, extra)} for one sample of a cohort run or a kit's score dir."""
     # dict(): an NpzFile decompresses an array again on every item access, i.e. per site
     small = dict(np.load(f'{work}/bp_p_carrier.npz'))
     sv = dict(np.load(f'{work}/bp_sv.npz'))
     col = {s: i for i, s in enumerate(small['samples'])}
     if sample not in col:
-        sys.exit(f'{sample} is not in the panel v3 cohort run')
+        sys.exit(f'{sample} is not in the panel v3 run {work}')
     j = col[sample]
     calls = {}
     sites = list(csv.DictReader(open(f'{work}/bp_sites.tsv'), delimiter='\t'))
@@ -192,6 +220,11 @@ def main(work, catalogue, sample, old_path, out_path, coat_path=None):
         if 'p2' in sv:
             e['p_two'] = round(float(sv['p2'][i, svj]), 4)
         calls[str(sid)] = (str(sv['call'][i, svj]), float(sv['p'][i, svj]), 'structural', e)
+    return calls
+
+def main(work, catalogue, sample, old_path, out_path, coat_path=None):
+    cat = json.load(open(catalogue))
+    calls = load_calls(work, sample)
 
     old = json.load(open(old_path)) if old_path != '-' else None
     try:
@@ -237,5 +270,7 @@ if __name__ == '__main__':
         hold(sys.argv[2:])
     elif sys.argv[1] == '--p2':
         add_p2(*sys.argv[2:4])
+    elif sys.argv[1] == '--recall':
+        recall(*sys.argv[2:5])
     else:
         main(*sys.argv[1:7])
