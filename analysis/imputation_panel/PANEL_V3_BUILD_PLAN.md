@@ -44,3 +44,15 @@ Not in this build: chrX non-PAR (62 catalogue sites; panel v2 has no non-PAR X),
 
 - Dry run of steps 1-6 once the breed-gap list finishes (~2,000 added genomes): proves the build and gives a first catalogue-site validation.
 - Customer rollout once, after the full 7,548 list: one re-impute and one republish instead of two.
+
+## Catalogue fixes found against Donner et al. 2023 (2026-11-15)
+- IMPG2 PRA4 (new_IMPG2_1253): was the gene span; now the LINE-1 insertion site canFam4 chr33:8,197,950-8,197,966
+  (17-bp TSD, Hitti-Malin et al. 2020). Add it to the SV pass of this build (sv_sites.tsv): short reads can exclude it
+  from spanning reads but cannot confirm a copy (sv_confirmable), so dogs read clear or uncertain only.
+- SLC7A9 cat338 (cystinuria type II-B, Miniature Pinscher) is at the right position; the paper finds 0 carriers in
+  1,054,232 dogs. The 2.2%-frequency SLC7A9 variant in our reads is p.A217T (Donner "type I-B", recessive, incomplete
+  penetrance, chr1:120,053,689), which the catalogue lacks; adding it is a separate decision.
+- Paper describes a different change from our catalogue entry (published_priors.py rejects): NIPAL4 cat061 (paper
+  1-bp del 102 bp away), ITGA2B cat401 (14-bp dup), L2HGDH cat281 (3-bp delins), SLC19A3 cat329 (delins), DLX6 cat167
+  (2-kb insertion), GALC cat006 (78-bp insertion), COL1A2 cat232 (delins). Our entries are single-base changes at or
+  next to the paper's position: re-curate before the build.
