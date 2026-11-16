@@ -14,6 +14,7 @@ bcftools query -f '%CHROM\t%POS\n' "$R" > "$T/sites.tsv"
 n=0
 while IFS=$'\t' read -r kit w; do
   f="$w/glimpse2/${kit}_imputed_dog10k.bcf"
+  [ -s "$f" ] || f=$(ls "$w"/glimpse2/*_imputed_dog10k.bcf 2>/dev/null | head -1)   # work dirs keep the original kit case (DOGS-Gen-47)
   [ -s "$f" ] || continue
   echo "$kit" > "$T/name"
   bcftools view -r "$C:$lo-$hi" -T "$T/sites.tsv" -m2 -M2 "$f" -Ou 2>/dev/null | bcftools annotate -x INFO,^FORMAT/GT -Ou \
