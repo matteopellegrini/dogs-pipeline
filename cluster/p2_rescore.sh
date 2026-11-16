@@ -3,7 +3,8 @@
 # the chance of two copies. The 2026-11-13 re-imputation scored every kit this way and then deleted its work dir, so
 # the live calls can only be matched by scoring again with the same frozen model, BAM and imputed BCF.
 #
-#   CHUNK=20 sbatch -A pi_matteop -p campus -a 1-<ceil(N/20)> -c 1 --mem=4G -t 2:00:00 -J p2score cluster/p2_rescore.sh <list>
+#   CHUNK=20 sbatch -A pi_matteop -p campus -a 1-<ceil(N/20)> -c 1 --mem=4G -t 2:00:00 --constraint="$(cat cluster/avx2_constraint.txt)" \
+#          -J p2score cluster/p2_rescore.sh <list>
 #
 # Rows: name, barcode, pub dir, work dir (logs/nd1115_list.tsv); task t takes rows (t-1)*CHUNK+1 .. t*CHUNK (~1 min
 # a kit; one task per kit hits campus's 500-job submit cap). Output: work_panel_v3/p2score/<pub basename>/score.
@@ -11,6 +12,8 @@
 set -uo pipefail
 export OPENBLAS_NUM_THREADS=1
 D="${SLURM_SUBMIT_DIR:?run via sbatch from the repo root}"; cd "$D"
+# indel_window_impute.sh (MDR1, PDK4, ...) needs AVX2 and fails silently without it: empty indel_imputed.tsv.gz
+grep -q avx2 /proc/cpuinfo || { echo "P2-FAIL no avx2 on $(hostname)"; exit 1; }
 export PATH="$D/envs/genomics/bin:$PATH" DATA_PYTHON="$D/envs/genomics/bin/python3" FASTA="$D/canFam4_plusY.fa"
 C=${CHUNK:-1}; fail=0
 for r in $(seq $(( (${SLURM_ARRAY_TASK_ID:?} - 1) * C + 1 )) $(( SLURM_ARRAY_TASK_ID * C ))); do
