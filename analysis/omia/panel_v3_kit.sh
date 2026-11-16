@@ -49,7 +49,9 @@ zcat "$M/v3_small.alleles.tsv.gz" | awk '$1=="chrM"' | while IFS=$'\t' read -r c
         END { if(!found) print k"\t"c"\t"p"\t"r"\t"a"\t"d+0"\t0" }' >> "$K/chrM_counts.tsv"
 done
 
-# disease indels imputed from their haplotype (reference_panel/indel_windows: NAME CHROM POS REF ALT per window)
+# disease indels imputed from their haplotype (reference_panel/indel_windows: NAME CHROM POS REF ALT per window).
+# GLIMPSE needs AVX2; without it every window fails silently and MDR1/PDK4/... fall back to reads alone.
+grep -q avx2 /proc/cpuinfo || { echo "panel_v3_kit: no AVX2 on $(hostname): indel haplotype imputation impossible" >&2; exit 1; }
 { printf 'CHROM\tPOS\tREF\tALT\t%s\n' "$SAMPLE"
   while IFS=$'\t' read -r wn wc wp wr wa; do
     [[ -s "$M/../indel_windows/$wn.ref.bcf" ]] || continue
