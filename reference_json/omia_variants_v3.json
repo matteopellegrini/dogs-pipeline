@@ -11219,7 +11219,7 @@
    "variant_type": "G>A",
    "trait": "Cystinuria Type I-B (SLC7A9 risk marker)",
    "phene_name": "Cystinuria Type I-B (SLC7A9 risk marker)",
-   "variant_breed": "English Bulldog, French Bulldog, Golden Retriever, Bull Terrier",
+   "variant_breed": "English Bulldog, French Bulldog",
    "category": "disease",
    "source": "panel_v3 Literature 2026-11-16",
    "mode": "ML",
