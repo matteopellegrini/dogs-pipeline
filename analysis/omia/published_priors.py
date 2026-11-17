@@ -15,6 +15,9 @@ from seq_allele_caller import CALLED, K_SHRINK, s3_breed_af, s3_rows
 
 COMP = str.maketrans('ACGT', 'TGCA')
 SKIP = set(CALLED) | {'cat338'}  # sequence-caller sites; cat338 = SLC7A9 type II-B, the paper has 0 carriers anyway
+# checked by hand 2026-11-16: the paper's variant is this site's although position/alleles differ
+SAME = {'cat061': 'NIPAL4 c.744del: the paper used the OMIA listing OMIA later corrected (g.52737379 -> g.52737279)',
+        'cat281': "L2HGDH: the site types the first base of the paper's GAA>AAG double substitution"}
 
 
 def same_variant(paper, pos4, site):
@@ -38,7 +41,7 @@ def main(s3, match, bp_sites, breeds, out_path):
         for sid in filter(None, r['site_ids'].split(',')):
             if sid in SKIP or sid not in sites:
                 continue
-            if not same_variant(r['paper_variant_canfam3'], r['canfam4_pos'].split(':')[1], sites[sid]):
+            if sid not in SAME and not same_variant(r['paper_variant_canfam3'], r['canfam4_pos'].split(':')[1], sites[sid]):
                 rejected.append(f"{sid} {r['gene']} paper {r['paper_variant_canfam3']} -> {r['canfam4_pos']}, "
                                 f"site {sites[sid]['chrom']}:{sites[sid]['pos']} {sites[sid]['ref']}>{sites[sid]['alt']}")
                 continue

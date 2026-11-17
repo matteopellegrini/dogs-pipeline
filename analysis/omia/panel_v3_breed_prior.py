@@ -63,7 +63,7 @@ MANUAL_BREEDS = {
              'Lancashire Heeler, Long-Haired Whippet, Boykin Spaniel',  # collie eye anomaly, Parker et al. 2007
 }
 # sites whose OMIA entry the gene-name join misses ("FGF4 retrogene in CFA12"): OMIA's breed list wins over ours
-SITE_OMIA = {'cat093': '855', 'cat469': '694'}
+SITE_OMIA = {'cat093': '855', 'cat469': '694', 'cat401': '1568'}  # cat401: the mixed-breed R453*, not the Otterhound allele (cat400)
 K_EPS = 500.0  # indels: per-site read error estimated by EM, shrunk to EPS[kind] with this many pseudo-reads
 # Held out of calls until their coordinates/alleles are re-curated: cohort frequencies impossible for a disease allele
 HOLD = {

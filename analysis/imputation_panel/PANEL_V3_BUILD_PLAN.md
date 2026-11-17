@@ -47,12 +47,24 @@ Not in this build: chrX non-PAR (62 catalogue sites; panel v2 has no non-PAR X),
 
 ## Catalogue fixes found against Donner et al. 2023 (2026-11-15)
 - IMPG2 PRA4 (new_IMPG2_1253): was the gene span; now the LINE-1 insertion site canFam4 chr33:8,197,950-8,197,966
-  (17-bp TSD, Hitti-Malin et al. 2020). Add it to the SV pass of this build (sv_sites.tsv): short reads can exclude it
-  from spanning reads but cannot confirm a copy (sv_confirmable), so dogs read clear or uncertain only.
+  (17-bp TSD, Hitti-Malin et al. 2020). In the SV pass of this build since 2026-11-16 (`sv_evidence.py sites`): short
+  reads can exclude it from spanning reads but cannot confirm a copy (sv_confirmable), so dogs read clear or uncertain
+  only. `sites` now reads an insertion's pos..end span as its target-site duplication (breakpoint = its middle, size
+  unknown unless SVLEN): this also stops FAM161A_1706's 15-bp TSD passing as a 15-bp insertion that reads could confirm.
 - SLC7A9 cat338 (cystinuria type II-B, Miniature Pinscher) is at the right position; the paper finds 0 carriers in
   1,054,232 dogs. The 2.2%-frequency SLC7A9 variant in our reads is p.A217T (Donner "type I-B", recessive, incomplete
   penetrance, chr1:120,053,689), which the catalogue lacks; adding it is a separate decision.
-- Paper describes a different change from our catalogue entry (published_priors.py rejects): NIPAL4 cat061 (paper
-  1-bp del 102 bp away), ITGA2B cat401 (14-bp dup), L2HGDH cat281 (3-bp delins), SLC19A3 cat329 (delins), DLX6 cat167
-  (2-kb insertion), GALC cat006 (78-bp insertion), COL1A2 cat232 (delins). Our entries are single-base changes at or
-  next to the paper's position: re-curate before the build.
+- Paper describes a different change from our catalogue entry (published_priors.py rejected 7). Re-curated 2026-11-16
+  (build_panel_v3_sites.py FIXES, checked against OMIA HGVS and the canFam4 sequence):
+  - GALC cat006 -> 78-bp insertion (Irish Setter, SVLEN=78) and DLX6 cat167 -> 2,056-bp LINE-1 insertion (NSDTR,
+    SVLEN=2056): now SV-pass sites (clear/uncertain only); the catalogue typed an invented SNV at the insertion point.
+  - SLC19A3 cat329 -> C>TTGCA (c.624delinsTGCAA); COL1A2 cat232 -> CTGA>TGTCATTGG (c.3856_3859delins; the paper's
+    "CTAG" is CTGA in canFam4). Both were the first base of the delins as an SNV.
+  - Ours was right: NIPAL4 cat061 (the paper used OMIA's old g.52737379del, OMIA corrected it to g.52737279del = our
+    site), L2HGDH cat281 (our G>A is the first base of the GAA>AAG double substitution; the second base is A>G at
+    26,947,411), ITGA2B cat401 (= the mixed-breed R453*; the paper row is the Great Pyrenees 14-bp dup, OMIA 369, which
+    the catalogue lacks; breed prior now from OMIA 1568, not the Otterhound allele cat400).
+  - published_priors.py: SAME accepts cat061/cat281; with the re-curated alleles 213 sites get published priors (+cat061
+    American Bulldog 8.8%, cat281 Staffordshire Bull Terrier 1.4%, cat232, cat329).
+  - Live reports still use the frozen model (old alleles at cat006/cat167/cat232/cat329, all 0-1 per 10k dogs in the
+    paper): they change at the panel v3 rollout, or earlier by per-kit rescore on Matteo's go.

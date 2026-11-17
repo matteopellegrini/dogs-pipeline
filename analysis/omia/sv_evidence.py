@@ -65,6 +65,12 @@ def sites():
             end = start + len(s['ref']) - 1
         if t in ('INS', 'DUP') and svlen <= 1:
             svlen = 0   # "gross insertion" / duplication of unrecorded size: breakpoint clips only, no size match
+        if t == 'INS' and end - start > 1:
+            # pos..end is the insertion point with its target-site duplication (IMPG2, FAM161A), not the inserted
+            # length; the two junctions sit at either end of it, so look from its middle (WINDOW covers <= 30 bp)
+            if not m:
+                svlen = 0
+            start = end = (start + end) // 2
         src = '%s:%d-%d' % SOURCE[s['site_id']] if s['site_id'] in SOURCE else ''
         w.writerow([s['site_id'], s['gene'], s['chrom'], start, end, t, svlen, s['ref'][:60], s['alt'][:60], src,
                     flanks.get(s['site_id'], '')])

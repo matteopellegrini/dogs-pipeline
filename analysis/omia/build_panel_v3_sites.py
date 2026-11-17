@@ -147,6 +147,33 @@ FIXES = {
     # 2026-11-15: the gene span was used (81 kb off); the PRA4 allele is a LINE-1 insertion upstream of IMPG2
     'new_IMPG2_1253': dict(pos='8197950', end='8197966', status='breakpoints',
                            note='LINE-1 insertion ~200 bp upstream of IMPG2 with a 17-bp target-site duplication, CanFam3 chr33:7,785,475-7,785,491 (Hitti-Malin et al. 2020, PMID 32894063) = canFam4 chr33:8,197,950-8,197,966 (Donner 2023 S1 lifted). Was the gene span (81 kb off). Short reads can only exclude it (spanning reads), not confirm a copy; 1.2e-5 AF in 1M dogs, Lhasa Apso 0.6% (2026-11-15)'),
+    # 2026-11-16 re-curation against OMIA and Donner et al. 2023: entries that typed one base of a larger change
+    'cat006': dict(ref='.', alt='insertion, gross (>20)', kind='sv', genotyping='read_based', status='breakpoints; SVLEN=78',
+                   note='Irish Setter allele is a 78-bp insertion (16-bp target-site duplication + 62 bp U4 snRNA-derived), '
+                        'CanFam3 g.59294611_59294612insN[78] (OMIA variant 953, McGraw 2006) = canFam4 chr8:59,621,429; the '
+                        'catalogue had a T>A at the insertion point (2026-11-16)'),
+    'cat167': dict(ref='.', alt='insertion, gross (>20)', kind='sv', genotyping='read_based', pos='22030548',
+                   end='22030549', status='breakpoints; SVLEN=2056',
+                   note='Nova Scotia Duck Tolling Retriever allele is a 2,056-bp insertion (incl. LINE-1) in DLX6 intron 2, '
+                        'CanFam3 g.22068082_22068083insN[2056] (OMIA variant 728, Wolf 2014) = canFam4 chr14:22,030,548-549; '
+                        'the catalogue had a G>T at the insertion point (2026-11-16)'),
+    'cat232': dict(ref='CTGA', alt='TGTCATTGG', kind='indel', status='live; re-curated 2026-11-16',
+                   note='Beagle allele is a 4-bp deletion replaced by 9 bp (c.3856_3859delinsTGTCATTGG, OMIA variant 762) '
+                        'at canFam4 chr14:19,877,627-630; the paper names the deleted bases CTAG, canFam4 reads CTGA; the '
+                        'inserted TGTCATT is the reference 11 bp downstream, as the paper says. The catalogue had C>T at '
+                        'the first base (2026-11-16)'),
+    'cat329': dict(ref='C', alt='TTGCA', kind='indel', status='live; re-curated 2026-11-16',
+                   note='Alaskan Husky allele is c.624delinsTGCAA (published as c.624insTTGC + c.625C>A, OMIA variant 578), '
+                        'genomic C>TTGCA at canFam4 chr25:40,615,336 (gene on the minus strand); the catalogue had C>T '
+                        '(2026-11-16)'),
+    'cat281': dict(note='Staffordshire Bull Terrier allele is two substitutions in cis, genomic GAA>AAG at canFam4 '
+                        'chr8:26,947,409-411 (c.1297T>C + c.1299C>T, OMIA variant 735); the site types its first base '
+                        '(G>A), which every disease haplotype carries; the second is chr8:26,947,411 A>G (2026-11-16)'),
+    'cat061': dict(note='c.744del at canFam4 chr4:53,623,973 = CanFam3 g.52737279del (OMIA variant 563, corrected by OMIA '
+                        'from g.52737379del). Donner 2023 used the old listing, 102 bp away; same variant (2026-11-16)'),
+    'cat401': dict(note='Mixed-breed allele c.1357C>T p.R453* (OMIA variant 1568, Haysom 2016), which this site types. The '
+                        'Great Pyrenees 14-bp duplication 3 bp downstream (OMIA 369) is not in the catalogue; the '
+                        'Otterhound allele is cat400 (2026-11-16)'),
 }
 for x in out:
     x.update(FIXES.get(x['site_id'], {}))
