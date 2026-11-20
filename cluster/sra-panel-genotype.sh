@@ -21,7 +21,8 @@
 set -uo pipefail
 D="${SLURM_SUBMIT_DIR:?run via sbatch from the repo root}"; cd "$D"
 row=$(grep -v '^#' "${1:?list}" | sed -n "${SLURM_ARRAY_TASK_ID:?}p"); [ -n "$row" ] || exit 0
-IFS=$'\t' read -r bs group breed role depth bases runs <<< "$row"
+# Tab is an IFS whitespace character, so read would merge an empty breed column and shift every later field
+IFS=$'\x1f' read -r bs group breed role depth bases runs <<< "${row//$'\t'/$'\x1f'}"
 export PATH=/u/home/g/gkislik/project-pellegrini/sratoolkit.3.1.1-ubuntu64/bin:$D/envs/genomics/bin:$PATH
 NP=${SLURM_CPUS_PER_TASK:-8}; REF=canFam4_plusY.fa; OUT=work_sra_panel/$bs; SITES=ref_panel_v2/sites
 CAP_X=${CAP_X:-10}; ALLELES=logs/panel_alleles.tsv.gz
