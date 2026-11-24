@@ -37,10 +37,13 @@ if ! mkdir "$LOCK" 2>/dev/null; then
 fi
 touch "$LOCK/${SLURM_ARRAY_JOB_ID:-$SLURM_JOB_ID}.$SLURM_ARRAY_TASK_ID"
 ( while sleep 600; do touch "$LOCK"; done ) & HB=$!
-trap 'kill $HB 2>/dev/null; rm -rf "$LOCK"' EXIT
+# Sort spills, fasterq-dump scratch and per-chromosome calls go to node-local $TMPDIR: thousands of small temp
+# files on the network filesystem degraded the whole cluster (Hoffman2 support, 2026-11-24).
+LTMP=$(mktemp -d "${TMPDIR:-/tmp}/sra_${bs}.XXXXXX") || { echo "SRAPANEL-FAIL $bs (no local tmp)"; exit 1; }
+trap 'kill $HB 2>/dev/null; rm -rf "$LOCK" "$LTMP"' EXIT
 # A failed task drops its downloads and partial BAMs (a failed task kept ~30 GB each; 163 of them filled 4.7 TB),
 # keeping only a finished markdup.bam, which a rerun resumes from.
-fail() { echo "SRAPANEL-FAIL $bs $group: $1"; rm -rf "$OUT/sra" "$OUT/tmp" "$OUT"/tmp_sort* "$OUT"/markdup.bam.tmp*; exit 1; }
+fail() { echo "SRAPANEL-FAIL $bs $group: $1"; rm -rf "$OUT/sra" "$OUT/tmp" "$OUT"/tmp_sort* "$OUT"/markdup.bam.tmp* "$LTMP"/*; exit 1; }
 t0=$(date +%s); echo "[$(date +%T)] $bs $group ($breed) role=$role ${depth}x runs=$runs on $(hostname)"
 
 # Fraction of read pairs to keep: CAP_X over the raw depth (bases / 2.48 Gb); test dogs keep everything.
@@ -74,7 +77,8 @@ if [ "${FAST:-0}" = 1 ] && [ "$role" = panel ] && [ "$keep" != 1.00000 ]; then
 fi
 
 if [ ! -s "$OUT/markdup.bam" ]; then
-  rm -rf "$OUT"/tmp_sort* "$OUT"/markdup.bam.tmp* "$OUT"/sra
+  rm -rf "$OUT"/tmp_sort* "$OUT"/markdup.bam.tmp* "$OUT"/sra "$OUT"/tmp
+  mkdir -p "$LTMP/sort1" "$LTMP/sort2"
   left=$nspots
   for r in "${sel[@]}"; do
     if [ "$nspots" -gt 0 ]; then
@@ -85,9 +89,9 @@ if [ ! -s "$OUT/markdup.bam" ]; then
       continue
     fi
     prefetch --max-size 400G -O "$OUT/sra" "$r" >/dev/null 2>>"$OUT/prefetch.log" || { echo "prefetch $r failed" >&2; exit 3; }
-    fasterq-dump --split-spot --stdout -e 2 -t "$OUT/tmp" --seq-defline '@$ac.$si/$ri' --qual-defline '+' \
+    fasterq-dump --split-spot --stdout -e 2 -t "$LTMP/fqd" --seq-defline '@$ac.$si/$ri' --qual-defline '+' \
         "$OUT/sra/$r/$r.sra" 2>>"$OUT/fqd.log" || { echo "fasterq-dump $r failed" >&2; exit 4; }
-    rm -rf "$OUT/sra/$r" "$OUT/tmp"
+    rm -rf "$OUT/sra/$r" "$LTMP/fqd"
   done \
   | awk -v pe="$pe" -v keep="$keep" 'BEGIN{srand(11)}
          NR%4==1{k=$1; sub(/\/[12]$/,"",k)} {rec[NR%4]=$0}
@@ -96,14 +100,14 @@ if [ ! -s "$OUT/markdup.bam" ]; then
                  else if(k==pk){if(rand()<keep){print pr; print r; n++}; pk=""} else {pr=r; pk=k}}
          END{print n+0 > "'"$OUT"'/pairs.txt"}' \
   | bwa-mem2 mem $([ "$pe" = 1 ] && echo -p) -t "$NP" -R "@RG\tID:SRA-$bs\tSM:SRA-$bs\tPL:ILLUMINA\tLB:WGS" "$REF" - 2>"$OUT/bwa.log" \
-  | samtools sort -n -m 400M -@ "$NP" -T "$OUT/tmp_sort" \
+  | samtools sort -n -m 400M -@ "$NP" -T "$LTMP/sort1/s" \
   | samtools fixmate -m -@ "$NP" - - \
-  | samtools sort -m 400M -@ "$NP" -T "$OUT/tmp_sort2" \
+  | samtools sort -m 400M -@ "$NP" -T "$LTMP/sort2/s" \
   | samtools markdup -@ "$NP" --write-index - "$OUT/markdup.bam.tmp" \
   && [ "$(cat "$OUT/pairs.txt" 2>/dev/null || echo 0)" -gt 1000000 ] \
   && mv "$OUT/markdup.bam.tmp" "$OUT/markdup.bam" && mv "$OUT/markdup.bam.tmp.csi" "$OUT/markdup.bam.csi" \
   || { tail -n 3 "$OUT/prefetch.log" "$OUT/fqd.log" "$OUT/bwa.log" 2>/dev/null; fail "align (pairs=$(cat "$OUT/pairs.txt" 2>/dev/null))"; }
-  rm -rf "$OUT/sra" "$OUT/tmp"
+  rm -rf "$OUT/sra" "$LTMP"/sort1 "$LTMP"/sort2
   echo "[$(date +%T)] pairs: $(cat "$OUT/pairs.txt")  BAM: $(du -sh "$OUT/markdup.bam" | cut -f1)"
 fi
 mdp=$(samtools idxstats "$OUT/markdup.bam" | awk -v rl="$(samtools view "$OUT/markdup.bam" chr1:10000000-10100000 | head -2000 | awk '{s+=length($10)} END{print (NR?s/NR:100)}')" \
@@ -116,8 +120,8 @@ if [ "$role" = panel ]; then
   echo "$contigs" | xargs -P "$NP" -I{} sh -c \
     "[ -s $SITES/{}.tsv.gz ] || exit 0; bcftools mpileup -f $REF -r {} -T $SITES/{}.tsv.gz -q 30 -Q 20 -a AD,DP -Ou $OUT/markdup.bam 2>/dev/null \
      | bcftools call -m -C alleles -T $SITES/{}.tsv.gz -f GQ -Ou 2>/dev/null \
-     | bcftools annotate -x INFO,FORMAT/PL,FORMAT/AD -Ob -o $OUT/p.{}.bcf" || fail "panel sites"
-  bcftools concat -Ob -o "sra_panel/$bs.panel_sites.bcf.tmp" $(for c in $contigs; do [ -s "$OUT/p.$c.bcf" ] && echo "$OUT/p.$c.bcf"; done) 2>/dev/null \
+     | bcftools annotate -x INFO,FORMAT/PL,FORMAT/AD -Ob -o $LTMP/p.{}.bcf" || fail "panel sites"
+  bcftools concat -Ob -o "sra_panel/$bs.panel_sites.bcf.tmp" $(for c in $contigs; do [ -s "$LTMP/p.$c.bcf" ] && echo "$LTMP/p.$c.bcf"; done) 2>/dev/null \
     && bcftools index -f "sra_panel/$bs.panel_sites.bcf.tmp" \
     && mv "sra_panel/$bs.panel_sites.bcf.tmp" "sra_panel/$bs.panel_sites.bcf" && mv "sra_panel/$bs.panel_sites.bcf.tmp.csi" "sra_panel/$bs.panel_sites.bcf.csi" \
     || fail concat
@@ -129,8 +133,8 @@ else
   # Truth: genome-wide gVCF at full depth (as sra-full-genotype.sh), plus a ~1x random subsample for imputation.
   echo "$contigs" | xargs -P "$NP" -I{} sh -c \
     "bcftools mpileup -f $REF -r {} -q 30 -Q 20 -a AD,DP -g 5 -Ou $OUT/markdup.bam 2>/dev/null \
-     | bcftools call -m -g 5 -Oz -o $OUT/g.{}.vcf.gz 2>/dev/null" || fail gvcf
-  bcftools concat -Oz -o "sra_full/$bs.g.vcf.gz.tmp" $(for c in $contigs; do echo "$OUT/g.$c.vcf.gz"; done) 2>/dev/null \
+     | bcftools call -m -g 5 -Oz -o $LTMP/g.{}.vcf.gz 2>/dev/null" || fail gvcf
+  bcftools concat -Oz -o "sra_full/$bs.g.vcf.gz.tmp" $(for c in $contigs; do echo "$LTMP/g.$c.vcf.gz"; done) 2>/dev/null \
     && mv "sra_full/$bs.g.vcf.gz.tmp" "sra_full/$bs.g.vcf.gz" && tabix -f -p vcf "sra_full/$bs.g.vcf.gz" || fail concat
   L=scratch/panel_test/sra/$bs; mkdir -p "$L"
   frac=$(awk -v d="$mdp" 'BEGIN{x=1/d; if(x>=1) x=0.9999; printf "%.4f", x}'); frac=${frac#0}

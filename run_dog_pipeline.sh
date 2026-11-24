@@ -485,6 +485,9 @@ if (( FROM_STAGE <= 4 && TO_STAGE >= 4 )); then
 # fixmate BAMs to disk — cuts disk I/O by ~3-4x and wall time by ~40%.
 log "=== Stage 3: Alignment (bwa-mem2) ==="
 log "=== Stage 4: Sort + markdup (piped) ==="
+# Sort spills go to node-local $TMPDIR, not $OUT: thousands of small temp files on the network filesystem
+# degraded the whole cluster (Hoffman2 support, 2026-11-24).
+SORT_TMP=$(mktemp -d "${TMPDIR:-/tmp}/sort_${DOG_NAME}.XXXXXX")
 $MM bwa-mem2 mem \
   -t $NPROC \
   -R "@RG\tID:${DOG_NAME}\tSM:${DOG_NAME}\tPL:ILLUMINA\tLB:WGS" \
@@ -492,10 +495,11 @@ $MM bwa-mem2 mem \
   "$OUT/trimmed_R1.fastq.gz" \
   "$OUT/trimmed_R2.fastq.gz" \
   2>"$OUT/bwa.log" \
-| $MM samtools sort -n -@ $NPROC -T "$OUT/tmp_sort" \
+| $MM samtools sort -n -@ $NPROC -T "$SORT_TMP/n" \
 | $MM samtools fixmate -m -@ $NPROC - - \
-| $MM samtools sort -@ $NPROC -T "$OUT/tmp_sort2" \
+| $MM samtools sort -@ $NPROC -T "$SORT_TMP/c" \
 | $MM samtools markdup -@ $NPROC --write-index - "$OUT/markdup.bam"
+rm -rf "$SORT_TMP"
 rm -f "$OUT/trimmed_R1.fastq.gz" "$OUT/trimmed_R2.fastq.gz"
 $MM samtools flagstat "$OUT/markdup.bam" | tee -a "$LOG"
 log "BAM ready: $OUT/markdup.bam"

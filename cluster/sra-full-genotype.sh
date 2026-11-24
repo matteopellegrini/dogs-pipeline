@@ -57,20 +57,22 @@ if [ ! -s "$OUT/markdup.bam" ]; then
   # nothing pairs, so align those single-end.
   pe=$(fastq-dump -X 1000 --split-spot -Z "$OUT/$run/$run.sra" 2>/dev/null | awk 'END{print (NR/4 > 1500) ? 1 : 0}')
   echo "[$(date +%T)] .sra: $(du -sh "$OUT/$run" | cut -f1)  $([ "$pe" = 1 ] && echo paired || echo single-end)"
-  fasterq-dump --split-spot --stdout -e 2 -t "$OUT/tmp" --seq-defline '@$ac.$si/$ri' --qual-defline '+' \
+  # fasterq-dump scratch and sort spills on node-local $TMPDIR (network-filesystem small files, Hoffman2 support 2026-11-24)
+  LTMP=$(mktemp -d "${TMPDIR:-/tmp}/sraf_${run}.XXXXXX")
+  fasterq-dump --split-spot --stdout -e 2 -t "$LTMP/fqd" --seq-defline '@$ac.$si/$ri' --qual-defline '+' \
       "$OUT/$run/$run.sra" 2>"$OUT/fqd.log" \
   | awk -v pe="$pe" 'NR%4==1{k=$1; sub(/\/[12]$/,"",k)} {rec[NR%4]=$0}
          NR%4==0{r=rec[1]"\n"rec[2]"\n"rec[3]"\n"rec[0]; if(!pe){print r; n++} else if(k==pk){print pr; print r; n++; pk=""} else {pr=r; pk=k}}
          END{print n+0 > "'"$OUT"'/pairs.txt"}' \
   | bwa-mem2 mem $([ "$pe" = 1 ] && echo -p) -t "$NP" -R "@RG\tID:SRA-$run\tSM:SRA-$run\tPL:ILLUMINA\tLB:WGS" "$REF" - 2>"$OUT/bwa.log" \
-  | samtools sort -n -m 400M -@ "$NP" -T "$OUT/tmp_sort" \
+  | samtools sort -n -m 400M -@ "$NP" -T "$LTMP/n" \
   | samtools fixmate -m -@ "$NP" - - \
-  | samtools sort -m 400M -@ "$NP" -T "$OUT/tmp_sort2" \
+  | samtools sort -m 400M -@ "$NP" -T "$LTMP/c" \
   | samtools markdup -@ "$NP" --write-index - "$OUT/markdup.bam.tmp" \
   && [ "$(cat "$OUT/pairs.txt" 2>/dev/null || echo 0)" -gt 1000000 ] \
   && mv "$OUT/markdup.bam.tmp" "$OUT/markdup.bam" && mv "$OUT/markdup.bam.tmp.csi" "$OUT/markdup.bam.csi" \
   || { tail -n 3 "$OUT/fqd.log" "$OUT/bwa.log"; fail "align (pairs=$(cat "$OUT/pairs.txt" 2>/dev/null))"; }
-  rm -rf "$OUT/$run" "$OUT/tmp"
+  rm -rf "$OUT/$run" "$OUT/tmp" "$LTMP"
   echo "[$(date +%T)] pairs: $(cat "$OUT/pairs.txt")  BAM: $(du -sh "$OUT/markdup.bam" | cut -f1)"
 fi
 
